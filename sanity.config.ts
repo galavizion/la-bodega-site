@@ -37,6 +37,7 @@ export default defineConfig({
                       .child(
                         S.documentList()
                           .title("Home")
+                          .apiVersion("2025-01-01")
                           .filter('_type == "page" && pageType == "home"')
                       ),
                     S.listItem()
@@ -44,6 +45,7 @@ export default defineConfig({
                       .child(
                         S.documentList()
                           .title("Servicios y Landings")
+                          .apiVersion("2025-01-01")
                           .filter('_type == "page" && pageType in ["service","landing"]')
                       ),
                     S.listItem()
@@ -91,6 +93,7 @@ export default defineConfig({
                               .child(
                                 S.documentList()
                                   .title("Pendientes")
+                                  .apiVersion("2025-01-01")
                                   .filter('_type == "order" && status == "pending"')
                               ),
                             S.listItem()
@@ -98,6 +101,7 @@ export default defineConfig({
                               .child(
                                 S.documentList()
                                   .title("Confirmados")
+                                  .apiVersion("2025-01-01")
                                   .filter('_type == "order" && status == "confirmed"')
                               ),
                             S.listItem()
@@ -105,6 +109,7 @@ export default defineConfig({
                               .child(
                                 S.documentList()
                                   .title("Enviados")
+                                  .apiVersion("2025-01-01")
                                   .filter('_type == "order" && status == "shipped"')
                               ),
                             S.listItem()
