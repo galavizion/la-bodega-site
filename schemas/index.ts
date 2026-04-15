@@ -5,6 +5,8 @@ import { post } from "./documents/post";
 import { author } from "./documents/author";
 import { category } from "./documents/category";
 import { catalogItem } from "./documents/catalogItem";
+import { productCategory } from "./documents/productCategory";
+import { order } from "./documents/order";
 
 // Objects
 import { seo } from "./objects/seo";
@@ -27,6 +29,8 @@ export const schemaTypes = [
   author,
   category,
   catalogItem,
+  productCategory,
+  order,
   // Objects
   seo,
   navItem,

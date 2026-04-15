@@ -6,6 +6,7 @@ export const homeQuery = groq`
 *[_type=="page" && pageType=="home"][0]{
   title,
   pageType,
+  background,
   seo{
     title,
     description,
@@ -97,6 +98,7 @@ export const pageBySlugQuery = groq`
   title,
   pageType,
   "slug": slug.current,
+  background,
   seo{
     title,
     description,
@@ -239,7 +241,6 @@ export const CATALOG_BY_SLUG = groq`
 `;
 
 
-// lib/queries.js
 export const SITE_SETTINGS_QUERY = groq`
 *[_type == "siteSettings"][0]{
   siteName,
@@ -253,6 +254,26 @@ export const SITE_SETTINGS_QUERY = groq`
   searchConsoleVerification,
 
   "logoUrl": logo.asset->url,
+  "logoAltUrl": logoAlt.asset->url,
+
+  topBar{
+    enabled,
+    text,
+    linkLabel,
+    linkUrl,
+    bgColor
+  },
+
+  headerSocial,
+
+  social{
+    facebook,
+    instagram,
+    linkedin,
+    youtube,
+    tiktok,
+    whatsapp
+  },
 
   cta{
     label,
@@ -261,6 +282,7 @@ export const SITE_SETTINGS_QUERY = groq`
 
   organization{
     phone,
+    whatsapp,
     email,
     sameAs
   },
@@ -278,6 +300,21 @@ export const SITE_SETTINGS_QUERY = groq`
       externalUrl,
       internalPage->{ "slug": slug.current, title }
     }
-  }
+  },
+
+  footerTagline,
+  footerColumns[]{
+    title,
+    links[]{ label, url }
+  },
+  footerLocations[]{
+    city,
+    phone,
+    whatsapp,
+    email
+  },
+  footerCtaLabel,
+  footerCtaUrl,
+  footerCopyright
 }
 `;

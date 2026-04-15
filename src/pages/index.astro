@@ -17,7 +17,7 @@ const page = await sanityFetch<any>({ query: homeQuery });
 if (!page) throw new Error("No existe una página Home en Sanity (pageType=home).");
 ---
 
-<BaseLayout title={page.title} seo={page.seo} schema={miSchema}>
+<BaseLayout title={page.title} seo={page.seo} schema={miSchema} background={page.background}>
   <main>
     <Builder sections={page.sections} />
   </main>
