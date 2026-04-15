@@ -1,0 +1,297 @@
+---
+import "../styles/global.css";
+import Header from "../components/Header.astro";
+
+import { sanityFetch } from "../lib/sanity/client";
+import { SITE_SETTINGS_QUERY } from "../lib/sanity/queries";
+
+import {
+  buildOrgSchema,
+} from "../lib/seo/jsonld";
+
+
+
+interface Props {
+  title?: string;
+  description?: string;
+  canonical?: string;
+  ogImage?: string;
+
+  seo?: {
+    title?: string;
+    description?: string;
+    canonical?: string;
+    noindex?: boolean;
+    ogImage?: {
+      asset?: {
+        url?: string;
+      };
+    };
+  };
+
+  /** JSON-LD extra por página */
+  schema?: Record<string, any> | Array<Record<string, any>>;
+}
+
+const {
+  title,
+  description,
+  canonical,
+  ogImage,
+  seo,
+  schema,
+} = Astro.props as Props;
+
+const settings = await sanityFetch<any>({ query: SITE_SETTINGS_QUERY });
+// Base
+const siteUrl =
+  settings?.siteUrl ||
+  "https://www.rankingagencia.com";
+
+// SEO final con prioridad al bloque SEO de Sanity
+const metaTitle =
+  seo?.title ||
+  title ||
+  settings?.defaultTitle ||
+  settings?.siteName ||
+  "Ranking Agencia";
+
+const metaDescription =
+  seo?.description ||
+  description ||
+  settings?.defaultDescription ||
+  "SEO y Publicidad Digital enfocados en generar ventas.";
+
+const metaCanonical =
+  seo?.canonical ||
+  canonical ||
+  "https://www.rankingagencia.com/";
+
+const metaImage =
+  seo?.ogImage?.asset?.url ||
+  ogImage ||
+  settings?.defaultOgImage?.asset?.url ||
+  `${siteUrl}/og.jpg`;
+
+const robots =
+  seo?.noindex ? "noindex,nofollow" : "index,follow";
+
+const tagManagerId = settings?.tagManagerId;
+const analyticsId = settings?.analyticsId;
+const adsenseClient = settings?.adsenseClient;
+const searchConsoleVerification = settings?.searchConsoleVerification;
+
+const gtmHeadScript = tagManagerId
+  ? `(function(w,d,s,l,i){
+      w[l]=w[l]||[];
+      w[l].push({'gtm.start': new Date().getTime(), event:'gtm.js'});
+      var f=d.getElementsByTagName(s)[0],
+          j=d.createElement(s),
+          dl=l!='dataLayer'?'&l='+l:'';
+      j.async=true;
+      j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+      f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer',${JSON.stringify(tagManagerId)});`
+  : "";
+
+const gaScript = analyticsId
+  ? `window.dataLayer = window.dataLayer || [];
+     function gtag(){dataLayer.push(arguments);}
+     gtag('js', new Date());
+     gtag('config', ${JSON.stringify(analyticsId)});`
+  : "";
+// Siempre metemos Organization + lo extra de la página
+const schemas = [
+  buildOrgSchema(siteUrl, settings),
+  ...(Array.isArray(schema) ? schema : schema ? [schema] : []),
+];
+---
+
+<!DOCTYPE html>
+<html lang="es">
+ <head>
+
+  {tagManagerId && (
+    <script is:inline set:html={gtmHeadScript}></script>
+  )}
+
+  {analyticsId && (
+    <script
+      async
+      src={`https://www.googletagmanager.com/gtag/js?id=${analyticsId}`}
+    ></script>
+  )}
+
+  {analyticsId && (
+    <script is:inline set:html={gaScript}></script>
+  )}
+
+  {searchConsoleVerification && (
+    <meta
+      name="google-site-verification"
+      content={searchConsoleVerification}
+    />
+  )}
+
+  {adsenseClient && (
+    <script
+      async
+      src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
+      crossorigin="anonymous"
+    ></script>
+  )}
+
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>{metaTitle}</title>
+
+  <meta
+    name="description"
+    content={metaDescription}
+  />
+
+  <meta
+    name="robots"
+    content={robots}
+  />
+
+  <link
+    rel="canonical"
+    href={metaCanonical}
+  />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content={metaTitle} />
+  <meta property="og:description" content={metaDescription} />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={metaCanonical} />
+  <meta property="og:image" content={metaImage} />
+
+  <!-- Schema JSON-LD -->
+  <script
+    type="application/ld+json"
+    set:html={JSON.stringify(schemas)}
+  ></script>
+
+  <script src="/scripts/cart.js" defer></script>
+
+</head>
+<body>
+
+  {tagManagerId && (
+    <noscript>
+      <iframe
+        src={`https://www.googletagmanager.com/ns.html?id=${tagManagerId}`}
+        height="0"
+        width="0"
+        style="display:none;visibility:hidden"
+      ></iframe>
+    </noscript>
+  )}
+
+  <Header />
+
+  <div class="page-wrapper">
+
+    <div class="header-spacer" aria-hidden="true"></div>
+
+    <slot />
+
+
+      <footer class="site-footer-one" role="contentinfo">
+        <div class="site-footer-one__upper">
+          <div class="container-fluid">
+            <div class="footer-grid">
+              <div class="footer-col footer-col--brand">
+                <a class="footer-logo" href="/" aria-label="Ir al inicio">
+                  <img width="200" src="/media/ranking-agencia.svg" alt="Ranking" />
+                </a>
+
+                <p class="footer-tagline">
+                  Estrategia digital enfocada en ventas: SEO + Ads + Web + conversión.
+                </p>
+
+                <div class="footer-cta">
+                  <a
+                    href="https://wa.me/18133796971?text=Quiero%20agendar%20un%20diagn%C3%B3stico%20estrat%C3%A9gico"
+                    class="footer-btn"
+                    aria-label="Agendar diagnóstico por WhatsApp"
+                  >
+                    <svg viewBox="0 0 24 24"
+                      width="24" height="24"
+                      fill="none" stroke="currentColor"
+                      stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"
+                      aria-hidden="true" focusable="false">
+                      <path d="M21 11.6a8.9 8.9 0 0 1-13.7 7.3L3 20l1.2-4.1A8.9 8.9 0 1 1 21 11.6Z"/>
+                      <g transform="translate(12 12) scale(0.75) translate(-13 -13)">
+                        <path d="M9.2 8.6c.2-.5.6-.8 1.1-.8h.2c.4 0 .8.2 1 .6l.8 1.7c.2.4.1.9-.2 1.2l-.7.7c.7 1.4 1.8 2.5 3.2 3.2l.7-.7c.3-.3.8-.4 1.2-.2l1.7.8c.4.2.6.6.6 1v.2c0 .5-.3 1-.8 1.1l-1 .3c-.6.2-1.3.1-1.9-.1-3.1-1.2-5.5-3.6-6.7-6.7-.2-.6-.3-1.3-.1-1.9l.3-1Z"/>
+                      </g>
+                    </svg>
+                    <span>Agendar diagnóstico</span>
+                  </a>
+                  <span class="footer-micro">Monterrey • Consultoría estratégica • Enfoque ROI</span>
+                </div>
+              </div>
+
+              <nav class="footer-col footer-col--links" aria-label="Enlaces del sitio">
+                <h3 class="footer-title">Explora</h3>
+                <ul class="footer-links">
+                  <li><a href="/#sistema">Sistema</a></li>
+                  <li><a href="/#servicios">Servicios</a></li>
+                  <li><a href="/blog-y-articulos-interesantes/">Artículos</a></li>
+                  <li><a href="/contacto/">Contacto</a></li>
+                </ul>
+              </nav>
+
+              <div class="footer-col footer-col--social">
+                <h3 class="footer-title">Conecta</h3>
+                <div class="footer-social" aria-label="Redes sociales">
+                  <a href="https://www.facebook.com/rankingagenciamx" aria-label="Facebook">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+                    </svg>
+                  </a>
+                  <a href="https://www.instagram.com/rankingagenciamx/" aria-label="Instagram">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="2" width="20" height="20" rx="5"/>
+                      <circle cx="12" cy="12" r="4"/>
+                      <circle cx="18" cy="6" r="1"/>
+                    </svg>
+                  </a>
+                  <a href="https://www.behance.net/rankingagencia/projects" aria-label="Behance">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 7h6a3 3 0 0 1 0 6H4z"/>
+                      <path d="M4 13h7a3 3 0 0 1 0 6H4z"/>
+                      <path d="M14 9h6"/>
+                      <path d="M14 13h6"/>
+                    </svg>
+                  </a>
+                  <a href="https://www.linkedin.com/company/rankingagencia/" aria-label="LinkedIn">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4V9h4v2"/>
+                      <rect x="2" y="9" width="4" height="12"/>
+                      <circle cx="4" cy="4" r="2"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <div class="site-footer-one__bottom">
+          <div class="container-fluid">
+            <div class="site-footer-one__bottom-line"></div>
+            <p class="footer-legal">© {new Date().getFullYear()} Ranking. Derechos reservados.</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

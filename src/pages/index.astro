@@ -1,0 +1,24 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Builder from "../components/builder/Builder.astro";
+import { sanityFetch } from "../lib/sanity/client";
+import { homeQuery } from "../lib/sanity/queries";
+
+export const prerender = true;
+
+const miSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Ranking Agencia",
+  url: "https://www.rankingagencia.com/",
+};
+
+const page = await sanityFetch<any>({ query: homeQuery });
+if (!page) throw new Error("No existe una página Home en Sanity (pageType=home).");
+---
+
+<BaseLayout title={page.title} seo={page.seo} schema={miSchema}>
+  <main>
+    <Builder sections={page.sections} />
+  </main>
+</BaseLayout>

@@ -1,0 +1,114 @@
+---
+import PortableTextRenderer from "../PortableTextRenderer.astro";
+import { urlFor } from "../../lib/sanity/image";
+
+const {
+  title,
+  layout = "full",
+  image,
+  imageSide = "right",
+  content = [],
+  settings = {},
+  sectionId
+} = Astro.props;
+
+const theme = settings?.background || "transparent";
+const imgUrl = image ? urlFor(image).width(1200).url() : null;
+const hasSplit = layout === "split" && imgUrl;
+---
+
+<section id={sectionId} class={`section section--${theme} content-split`}>
+  <div class="container">
+    {!hasSplit ? (
+      <div class="content-split__single">
+        {title && <h2>{title}</h2>}
+        <div class="content-split__text">
+          <PortableTextRenderer value={content} />
+        </div>
+      </div>
+    ) : (
+      <div class="content-split__grid">
+        {imageSide === "left" && (
+          <div class="content-split__media">
+            <img src={imgUrl} alt={title || ""} loading="lazy" />
+          </div>
+        )}
+
+        <div class="content-split__content">
+          {title && <h2>{title}</h2>}
+          <div class="content-split__text">
+            <PortableTextRenderer value={content} />
+          </div>
+        </div>
+
+        {imageSide === "right" && (
+          <div class="content-split__media">
+            <img src={imgUrl} alt={title || ""} loading="lazy" />
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .content-split{
+    padding: 70px 0;
+  }
+
+  .content-split__single{
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .content-split__grid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+
+  .content-split__content h2,
+  .content-split__single h2{
+    margin: 0 0 16px;
+    font-size: clamp(28px, 3vw, 42px);
+    line-height: 1.08;
+  }
+
+  .content-split__text{
+    line-height: 1.65;
+  }
+
+  .content-split__media img{
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.08);
+  }
+
+  .section--transparent .content-split__content h2,
+  .section--transparent .content-split__single h2{
+    color: #fff;
+  }
+
+  .section--transparent .content-split__text{
+    color: rgba(255,255,255,.88);
+  }
+
+  .section--light .content-split__content h2,
+  .section--light .content-split__single h2{
+    color: #111;
+  }
+
+  .section--light .content-split__text{
+    color: rgba(15,23,42,.85);
+  }
+
+  @media (max-width: 900px){
+    .content-split__grid{
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+  }
+</style>

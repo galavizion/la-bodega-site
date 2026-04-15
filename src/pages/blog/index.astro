@@ -1,0 +1,193 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { sanity, urlFor } from "../../lib/sanity";
+
+type PostRow = {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  publishedAt?: string;
+  mainImage?: any;
+  categories?: { title?: string }[]; // según template blog
+  body?: any[];
+};
+
+const POSTS_LIST = /* groq */ `
+*[_type=="post" && defined(slug.current)]
+| order(publishedAt desc){
+  _id,
+  title,
+  "slug": slug.current,
+  excerpt,
+  publishedAt,
+  mainImage,
+  categories[]->{
+    title
+  },
+  body
+}
+`;
+
+const posts = await sanity.fetch<PostRow[]>(POSTS_LIST);
+const safePosts = posts ?? [];
+
+const SITE = "https://www.rankingagencia.com";
+const canonical = `${SITE}/blog/`;
+
+const getReadingMinutes = (body?: any[]) => {
+  if (!Array.isArray(body)) return 3;
+  // cuenta texto dentro de bloques portable text
+  const text = body
+    .filter((b) => b?._type === "block" && Array.isArray(b.children))
+    .map((b) => b.children.map((c: any) => c.text || "").join(" "))
+    .join(" ");
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const minutes = Math.max(3, Math.round(words / 180)); // 180 wpm aprox
+  return minutes;
+};
+
+const getTag = (p: PostRow) => p.categories?.[0]?.title || "Insights";
+
+const cardImg = (p: PostRow) =>
+  p.mainImage ? urlFor(p.mainImage).width(900).height(600).fit("crop").url() : "/og.jpg";
+
+// ✅ helpers SEO/schema
+const postUrl = (p: PostRow) => `${SITE}/blog/${p.slug}/`;
+
+const postImage1200 = (p: PostRow) =>
+  p.mainImage ? urlFor(p.mainImage).width(1200).height(630).fit("crop").url() : `${SITE}/og.jpg`;
+
+const toISO = (d?: string) => (d ? new Date(d).toISOString() : "");
+
+// ✅ JSON-LD: Blog (blogPost[])
+const blogSchema: any = {
+  "@context": "https://schema.org",
+  "@type": "Blog",
+  "@id": `${canonical}#blog`,
+  name: "Ranking Insights",
+  url: canonical,
+  inLanguage: "es-MX",
+  description: "Artículos para crecer con estrategia.",
+  publisher: {
+    "@type": "Organization",
+    name: "Ranking Agencia",
+    url: SITE,
+  },
+  blogPost: safePosts.map((p) => ({
+    "@type": "BlogPosting",
+    "@id": `${postUrl(p)}#post`,
+    url: postUrl(p),
+    headline: p.title,
+    description: p.excerpt ?? "",
+    inLanguage: "es-MX",
+    ...(p.publishedAt ? { datePublished: toISO(p.publishedAt) } : {}),
+    ...(p.mainImage ? { image: [postImage1200(p)] } : {}),
+  })),
+};
+
+// ✅ JSON-LD: ItemList (lista clásica)
+const itemListSchema: any = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "@id": `${canonical}#itemlist`,
+  itemListOrder: "https://schema.org/ItemListOrderDescending",
+  numberOfItems: safePosts.length,
+  itemListElement: safePosts.map((p, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    url: postUrl(p),
+    name: p.title,
+  })),
+};
+---
+
+<BaseLayout
+  title="Blog | Ranking Agencia"
+  description="Artículos para crecer con estrategia."
+  canonical={canonical}
+>
+  <!-- ✅ Schema: Blog + ItemList (no toca diseño) -->
+  <script type="application/ld+json" is:inline>
+    {JSON.stringify(blogSchema)}
+  </script>
+  <script type="application/ld+json" is:inline>
+    {JSON.stringify(itemListSchema)}
+  </script>
+
+  <main>
+    <section class="library" id="biblioteca">
+      <div class="container">
+        <header class="library__head">
+          <div class="library__title">
+            <p class="library__kicker"><span>Ranking Insights</span></p>
+            <h1 class="library__h1">Biblioteca de artículos (sin relleno)</h1>
+            <p class="library__desc">
+              SEO, Ads, ecommerce, analítica e IA. Ideas aplicables para tomar decisiones y vender más.
+            </p>
+
+            <div class="library__chips" role="tablist" aria-label="Filtros de artículos">
+              <a class="library-chip is-active" href="/blog/" role="tab" aria-selected="true">Todo</a>
+              <a class="library-chip" href="/categoria/seo/" role="tab">SEO</a>
+              <a class="library-chip" href="/categoria/google-ads/" role="tab">Ads</a>
+              <a class="library-chip" href="/categoria/ecommerce/" role="tab">Ecommerce</a>
+              <a class="library-chip" href="/categoria/ia/" role="tab">IA</a>
+              <a class="library-chip" href="/categoria/analitica/" role="tab">Analítica</a>
+            </div>
+          </div>
+
+          <div class="library__cta">
+            <a class="library-btn library-btn--primary" href="/contacto/">Quiero una asesoría</a>
+            <a
+              class="library-btn library-btn--ghost"
+              href="https://wa.me/18133796971?text=Quiero%20agendar%20un%20diagn%C3%B3stico%20estrat%C3%A9gico"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              WhatsApp
+            </a>
+          </div>
+        </header>
+
+        <div class="library__grid">
+          {safePosts.length === 0 ? (
+            <p>No hay artículos publicados todavía.</p>
+          ) : (
+            safePosts.map((p) => (
+              <article class="library-card">
+                <a class="library-card__media" href={`/blog/${p.slug}/`}>
+                  <img src={cardImg(p)} alt={p.title} loading="lazy" />
+                </a>
+
+                <div class="library-card__body">
+                  <div class="library-meta">
+                    <span class="library-meta__tag">{getTag(p)}</span>
+                    <span class="library-meta__dot">•</span>
+                    <span class="library-meta__read">{getReadingMinutes(p.body)} min</span>
+                  </div>
+
+                  <h3 class="library-card__title">
+                    <a href={`/blog/${p.slug}/`}>{p.title}</a>
+                  </h3>
+
+                  {p.excerpt && <p class="library-card__text">{p.excerpt}</p>}
+
+                  <a class="library-link" href={`/blog/${p.slug}/`}>
+                    Leer artículo <span aria-hidden="true">→</span>
+                  </a>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+
+        <footer class="library__foot">
+          <div class="library__note">
+            <strong>Tip:</strong> Si quieres resultados rápidos: Ads + landing + medición. Si quieres estabilidad: SEO + contenido.
+          </div>
+          <a class="library-btn library-btn--ghost" href="/contacto/">Aplicarlo en mi negocio</a>
+        </footer>
+      </div>
+    </section>
+  </main>
+</BaseLayout>

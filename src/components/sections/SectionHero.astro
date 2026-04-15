@@ -1,0 +1,176 @@
+---
+import { urlFor } from "../../lib/sanity/image";
+const {
+  heading,
+  subheading,
+  bullets,
+  image,
+  primaryCta,
+  secondaryCta,
+   
+} = Astro.props;
+
+// 🔒 bullets puede venir undefined / string[] / objetos (PortableText u otro)
+// Lo convertimos a string[] sí o sí.
+const safeBullets: string[] = Array.isArray(bullets)
+  ? bullets
+      .map((x) => {
+        if (typeof x === "string") return x;
+
+        // Intentos comunes si llega como objeto
+        if (typeof x?.text === "string") return x.text;
+        if (Array.isArray(x?.children) && typeof x.children?.[0]?.text === "string") return x.children[0].text;
+ 
+        return "";
+      })
+      .filter(Boolean)
+  : [];
+
+const imgUrl = image ? urlFor(image).width(900).quality(80).auto("format").url() : null;
+const imgAlt = image?.alt ?? heading ?? "Hero";
+const { settings } = Astro.props;
+
+const theme = settings?.theme ?? "transparent";
+const sectionId = settings?.id;
+---
+<section id={sectionId} class={`section section--${theme} process`}>
+
+  <div class="container hero__grid">
+    <div class="hero__content">
+        <h1>{heading}</h1>
+         {subheading && <p class="hero__sub">{subheading}</p>}
+    
+
+   
+
+      {safeBullets.length ? (
+        <ul class="hero__bullets">
+          {safeBullets.map((b) => (
+            <li><span>{b}</span></li>
+          ))}
+        </ul>
+      ) : null}
+
+      <div class="hero__cta">
+        {primaryCta?.href ? (
+          <a class="btn btn--primary" href={primaryCta.href}>{primaryCta.label}</a>
+        ) : null}
+
+        {secondaryCta?.href ? (
+          <a class="btn btn--ghost" href={secondaryCta.href}>{secondaryCta.label}</a>
+        ) : null}
+      </div>
+    </div>
+
+    {imgUrl ? (
+      <div class="hero__visual">
+        <img src={imgUrl} alt={imgAlt} loading="eager" />
+      </div>
+    ) : null}
+  </div>
+</section>
+
+<style>
+  .hero{
+    padding: 60px 0 100px;
+    background: transparent;
+   min-height: calc(100vh - var(--header-h, 80px));
+}
+
+  .hero--transparent{
+    color:#fff;
+  }
+
+  .hero--transparent h1{
+    color:#fff;
+  }
+  .hero--light{
+    color:#111;
+    background: rgba(255,255,255,.7);
+    border-radius: 24px;
+  }
+
+  .hero__grid{
+    display:grid;
+    grid-template-columns: 1.1fr .9fr;
+    gap: 56px;
+    align-items:center;
+  }
+
+  .section--transparent  h1 {
+    font-size: clamp(38px, 5vw, 64px);
+    line-height: .9;
+    letter-spacing: -1px; color: #fff;
+    margin: 0;
+  }
+  .section--transparent  h2{
+    color: #fff;
+    
+  }
+
+
+  .hero__sub{
+    opacity:.85;
+    font-size: 18px;
+    line-height: 1.1;
+    margin-top: 20px;
+  }
+
+  .hero__bullets{
+    margin: 28px 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .hero__bullets li{
+    margin-bottom: 10px;
+    opacity: .9;
+  }
+
+  .hero__cta{
+    display:flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    padding: 14px 22px;
+    border-radius: 12px;
+    text-decoration:none;
+    font-weight: 700;
+  }
+
+  .btn--primary{
+    background:#111827;
+    color:#fff;
+  }
+
+  .btn--ghost{
+    border: 1px solid rgba(255,255,255,.25);
+    color: inherit;
+  }
+
+  .hero--light .btn--ghost{
+    border-color: rgba(0,0,0,.18);
+  }
+
+  .hero__visual img{
+    width:100%;
+    height:auto;
+    border-radius: 18px;
+    display:block;
+  }
+
+  @media (max-width: 900px){
+    .hero__grid{
+      grid-template-columns: 1fr;
+      text-align: center;
+    }
+    .hero__cta{
+      justify-content: center;
+    }
+  }
+</style>

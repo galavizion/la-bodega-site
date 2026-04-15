@@ -1,0 +1,248 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { client as sanityClient } from "../../lib/sanity/client";
+import { CATALOG_LIST } from "../../lib/sanity/queries";
+import { urlFor } from "../../lib/sanity/image";
+
+type CatalogItem = {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  category?: string;
+  coverImage?: any;
+  price?: number;
+  priceLabel?: string;
+  whatsapp?: {
+    enabled?: boolean;
+    phone?: string;
+    message?: string;
+  };
+};
+
+const items: CatalogItem[] = await sanityClient.fetch(CATALOG_LIST);
+
+const img = (src: any) =>
+  src ? urlFor(src).width(800).quality(80).auto("format").url() : null;
+
+const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
+---
+
+<BaseLayout title="Catálogo | Ranking Agencia" canonical="https://www.rankingagencia.com/catalogo/">
+  <main class="container" style="padding:40px 0;">
+    <h1>Catálogo</h1>
+    <p style="opacity:.8; max-width:70ch;">
+      Servicios, casos y recursos. Todo en un solo lugar.
+    </p>
+
+    <div class="grid">
+      {items.map((item) => {
+        const cover = img(item.coverImage);
+        const href = `/catalogo/${item.slug}/`;
+
+        return (
+          <article class="card">
+            <a class="card__link" href={href} aria-label={`Ver ${item.title}`}>
+              {cover ? <img src={cover} alt={item.title} loading="lazy" /> : null}
+
+              <div class="metax">
+                <h2 class="title">{item.title}</h2>
+
+                {item.excerpt ? <p class="description">{item.excerpt}</p> : null}
+
+                {item.price != null ? (
+                  <p class="price">{formatMXN(item.price)}</p>
+                ) : item.priceLabel ? (
+                  <p class="price">{item.priceLabel}</p>
+                ) : (
+                  <p class="price is-muted">Cotización a medida</p>
+                )}
+              </div>
+            </a>
+
+            <div class="card__actions">
+              <button
+                class="add"
+                data-add
+                data-title={item.title}
+                data-slug={item.slug}
+                data-url={href}
+                data-price={item.price ?? 0}
+                data-image={cover ?? ""}  /*  */
+                type="button"
+                aria-pressed="false"
+              >
+                Agregar
+              </button>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  </main>
+
+  <style>
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:24px;
+      margin-top:24px;
+    }
+
+    .card{
+      border-radius:20px;
+      overflow:hidden;
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.05);
+      transition: all .25s ease;
+    }
+
+    .card:hover{
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0,0,0,.08);
+    }
+
+    .card__link{
+      display:block;
+      text-decoration:none;
+      color:inherit;
+    }
+
+    .card img{
+      width:100%;
+      height:200px;
+      object-fit:cover;
+      display:block;
+      background:#dadada;
+    }
+
+    .metax{ padding:16px; }
+
+    .title{
+      margin:0;
+      font-size:18px;
+      font-weight:700;
+      color:#111827;
+      line-height:1.25;
+    }
+
+    .description{
+      margin-top:12px;
+      opacity:.75;
+      font-size:14px;
+      line-height:1.5;
+      color:#111827;
+    }
+
+    .price{
+      margin-top:10px;
+      font-weight:900;
+      font-size:18px;
+      color:#b90404;
+      text-align:right;
+    }
+
+    .price.is-muted{
+      color:#6b7280;
+      font-weight:800;
+      font-size:16px;
+    }
+
+    .card__actions{
+      padding: 0 18px 18px;
+    }
+
+    .add{
+      width:100%;
+      padding:14px;
+      border-radius:14px;
+      border:0;
+      background:#111827;
+      color:#fff;
+      font-weight:800;
+      font-size:15px;
+      cursor:pointer;
+      transition:.2s ease;
+    }
+
+    .add:hover{
+      background:#1f2937;
+      transform: translateY(-1px);
+    }
+
+    /* ✅ estado agregado */
+    .add.is-added{
+      background: rgba(17,24,39,.12);
+      color:#111827;
+      border: 1px solid rgba(17,24,39,.25);
+    }
+    .add.is-added:hover{
+      background: rgba(17,24,39,.16);
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 900px){
+      .grid{ grid-template-columns: 1fr; }
+      .card img{ height:220px; }
+    }
+  </style>
+
+  <script is:inline>
+    (() => {
+      const KEY = "ranking_cart_v1";
+
+      const getCart = () => {
+        try { return JSON.parse(localStorage.getItem(KEY) || "[]"); }
+        catch { return []; }
+      };
+
+      const inCart = (slug) => getCart().some((x) => x?.slug === slug);
+
+      const setBtnState = (btn, added) => {
+        if (!btn) return;
+        if (added) {
+          btn.textContent = "Agregado ✅";
+          btn.classList.add("is-added");
+          btn.setAttribute("aria-pressed", "true");
+        } else {
+          btn.textContent = "Agregar";
+          btn.classList.remove("is-added");
+          btn.setAttribute("aria-pressed", "false");
+        }
+      };
+
+      const paintAll = () => {
+        document.querySelectorAll("[data-add]").forEach((b) => {
+          const slug = b.getAttribute("data-slug") || "";
+          setBtnState(b, slug && inCart(slug));
+        });
+      };
+
+      document.addEventListener("click", (e) => {
+        const btn = e.target?.closest?.("[data-add]");
+        if (!btn) return;
+
+        const title = btn.getAttribute("data-title") || "";
+        const slug = btn.getAttribute("data-slug") || "";
+        const url = btn.getAttribute("data-url") || "";
+        const image = btn.getAttribute("data-image") || "";
+const price = Number(btn.getAttribute("data-price") || 0);
+
+        if (!slug) return;
+
+        // si ya está en carrito, solo deja el estado marcado
+        if (inCart(slug)) {
+          setBtnState(btn, true);
+          return;
+        }
+
+        window.Cart?.addItem({ title, slug, url, image,  price });
+        setBtnState(btn, true);
+      });
+
+      window.addEventListener("cart:updated", paintAll);
+
+      paintAll();
+    })();
+  </script>
+</BaseLayout>

@@ -1,0 +1,109 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { sanity, urlFor } from "../../lib/sanity";
+import { SERVICES_LIST } from "../../lib/serviceQueries";
+
+type ServiceCard = {
+  _id: string;
+  title: string;
+  slug: string;
+  kicker?: string;
+  excerpt?: string;
+  coverImage?: any;
+  featured?: boolean;
+};
+
+const SITE = "https://www.rankingagencia.com";
+const canonical = `${SITE}/servicios/`;
+
+const services = await sanity.fetch<ServiceCard[]>(SERVICES_LIST);
+const safe = services ?? [];
+
+const miSchema: any = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "@id": `${canonical}#collection`,
+  name: "Servicios | Ranking Agencia",
+  url: canonical,
+  description: "Servicios de SEO, Google Ads, CRO y crecimiento para negocios.",
+  inLanguage: "es-MX",
+  isPartOf: { "@type": "WebSite", "@id": `${SITE}/#website`, name: "Ranking Agencia", url: SITE },
+};
+
+const itemListSchema: any = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "@id": `${canonical}#itemlist`,
+  itemListOrder: "https://schema.org/ItemListOrderUnordered",
+  numberOfItems: safe.length,
+  itemListElement: safe.map((s, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    name: s.title,
+    url: `${SITE}/servicios/${s.slug}/`,
+  })),
+};
+---
+
+<BaseLayout
+  schema={miSchema}
+  title="Servicios | Ranking Agencia"
+  description="Servicios de SEO, Google Ads, CRO y crecimiento para negocios."
+  canonical={canonical}
+>
+  <!-- ✅ Schemas de listado (no afectan estilo) -->
+  <script type="application/ld+json" is:inline>
+    {JSON.stringify(miSchema)}
+  </script>
+  <script type="application/ld+json" is:inline>
+    {JSON.stringify(itemListSchema)}
+  </script>
+
+  <main class="container">
+    <header class="head">
+      <p class="kicker"><span>Ranking Services</span></p>
+      <h1>Servicios (con estrategia, no “paquetes”)</h1>
+      <p class="desc">
+        Cada servicio tiene un objetivo, un método y entregables claros. Cero humo.
+      </p>
+    </header>
+
+    <section class="grid">
+      {safe.map((s) => (
+        <a class="card" href={`/servicios/${s.slug}/`}>
+          {s.coverImage && (
+            <img
+              src={urlFor(s.coverImage).width(900).height(520).fit("crop").url()}
+              alt={s.title}
+              loading="lazy"
+            />
+          )}
+
+          <div class="body">
+            {s.kicker && <div class="tag">{s.kicker}</div>}
+            <h2>{s.title}</h2>
+            {s.excerpt && <p>{s.excerpt}</p>}
+            <span class="link">Ver servicio →</span>
+          </div>
+        </a>
+      ))}
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .container{max-width:1100px;margin:0 auto;padding:2.25rem 1rem;}
+  .head{margin-bottom:1.25rem}
+  .kicker span{font-weight:900;opacity:.8}
+  h1{font-size:clamp(2rem,3vw,2.6rem);line-height:1.1;margin:.4rem 0}
+  .desc{opacity:.8;max-width:70ch}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:1.25rem;}
+  .card{display:block;border:1px solid rgba(0,0,0,.08);border-radius:16px;overflow:hidden;text-decoration:none;color:inherit;background:#fff}
+  .card:hover{box-shadow:0 10px 26px rgba(0,0,0,.08);transform:translateY(-2px);transition:.12s}
+  img{width:100%;height:auto;display:block}
+  .body{padding:1rem}
+  .tag{display:inline-flex;padding:6px 10px;border-radius:999px;font-weight:900;font-size:12px;background:rgba(66,117,255,.12);margin-bottom:.6rem}
+  h2{margin:.1rem 0 .35rem;font-size:1.15rem}
+  p{margin:0 0 .8rem;opacity:.85;line-height:1.6}
+  .link{font-weight:900}
+</style>

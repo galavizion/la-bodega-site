@@ -1,0 +1,26 @@
+---
+import PortableTextRenderer from "../PortableTextRenderer.astro";
+
+type Props = {
+  title?: string;
+  content?: any[];
+};
+
+const { title, content = [] } = Astro.props;
+---
+
+<section class="py-16">
+  <div class="mx-auto max-w-4xl px-4">
+
+    {title && (
+      <h2 class="text-3xl font-bold mb-8">
+        {title}
+      </h2>
+    )}
+
+    <div class="prose prose-lg max-w-none">
+      <PortableTextRenderer value={content} />
+    </div>
+
+  </div>
+</section>

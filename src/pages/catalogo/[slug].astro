@@ -1,0 +1,348 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { client as sanityClient } from "../../lib/sanity/client";
+import { CATALOG_BY_SLUG, CATALOG_LIST } from "../../lib/sanity/queries";
+import PortableTextRenderer from "../../components/PortableTextRenderer.astro";
+import { urlFor } from "../../lib/sanity/image";
+
+export async function getStaticPaths() {
+  const items = await sanityClient.fetch(CATALOG_LIST);
+  return items.map((item: any) => ({ params: { slug: item.slug } }));
+}
+
+const { slug } = Astro.params;
+const item = await sanityClient.fetch(CATALOG_BY_SLUG, { slug });
+
+const cover = item?.coverImage
+  ? urlFor(item.coverImage).width(1600).quality(85).auto("format").url()
+  : null;
+
+const defaultPhone = "+528121087053"; // luego lo jalas de siteSettings
+const phone = item?.whatsapp?.phone || defaultPhone;
+
+const msg =
+  item?.whatsapp?.message ||
+  `Hola, quiero información de: ${item?.title ?? "un servicio"} (${Astro.url.pathname})`;
+
+const waUrl = `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`;
+
+const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
+
+const priceText =
+  item?.price != null ? formatMXN(item.price) : item?.priceLabel || "Cotización personalizada";
+
+/* =========================
+   SCHEMA AUTO (SIN TOCAR CSS)
+========================= */
+const siteUrl = "https://www.rankingagencia.com";
+const canonical = `${siteUrl}/catalogo/${slug}/`;
+const pageTitle = item?.seo?.title || item?.title || "Catálogo";
+const pageDesc =
+  item?.seo?.description ||
+  item?.excerpt ||
+  "Elemento del catálogo de Ranking Agencia.";
+// Heurística: si tu category trae "producto", usa Product. Si no, Service.
+const cat = String(item?.category || "").toLowerCase();
+const isProduct = cat.includes("producto");
+const schemaType = isProduct ? "Product" : "Service";
+
+const schema: Record<string, any> = {
+  "@context": "https://schema.org",
+  "@type": schemaType,
+  name: item?.title ?? "Servicio",
+  description: item?.excerpt ?? "Servicio del catálogo de Ranking Agencia.",
+  url: canonical,
+  
+  ...(cover ? { image: [cover] } : {}),
+  provider: {
+    "@type": "Organization",
+    name: "Ranking Agencia",
+    url: siteUrl,
+  },
+};
+
+// Offer SOLO si hay número (para no inventar precio)
+if (item?.price != null) {
+  schema.offers = {
+    "@type": "Offer",
+    price: Number(item.price),
+    priceCurrency: "MXN",
+    url: canonical,
+    availability: "https://schema.org/InStock",
+  };
+} else if (item?.priceLabel) {
+  schema.priceSpecification = {
+    "@type": "PriceSpecification",
+    description: String(item.priceLabel),
+  };
+}
+---
+
+<BaseLayout
+  title={`${pageTitle} | Ranking Agencia`}
+  description={pageDesc}
+  canonical={`https://www.rankingagencia.com/catalogo/${slug}/`}
+  seo={item?.seo}
+  schema={schema}
+>
+  <main class="container product-wrap">
+    <a class="back" href="/catalogo/">← Volver al catálogo</a>
+
+    <section class="product">
+      {/* MEDIA */}
+      <div class="product__media">
+        {cover ? (
+          <img class="product__img" src={cover} alt={item?.title} loading="eager" />
+        ) : (
+          <div class="product__img product__img--placeholder" aria-hidden="true"></div>
+        )}
+      </div>
+
+      {/* INFO */}
+      <div class="product__info">
+        {item?.category ? <span class="pill">{item.category}</span> : null}
+
+        <h1 class="product__title">{item?.title}</h1>
+
+        {item?.excerpt ? <p class="product__excerpt">{item.excerpt}</p> : null}
+
+        <div class="product__price">{priceText}</div>
+
+        <div class="product__cta">
+          <a class="btn btn--primary" href={waUrl} target="_blank" rel="noopener">
+            WhatsApp: Cotizar
+          </a>
+
+          <button
+            class="btn btn--ghost"
+            type="button"
+            data-add
+            data-title={item?.title || ""}
+            data-slug={item?.slug || slug || ""}
+            data-url={`/catalogo/${slug}/`}
+          >
+            Agregar al carrito
+          </button>
+        </div>
+
+        <div class="product__trust">
+          <div class="trust-item">
+            <strong>Respuesta rápida</strong>
+            <span>Te contestamos para aterrizar tu caso.</span>
+          </div>
+          <div class="trust-item">
+            <strong>Enfoque estratégico</strong>
+            <span>No “posts bonitos”: objetivos y resultados.</span>
+          </div>
+          <div class="trust-item">
+            <strong>Proceso claro</strong>
+            <span>Qué incluye, tiempos y entregables.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* CONTENT */}
+    <section class="product-content">
+      <h2 class="product-content__title">Detalles</h2>
+      <div class="prose">
+        {item?.body ? <PortableTextRenderer value={item.body} /> : null}
+      </div>
+    </section>
+  </main>
+
+  <script is:inline>
+    document.addEventListener("click", (e) => {
+      const btn = e.target?.closest?.("[data-add]");
+      if (!btn) return;
+
+      const title = btn.getAttribute("data-title") || "";
+      const slug = btn.getAttribute("data-slug") || "";
+      const url = btn.getAttribute("data-url") || "";
+
+      if (!slug) return;
+
+      window.Cart?.addItem({ title, slug, url });
+
+      btn.textContent = "Agregado ✅";
+      setTimeout(() => (btn.textContent = "Agregar al carrito"), 1200);
+    });
+  </script>
+
+  <style>
+  .product-wrap{
+  background:#ffffff;
+  padding: 40px 40px 70px; color:#333;
+}
+
+    .back{
+      display:inline-block;
+      opacity:.85;
+      text-decoration:none;
+      margin-bottom:16px;
+    }
+
+    .product{
+      display:grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 46px;
+      align-items:start;
+      margin-top: 8px;
+    }
+
+    .product__media{
+      position: sticky;
+      top: 18px;
+      align-self:start;
+    }
+
+    .product__img{
+      width:100%;
+      height: 420px;
+      object-fit: cover;
+      border-radius: 24px;
+      display:block;
+      box-shadow: 0 18px 40px rgba(0,0,0,.10);
+    }
+
+    .product__img--placeholder{
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.12);
+    }
+
+    .product__info{
+      padding-top: 6px;
+    }
+
+    .pill{
+      display:inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(17,24,39,.08);
+      font-size: 12px;
+      letter-spacing:.06em;
+      text-transform: uppercase;
+      opacity:.9;
+      margin-bottom: 10px;
+    }
+
+    .product__title{
+      margin: 0;
+      font-size: 38px;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+    }
+
+    .product__excerpt{
+      margin: 12px 0 0;
+      opacity: .85;
+      max-width: 60ch;
+      line-height: 1.5;
+    }
+
+    .product__price{
+      margin-top: 18px;
+      font-size: 28px;
+      font-weight: 100;
+      color: #660202;
+    }
+
+    .product__cta{
+      margin-top: 18px;
+      display:flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding: 14px 18px;
+      border-radius: 14px;
+      text-decoration:none;
+      font-weight: 100;
+      border: 0;
+      cursor: pointer;
+      transition: .2s ease;
+      user-select:none;
+    }
+
+    .btn--primary{
+      background: rgb(54 109 29);
+      color:#fff;
+    }
+    .btn--primary:hover{
+     background: rgb(62, 131, 30);
+      transform: translateY(-1px);
+    }
+
+    .btn--ghost{
+      background: rgb(62, 131, 30,.08);
+      color:#111827;
+    }
+    .btn--ghost:hover{
+      background: rgba(17,24,39,.12);
+      transform: translateY(-1px);
+    }
+
+    .product__trust{
+      margin-top: 22px;
+      display:grid;
+      gap: 10px;
+      background: rgba(255,255,255,.55);
+      border: 1px solid rgba(0,0,0,.05);
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .trust-item strong{
+      display:block;
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+    .trust-item span{
+      display:block;
+      opacity:.78;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .product-content{
+      margin-top: 46px;
+      padding-top: 26px;
+      border-top: 1px solid rgba(0,0,0,.06);
+    }
+
+    .product-content__title{
+      margin: 0 0 14px;
+      font-size: 18px;
+      letter-spacing:.02em;
+      opacity:.85;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 980px){
+      .product{
+        grid-template-columns: 1fr;
+        gap: 22px;
+      }
+      .product__media{
+        position: static;
+      }
+      .product__img{
+        height: 260px;
+        border-radius: 18px;
+      }
+      .product__title{
+        font-size: 30px;
+      }
+      .product__price{
+        font-size: 24px;
+      }
+      .btn{
+        width: 100%;
+      }
+    }
+  </style>
+</BaseLayout>

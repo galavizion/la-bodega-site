@@ -1,0 +1,35 @@
+---
+import type { SectionType } from "../registry";
+import { sectionRegistry } from "../registry";
+
+type Props = {
+  sections?: Array<Record<string, any>>;
+};
+
+const { sections = [] } = Astro.props;
+
+// Si quieres forzar Hero primero
+const sorted = [...sections].sort((a, b) => {
+  if (a?._type === "sectionHero") return -1;
+  if (b?._type === "sectionHero") return 1;
+  return 0;
+});
+
+console.log("REGISTRY KEYS:", Object.keys(sectionRegistry));
+console.log("SECTIONS:", sorted.map((s) => s?._type));
+---
+
+{sorted.map((section) => {
+  const type = section?._type as SectionType;
+  const Component = sectionRegistry[type];
+
+  if (!Component) {
+    return (
+      <section style="padding:24px; border:1px dashed #ccc; border-radius:12px;">
+        <strong>Sección no registrada:</strong> {section?._type}
+      </section>
+    );
+  }
+
+  return <Component {...section} />;
+})}

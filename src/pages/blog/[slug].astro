@@ -1,0 +1,495 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { sanity, urlFor } from "../../lib/sanity";
+import { toHTML } from "@portabletext/to-html";
+
+export const prerender = import.meta.env.PROD;
+type SlugRow = { slug: string };
+
+export async function getStaticPaths() {
+  const slugs = await sanity.fetch<SlugRow[]>(
+    `*[_type=="post" && defined(slug.current)][]{"slug": slug.current}`
+  );
+
+  return (slugs ?? []).map((s) => ({
+    params: { slug: s.slug },
+  }));
+}
+type Post = {
+  title: string;
+  excerpt?: string;
+  publishedAt?: string;
+  _updatedAt?: string;
+  mainImage?: any;
+  body?: any[];
+  faqs?: { q?: string; a?: string }[];
+  categories?: { title?: string }[];
+  author?: { name?: string; slug?: { current?: string } } | null;
+  seo?: {
+    title?: string;
+    description?: string;
+    canonical?: string;
+    noindex?: boolean;
+    ogImage?: {
+      asset?: {
+        url?: string;
+      };
+    };
+  };
+};
+
+const { slug } = Astro.params;
+const post = await sanity.fetch<Post>(
+  `*[_type=="post" && slug.current == $slug][0]{
+    title,
+    excerpt,
+    publishedAt,
+    _updatedAt,
+    mainImage,
+    body,
+    faqs[]{
+      q,
+      a
+    },
+    categories[]->{title},
+    author->{name, slug},
+    seo{
+      title,
+      description,
+      canonical,
+      noindex,
+      ogImage{
+        asset->{
+          url
+        }
+      }
+    }
+  }`,
+  { slug }
+);
+
+// SEO + meta
+const SITE = "https://www.rankingagencia.com";
+const title = post?.seo?.title || post?.title || "Artículo";
+
+const description =
+  post?.seo?.description ||
+  post?.excerpt ||
+  "Artículo de Ranking Insights.";
+
+const canonical =
+  post?.seo?.canonical ||
+  `${SITE}/blog/${slug}/`;
+
+const dateISO = post?.publishedAt ? new Date(post.publishedAt).toISOString() : "";
+const datePretty = post?.publishedAt
+  ? new Date(post.publishedAt).toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" })
+  : "";
+
+const updatedISO = post?._updatedAt ? new Date(post._updatedAt).toISOString() : "";
+
+const category = post?.categories?.[0]?.title ?? "Insights";
+const keywords = (post?.categories ?? [])
+  .map((c) => c?.title)
+  .filter(Boolean)
+  .slice(0, 8) as string[];
+
+// Reading time (aprox)
+const readingTime = (() => {
+  const body = post?.body;
+  if (!Array.isArray(body)) return null;
+  const text = body
+    .filter((b) => b?._type === "block" && Array.isArray(b.children))
+    .map((b) => b.children.map((c: any) => c.text || "").join(" "))
+    .join(" ");
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const mins = Math.max(3, Math.round(words / 180));
+  return mins;
+})();
+
+// Cover (Sanity image)
+const cover = post?.mainImage ? urlFor(post.mainImage).width(1400).height(820).fit("crop").url() : null;
+
+// Portable Text -> HTML
+const html = post?.body
+  ? toHTML(post.body, {
+      components: {
+        types: {
+          image: ({ value }: any) => {
+            const src = urlFor(value).width(1200).url();
+            const alt = value?.alt || title || "Imagen";
+            return `<img src="${src}" alt="${alt}" loading="lazy" />`;
+          },
+        },
+        marks: {
+          link: ({ children, value }: any) => {
+            const href = value?.href || "#";
+            const external = href.startsWith("http");
+            return `<a href="${href}" ${
+              external ? 'target="_blank" rel="noreferrer noopener"' : ""
+            }>${children}</a>`;
+          },
+        },
+      },
+    })
+  : "<p>Sin contenido.</p>";
+
+// ✅ Author defaults (por si no tienes author en Sanity todavía)
+const AUTHOR_NAME = post?.author?.name ?? "Ranking Agencia";
+const AUTHOR_URL =
+  post?.author?.slug?.current ? `${SITE}/autor/${post.author.slug.current}/` : SITE;
+
+// ✅ JSON-LD: Breadcrumbs (solo schema; tu breadcrumb visual ya existe)
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Inicio", item: `${SITE}/` },
+    { "@type": "ListItem", position: 2, name: "Artículos", item: `${SITE}/blog/` },
+    { "@type": "ListItem", position: 3, name: title, item: canonical },
+  ],
+};
+
+// ✅ JSON-LD: BlogPosting / Article
+const articleSchema: any = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "@id": `${canonical}#post`,
+  mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+  url: canonical,
+  headline: title,
+  description,
+  inLanguage: "es-MX",
+  articleSection: category,
+  ...(keywords?.length ? { keywords } : {}),
+  ...(dateISO ? { datePublished: dateISO } : {}),
+  ...(updatedISO ? { dateModified: updatedISO } : {}),
+  ...(cover ? { image: [cover] } : {}),
+  author:
+    AUTHOR_NAME === "Ranking Agencia"
+      ? { "@type": "Organization", name: "Ranking Agencia", url: SITE }
+      : { "@type": "Person", name: AUTHOR_NAME, url: AUTHOR_URL },
+  publisher: { "@type": "Organization", name: "Ranking Agencia", url: SITE },
+  ...(readingTime ? { timeRequired: `PT${readingTime}M` } : {}),
+};
+const faqSchema =
+  Array.isArray(post?.faqs) && post.faqs.length
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: post.faqs
+          .filter((f) => f?.q && f?.a)
+          .map((f) => ({
+            "@type": "Question",
+            name: f.q,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: f.a,
+            },
+          })),
+      }
+    : null;
+// ⚠️ AdSense
+const ADSENSE_CLIENT = "ca-pub-XXXXXXXXXXXXXXX"; // <- cámbialo
+---
+
+<BaseLayout title={title} description={description}>
+  <!-- ✅ Schema: Breadcrumb + BlogPosting (no toca diseño) -->
+ <script type="application/ld+json" is:inline>
+  {JSON.stringify(breadcrumbSchema)}
+</script>
+<script type="application/ld+json" is:inline>
+  {JSON.stringify(articleSchema)}
+</script>
+{faqSchema && (
+  <script type="application/ld+json" is:inline>
+    {JSON.stringify(faqSchema)}
+  </script>
+)}
+  <main class="post">
+    <div class="container">
+      <!-- Breadcrumb -->
+      <nav class="post__crumbs" aria-label="Breadcrumb">
+        <a href="/">Inicio</a>
+        <span aria-hidden="true">/</span>
+        <a href="/blog/">Artículos</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{title}</span>
+      </nav>
+
+      <section class="post__grid">
+        <!-- Columna principal -->
+        <article class="post__main">
+          <header class="post__header">
+            <div class="post__meta">
+              <span class="post__pill">{category}</span>
+              {post?.publishedAt && (
+                <>
+                  <span class="post__dot" aria-hidden="true">•</span>
+                  <time datetime={dateISO}>{datePretty}</time>
+                </>
+              )}
+              {readingTime && (
+                <>
+                  <span class="post__dot" aria-hidden="true">•</span>
+                  <span>{readingTime} min</span>
+                </>
+              )}
+            </div>
+
+            <h1 class="post__h1">{title}</h1>
+            <p class="post__desc">{description}</p>
+
+            <div class="post__actions">
+              <a class="post-btn post-btn--primary" href="/contacto/">Quiero aplicar esto</a>
+              <a
+                class="post-btn post-btn--ghost"
+                href={`https://wa.me/18133796971?text=${encodeURIComponent(`Quiero asesoría sobre: ${title}`)}`}
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                WhatsApp
+              </a>
+            </div>
+          </header>
+
+          {cover && (
+            <figure class="post__cover">
+              <img src={cover} alt={title} loading="eager" />
+            </figure>
+          )}
+
+          <!-- AdSense TOP -->
+          <div class="post__ad post__ad--top" aria-label="Anuncio">
+            <ins
+              class="adsbygoogle"
+              style="display:block"
+              data-ad-client={ADSENSE_CLIENT}
+              data-ad-slot="1111111111"
+              data-ad-format="auto"
+              data-full-width-responsive="true"
+            ></ins>
+          </div>
+
+          <!-- Contenido -->
+          <div class="post__content" set:html={html}></div>
+
+          <!-- AdSense MID -->
+          <div class="post__ad post__ad--mid" aria-label="Anuncio">
+            <ins
+              class="adsbygoogle"
+              style="display:block"
+              data-ad-client={ADSENSE_CLIENT}
+              data-ad-slot="2222222222"
+              data-ad-format="auto"
+              data-full-width-responsive="true"
+            ></ins>
+          </div>
+
+          <!-- CTA final -->
+          <section class="post__cta">
+            <div class="cta-box">
+              <h3>¿Lo aterrizamos a tu negocio?</h3>
+              <p>Te digo qué mover primero (SEO + Ads + CRO) para que esto se convierta en leads y ventas.</p>
+              <div class="cta-box__actions">
+                <a class="post-btn post-btn--primary" href="/contacto/">Agendar diagnóstico</a>
+                <a class="post-btn post-btn--ghost" href="/seo/">SEO</a>
+                <a class="post-btn post-btn--ghost" href="/google-ads/">Google Ads</a>
+              </div>
+            </div>
+          </section>
+
+          <!-- AdSense BOTTOM -->
+          <div class="post__ad post__ad--bottom" aria-label="Anuncio">
+            <ins
+              class="adsbygoogle"
+              style="display:block"
+              data-ad-client={ADSENSE_CLIENT}
+              data-ad-slot="3333333333"
+              data-ad-format="auto"
+              data-full-width-responsive="true"
+            ></ins>
+          </div>
+        </article>
+
+        <!-- Sidebar -->
+        <aside class="post__side">
+          <div class="side-card">
+            <h3>Servicios</h3>
+            <p>El blog es gratis. La estrategia no 😄</p>
+
+            <div class="side-links">
+              <a class="side-link" href="/seo/">SEO estratégico</a>
+              <a class="side-link" href="/google-ads/">Google Ads</a>
+              <a class="side-link" href="/cro/">CRO (conversión)</a>
+              <a class="side-link" href="/#servicios/">Web / Ecommerce</a>
+              <a class="side-link" href="/#servicios/">Redes sociales</a>
+            </div>
+
+            <a class="post-btn post-btn--primary post-btn--full" href="/contacto/">Pedir propuesta</a>
+          </div>
+
+          <div class="side-card">
+            <h3>Tip rápido</h3>
+            <p>
+              Si estás empezando: <strong>1 landing</strong> + <strong>1 oferta</strong> + <strong>medición</strong>.
+              Luego ya escalas SEO.
+            </p>
+          </div>
+        </aside>
+      </section>
+    </div>
+  </main>
+
+  <!-- ✅ AdSense loader (una vez por página) -->
+  <script
+    is:inline
+    async
+    src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+    crossorigin="anonymous"
+  ></script>
+
+  <!-- ✅ Dispara los bloques (safe: evita errores si AdSense no corre en dev) -->
+  <script is:inline>
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch (e) {
+      // noop (dev / adblock)
+    }
+  </script>
+
+  <style>
+    .post{ padding: 90px 0; }
+    .post .container{ padding: 20px; background-color: #ffffffc0;}
+    .post__crumbs{ display:flex; gap:10px; flex-wrap:wrap; font-size:13px; opacity:.85; margin-bottom:16px; }
+    .post__crumbs a{ font-weight:800; }
+
+    .post__grid{
+      display:grid;
+      grid-template-columns: 1fr 320px;
+      gap: 18px;
+      align-items:start;
+    }
+
+    .post__main{ min-width: 0; }
+    .post__header{
+      background: rgba(255,255,255,.92);
+      border: 1px solid rgba(0,0,0,.10);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.06);
+    }
+
+    .post__meta{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:13px; opacity:.85; }
+    .post__pill{ display:inline-flex; padding:6px 10px; border-radius:999px; font-weight:900; font-size:12px; background: rgba(66,117,255,.12); }
+    .post__dot{ opacity:.6; }
+
+    .post__h1{ margin: 14px 0 10px; font-size: clamp(30px, 3.2vw, 46px); line-height: 1.08; }
+    .post__desc{ margin:0; max-width: 70ch; opacity:.9; line-height: 1.6; }
+
+    .post__actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 16px; }
+
+    .post-btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:12px 16px; border-radius:14px; font-weight:900; text-decoration:none;
+    }
+    .post-btn--primary{ background: var(--thm-primary); color:#fff; }
+    .post-btn--ghost{ background: transparent; border:1px solid rgba(0,0,0,.14); }
+    .post-btn--full{ width:100%; }
+
+    .post__cover{ margin: 16px 0 0; }
+    .post__cover img{
+      width:100%; height:auto; display:block;
+      border-radius: 18px; border:1px solid rgba(0,0,0,.10);
+      box-shadow: 0 8px 30px rgba(0,0,0,.06);
+    }
+
+    .post__ad{
+      margin: 16px 0 0;
+      background: rgba(255,255,255,.70);
+      border: 1px dashed rgba(0,0,0,.18);
+      border-radius: 18px;
+      padding: 12px;
+      min-height: 90px;
+    }
+
+    .post__content{
+      margin-top: 16px;
+      background: rgba(255,255,255,.92);
+      border: 1px solid rgba(0,0,0,.10);
+      border-radius: 18px;
+      padding: 26px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.06);
+    }
+
+    .post__content :global(h2){ margin: 26px 0 10px; font-size: 24px; line-height: 1.15; }
+    .post__content :global(h3){ margin: 20px 0 8px; font-size: 20px; line-height: 1.2; }
+    .post__content :global(p){ margin: 0 0 14px; line-height: 1.75; }
+    .post__content :global(ul){ margin: 0 0 14px; padding-left: 18px; }
+    .post__content :global(li){ margin: 0 0 8px; line-height: 1.7; }
+    .post__content :global(a){ font-weight: 900; text-decoration: underline; text-underline-offset: 3px; }
+    .post__content :global(blockquote){
+      margin: 18px 0;
+      padding: 14px 16px;
+      border-left: 4px solid rgba(66,117,255,.55);
+      background: rgba(66,117,255,.08);
+      border-radius: 14px;
+    }
+    .post__content :global(code){
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.95em;
+      background: rgba(0,0,0,.06);
+      padding: 2px 6px;
+      border-radius: 8px;
+    }
+    .post__content :global(pre){
+      overflow:auto;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(0,0,0,.08);
+      border: 1px solid rgba(0,0,0,.12);
+    }
+
+    .post__cta{ margin-top: 16px; }
+    .cta-box{
+      border: 1px solid rgba(0,0,0,.10);
+      background: rgba(255,255,255,.92);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.06);
+    }
+    .cta-box h3{ margin: 0 0 8px; }
+    .cta-box p{ margin: 0 0 14px; opacity: .9; line-height: 1.6; }
+    .cta-box__actions{ display:flex; gap:10px; flex-wrap:wrap; }
+
+    .post__side{ position: sticky; top: 92px; }
+    .side-card{
+      background: rgba(255,255,255,.92);
+      border: 1px solid rgba(0,0,0,.10);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.06);
+      margin-bottom: 12px;
+    }
+    .side-card h3{ margin: 0 0 8px; }
+    .side-card p{ margin: 0 0 12px; opacity: .9; line-height: 1.6; }
+
+    .side-links{ display:grid; gap: 8px; margin-bottom: 12px; }
+    .side-link{
+      display:block;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(0,0,0,.10);
+      background: rgba(0,0,0,.02);
+      font-weight: 800;
+    }
+
+    @media (max-width: 991px){
+      .post{ padding: 72px 0; }
+      .post__grid{ grid-template-columns: 1fr; }
+      .post__side{ position: static; top:auto; }
+    }
+  </style>
+</BaseLayout>

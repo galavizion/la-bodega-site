@@ -1,0 +1,40 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Builder from "../components/builder/Builder.astro";
+import { sanityFetch } from "../lib/sanity/client";
+import { allPageSlugsQuery, pageBySlugQuery } from "../lib/sanity/queries";
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const all = await sanityFetch<{ slug: string; pageType: string }[]>({
+    query: allPageSlugsQuery,
+  });
+
+  const filtered = all.filter((p) => p.pageType !== "home");
+
+  return filtered.map((p) => ({
+    params: { slug: p.slug },
+    props: { pageType: p.pageType },
+  }));
+}
+
+const slug = Astro.params.slug;
+const page = await sanityFetch<any>({
+  query: pageBySlugQuery,
+  params: { slug },
+});
+
+if (!page) throw new Error(`Page not found: ${slug}`);
+
+const schema = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: page.title,
+  url: `https://www.rankingagencia.com/${slug}/`,
+};
+---
+
+<BaseLayout title={page.title} schema={schema}>
+  <Builder sections={page.sections} />
+</BaseLayout>

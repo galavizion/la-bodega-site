@@ -1,0 +1,474 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const defaultPhone = "+528121087053"; // luego lo jalas de siteSettings
+const waBase = `https://wa.me/${defaultPhone.replace(/\D/g, "")}`;
+---
+
+<BaseLayout title="Carrito | Ranking Agencia" canonical="https://www.rankingagencia.com/carrito/">
+  <main class="container cart-wrap">
+    <header class="cart-head">
+      <div>
+        <h1 class="cart-title">Carrito</h1>
+        <p class="cart-sub">Arma tu cotización y envíala por WhatsApp. Rápido y sin fricción.</p>
+      </div>
+
+      <div class="cart-actions">
+        <a class="btn btn--ghost" href="/catalogo/">Seguir viendo</a>
+        <button class="btn btn--danger" type="button" data-clear>Vaciar</button>
+      </div>
+    </header>
+
+    <section class="cart-card">
+      <div class="cart-list" data-cart-list>
+        <!-- JS render -->
+      </div>
+
+      <footer class="cart-footer">
+       <div class="cart-summary">
+  <div class="sum-row">
+    <span>Items</span>
+    <strong data-sum-items>0</strong>
+  </div>
+  <div class="sum-row">
+    <span>Unidades</span>
+    <strong data-sum-qty>0</strong>
+  </div>
+  <div class="sum-row">
+    <span>Total estimado</span>
+    <strong data-sum-total>$0 MXN</strong>
+  </div>
+</div>
+        <a
+          class="btn btn--primary"
+          data-wa
+          href={`${waBase}?text=${encodeURIComponent("Hola, quiero cotizar lo siguiente:")}`}
+          target="_blank"
+          rel="noopener"
+        >
+          Enviar por WhatsApp
+        </a>
+      </footer>
+    </section>
+
+    <p class="cart-note">
+      Tip: el mensaje incluye “Mis datos” para que lo llenes rápido en WhatsApp.
+    </p>
+  </main>
+
+  <script is:inline>
+    (() => {
+      const KEY = "ranking_cart_v1";
+
+      const listEl = document.querySelector("[data-cart-list]");
+      const waBtn = document.querySelector("[data-wa]");
+      const sumItems = document.querySelector("[data-sum-items]");
+      const sumQty = document.querySelector("[data-sum-qty]");
+const sumTotal = document.querySelector("[data-sum-total]");
+      const getCart = () => {
+        try { return JSON.parse(localStorage.getItem(KEY) || "[]"); }
+        catch { return []; }
+      };
+
+      const emit = () => {
+        const items = getCart();
+        const count = items.length;
+        const totalQty = items.reduce((acc, it) => acc + (it.qty || 1), 0);
+
+        window.dispatchEvent(
+          new CustomEvent("cart:updated", { detail: { count, totalQty } })
+        );
+      };
+
+      const setCart = (items) => {
+        localStorage.setItem(KEY, JSON.stringify(items));
+        emit();
+      };
+
+      const buildWaText = (items) => {
+        const lines = [];
+        lines.push("Hola, quiero cotizar lo siguiente:");
+        lines.push("");
+
+        items.forEach((it, idx) => {
+          const qty = it.qty || 1;
+          const url = it.url || (it.slug ? `/catalogo/${it.slug}/` : "");
+          const fullUrl = url
+            ? (url.startsWith("http") ? url : `${location.origin}${url}`)
+            : "";
+
+          lines.push(`${idx + 1}) ${it.title || "Servicio"} x${qty}`);
+          if (fullUrl) lines.push(fullUrl);
+          lines.push("");
+        });
+
+        lines.push("Mis datos:");
+        lines.push("Nombre:");
+        lines.push("Empresa:");
+        lines.push("Tel:");
+        lines.push("");
+
+        return lines.join("\n");
+      };
+
+      const render = () => {
+        const items = getCart();
+const total = items.reduce((acc, it) => {
+  const price = Number(it.price || 0);
+  const qty = it.qty || 1;
+  return acc + (price * qty);
+}, 0);
+        // Summary
+        const count = items.length;
+        const totalQty = items.reduce((acc, it) => acc + (it.qty || 1), 0);
+       if (sumItems) sumItems.textContent = String(count);
+if (sumQty) sumQty.textContent = String(totalQty);
+
+if (sumTotal) {
+  sumTotal.textContent = total
+    ? `$${total.toLocaleString("es-MX")} MXN`
+    : "$0 MXN";
+}
+
+        // WhatsApp link
+        const text = items.length
+          ? buildWaText(items)
+          : "Hola, quiero cotizar. ¿Me apoyas?\n\nMis datos:\nNombre:\nEmpresa:\nTel:\n";
+
+        if (waBtn) {
+          const base = waBtn.href.split("?")[0];
+          waBtn.href = `${base}?text=${encodeURIComponent(text)}`;
+          waBtn.classList.toggle("is-disabled", items.length === 0);
+          waBtn.setAttribute("aria-disabled", items.length === 0 ? "true" : "false");
+        }
+
+        // Empty state
+        if (!listEl) return;
+        if (!items.length) {
+          listEl.innerHTML = `
+            <div class="empty">
+              <h2>Está vacío 👀</h2>
+              <p>Vete al catálogo y agrega lo que quieras cotizar.</p>
+              <a class="btn btn--primary" href="/catalogo/">Ir al catálogo</a>
+            </div>
+          `;
+          return;
+        }
+
+        // List (con imagen)
+        listEl.innerHTML = items.map((it, i) => {
+          const qty = it.qty || 1;
+          const url = it.url || (it.slug ? `/catalogo/${it.slug}/` : "#");
+          const img = it.image || it.cover || it.coverImage || "";
+
+          return `
+            <article class="row-cart" data-row data-index="${i}">
+              <a class="thumb" href="${url}" aria-label="Ver ${it.title || "Servicio"}">
+                ${
+                  img
+                    ? `<img src="${img}" alt="${it.title || "Servicio"}" loading="lazy" />`
+                    : `<div class="thumb__ph" aria-hidden="true"></div>`
+                }
+              </a>
+
+              <div class="row-main">
+                <a class="row-title" href="${url}">${it.title || "Servicio"}</a>
+                <div class="row-meta">${url}</div>
+              </div>
+
+              <div class="row-qty">
+                <button class="qty-btn" type="button" data-dec aria-label="Disminuir">−</button>
+                <span class="qty">${qty}</span>
+                <button class="qty-btn" type="button" data-inc aria-label="Aumentar">+</button>
+              </div>
+
+              <button class="row-remove" type="button" data-remove aria-label="Quitar">Quitar</button>
+            </article>
+          `;
+        }).join("");
+      };
+
+      // Delegated click handlers
+      document.addEventListener("click", (e) => {
+        const clearBtn = e.target?.closest?.("[data-clear]");
+        if (clearBtn) {
+          setCart([]);
+          render();
+          return;
+        }
+
+        const row = e.target?.closest?.("[data-row]");
+        if (!row) return;
+
+        const idx = Number(row.getAttribute("data-index"));
+        if (Number.isNaN(idx)) return;
+
+        const items = getCart();
+        const item = items[idx];
+        if (!item) return;
+
+        if (e.target?.closest?.("[data-inc]")) {
+          item.qty = (item.qty || 1) + 1;
+          items[idx] = item;
+          setCart(items);
+          render();
+          return;
+        }
+
+        if (e.target?.closest?.("[data-dec]")) {
+          const q = item.qty || 1;
+          if (q <= 1) items.splice(idx, 1);
+          else {
+            item.qty = q - 1;
+            items[idx] = item;
+          }
+          setCart(items);
+          render();
+          return;
+        }
+
+        if (e.target?.closest?.("[data-remove]")) {
+          items.splice(idx, 1);
+          setCart(items);
+          render();
+          return;
+        }
+
+        
+      });
+
+      // init
+      render();
+      emit();
+    })();
+  </script>
+
+ <style is:global>
+    .cart-wrap{ padding: 44px 0 80px; }
+
+.cart-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.cart-title{ margin:0; font-size: 34px; letter-spacing:-.02em; }
+.cart-sub{ margin:8px 0 0; opacity:.75; max-width: 70ch; }
+
+.cart-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+
+.cart-card{
+  background:#fff;
+  border-radius: 22px;
+  overflow:hidden;
+  box-shadow: 0 18px 55px rgba(0,0,0,.14);
+  color:#111827;
+}
+
+/* lista */
+.cart-list{
+  padding: 18px;
+  display:grid;
+  gap: 12px;
+}
+.row-cart{display: grid;
+grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+    align-items: center;
+}
+.row{
+  display:grid;
+  grid-template-columns: 86px 1fr auto auto;
+  gap: 14px;
+  align-items:center;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(17,24,39,.03);
+  border: 1px solid rgba(17,24,39,.08);
+}
+
+/* thumb mejor */
+.thumb img{
+  width:86px;
+  height:64px;
+  border-radius: 16px;
+  overflow:hidden;
+  display:block;
+  border: 1px solid rgba(17,24,39,.08);
+  background: rgba(255,255,255,.95);
+}
+
+.thumb img{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  display:block;
+}
+
+.thumb__ph{
+  width:100%;
+  height:100%;
+  background: linear-gradient(135deg, rgba(17,24,39,.10), rgba(17,24,39,.03));
+}
+
+/* texto */
+.row-main{
+  grid-column: 2 / 4;
+  min-width: 0;
+}
+.row-title{
+  font-weight: 900;
+  text-decoration:none;
+  color: inherit;
+  display:block;
+  line-height: 1.25;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.row-title:hover{ text-decoration: underline; }
+
+.row-meta{
+  font-size: 12px;
+  opacity:.55;
+  margin-top: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* qty */
+.row-qty{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(17,24,39,.10);
+  border-radius: 999px;
+  padding: 6px 10px; width: fit-content;
+}
+.qty{ min-width: 18px; text-align:center; font-weight: 900; }
+
+.qty-btn{
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(17,24,39,.08);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+.qty-btn:hover{ background: rgba(17,24,39,.14); }
+
+/* quitar */
+.row-remove{
+  border: 0;
+  background: transparent;
+  color: rgba(231, 0, 0, 0.65);
+  font-weight: 900;
+  cursor:pointer;
+  white-space: nowrap;
+  padding: 6px 8px;
+  border-radius: 999px;border: 1px solid rgba(255, 5, 5, 0.1);
+}
+.row-remove:hover{ text-decoration: underline; }
+
+/* footer */
+.cart-footer{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap: 16px;
+  padding: 18px;
+  border-top: 1px solid rgba(17,24,39,.08);
+  background: rgba(255,255,255,.85);
+  flex-wrap: wrap;
+}
+
+.cart-summary{
+  display:grid;
+  gap: 6px;
+  min-width: 220px;
+}
+.sum-row{
+  display:flex;
+  justify-content:space-between;
+  gap: 16px;
+  font-size: 13px;
+  opacity:.9;
+}
+
+/* buttons */
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding: 12px 16px;
+  border-radius: 14px;
+  text-decoration:none;
+  font-weight: 900;
+  border: 0;
+  cursor: pointer;
+  transition: .2s ease;
+  user-select:none;
+}
+
+.btn--primary{ background:#0f8604; color:#fff; }
+.btn--primary:hover{ background:#03ac2d; transform: translateY(-1px); }
+
+.btn--ghost{ background: rgba(17, 24, 39, 0.753); color:#ffffff; }
+.btn--ghost:hover{ background: rgba(17,24,39,.12); transform: translateY(-1px); }
+
+.btn--danger{ background: rgba(224, 2, 2, 0.884); color:#ffffff; }
+.btn--danger:hover{ background: rgba(220, 38, 38, 0.459); transform: translateY(-1px); }
+
+.is-disabled{ opacity:.5; pointer-events:none; }
+
+/* empty */
+.empty{
+  padding: 40px 18px;
+  text-align:center;
+}
+.empty h2{ margin:0 0 8px; font-size: 20px; }
+.empty p{ margin:0 0 14px; opacity:.75; }
+
+.cart-note{
+  margin-top: 14px;
+  opacity:.7;
+  font-size: 13px;
+}
+
+/* mobile */
+@media (max-width: 820px){
+  .row{
+    grid-template-columns: 72px 1fr;
+    grid-template-areas:
+      "thumb main"
+      "qty qty"
+      "remove remove";
+    gap: 12px;
+  }
+
+  .thumb{ width:72px; height:58px; }
+
+  .row-main{ grid-area: main; }
+  .row-qty{
+    grid-area: qty;
+    justify-content: space-between;
+    width: 100%;
+  }
+  .row-remove{
+    grid-area: remove;
+    text-align:left;
+    padding-top: 8px;
+  }
+
+  .cart-footer .btn{ width: 100%; }
+  .cart-summary{ width:100%; }
+}
+  </style>
+</BaseLayout>

@@ -1,0 +1,34 @@
+---
+const { settings } = Astro.props;
+
+const theme = settings?.theme ?? "transparent";
+const sectionId = settings?.id;
+import { toHTML } from "@portabletext/to-html";
+
+type FAQItem = {
+  question: string;
+  answer?: any; // portable text
+};
+
+const {
+  title = "Preguntas frecuentes",
+  items = [],
+} = Astro.props as { title?: string; items?: FAQItem[] };
+
+const renderAnswer = (value: any) => (value ? toHTML(value) : "");
+---
+
+<section id={sectionId} class={`section section--${theme}`}>
+  <div class="container">
+    <h2>{title}</h2>
+
+    <div class="faq__list">
+      {items.map((it) => (
+        <details class="faq__item">
+          <summary class="faq__q">{it.question}</summary>
+          <div class="faq__a" set:html={renderAnswer(it.answer)} />
+        </details>
+      ))}
+    </div>
+  </div>
+</section>

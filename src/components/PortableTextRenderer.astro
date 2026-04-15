@@ -1,0 +1,151 @@
+---
+import React from "react";
+import { PortableText } from "@portabletext/react";
+import { urlFor } from "../lib/sanity/image";
+
+type PTProps = { value: unknown };
+const { value } = Astro.props as PTProps;
+
+type PTTypeComponentProps = { value: any };
+
+const components = {
+  types: {
+    image: ({ value }: PTTypeComponentProps) => {
+      const src = value
+        ? urlFor(value).width(1400).quality(85).auto("format").url()
+        : "";
+      const alt = value?.alt || "Imagen";
+
+      if (!src) return null;
+
+      return React.createElement("img", {
+        className: "pt-image",
+        src,
+        alt,
+        loading: "lazy",
+      });
+    },
+
+    gallery: ({ value }: PTTypeComponentProps) => {
+      const title: string | undefined = value?.title;
+      const cols: number = Math.min(Math.max(value?.columns || 3, 2), 4);
+      const images: any[] = Array.isArray(value?.images) ? value.images : [];
+
+      const titleEl = title
+        ? React.createElement("h3", { className: "pt-gallery__title" }, title)
+        : null;
+
+      const gridItems = images
+        .map((img: any, idx: number) => {
+          const src = img
+            ? urlFor(img).width(1400).quality(85).auto("format").url()
+            : "";
+          const thumb = img
+            ? urlFor(img).width(520).quality(75).auto("format").url()
+            : "";
+          const alt = img?.alt || title || `Imagen ${idx + 1}`;
+
+          if (!src || !thumb) return null;
+
+          return React.createElement(
+            "a",
+            {
+              key: `${src}-${idx}`,
+              className: "pt-gallery__item",
+              href: src,
+              "data-gallery": "",
+            } as any,
+            React.createElement("img", {
+              src: thumb,
+              alt,
+              loading: "lazy",
+            })
+          );
+        })
+        .filter(Boolean);
+
+      const gridEl = React.createElement(
+        "div",
+        { className: "pt-gallery__grid" },
+        gridItems as any
+      );
+
+      return React.createElement(
+        "section",
+        {
+          className: "pt-gallery",
+          "data-cols": String(cols),
+        } as any,
+        titleEl,
+        gridEl
+      );
+    },
+  },
+} as const;
+---
+
+<div class="prose" data-pt>
+  <PortableText value={value as any} components={components as any} />
+</div>
+
+<script is:inline>
+  (() => {
+    const root = document.querySelector("[data-pt]");
+    if (!root) return;
+
+    const links = root.querySelectorAll("a[data-gallery]");
+    if (!links.length) return;
+
+    if (document.querySelector(".lightbox")) return;
+
+    const overlay = document.createElement("div");
+    overlay.className = "lightbox";
+    overlay.innerHTML = `
+      <button class="lightbox__close" aria-label="Cerrar">✕</button>
+      <img class="lightbox__img" alt="" />
+    `;
+    document.body.appendChild(overlay);
+
+    const imgEl = overlay.querySelector(".lightbox__img");
+    const closeBtn = overlay.querySelector(".lightbox__close");
+
+    const open = (src, alt) => {
+      if (!imgEl) return;
+      imgEl.src = src;
+      imgEl.alt = alt || "";
+      overlay.classList.add("is-open");
+      document.documentElement.classList.add("no-scroll");
+    };
+
+    const close = () => {
+      overlay.classList.remove("is-open");
+      document.documentElement.classList.remove("no-scroll");
+      if (imgEl) {
+        imgEl.src = "";
+        imgEl.alt = "";
+      }
+    };
+
+    root.addEventListener("click", (e) => {
+      const a = e.target?.closest?.("a[data-gallery]");
+      if (!a) return;
+      e.preventDefault();
+      const img = a.querySelector("img");
+      open(a.getAttribute("href"), img?.getAttribute("alt"));
+    });
+
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) close();
+    });
+
+    closeBtn?.addEventListener("click", close);
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") close();
+    });
+  })();
+</script>
+
+<style>
+  /* (tu CSS igual) */
+</style>

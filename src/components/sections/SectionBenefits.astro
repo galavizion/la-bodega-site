@@ -1,0 +1,120 @@
+---
+type Theme = "transparent" | "light";
+
+type SectionSettings = {
+  theme?: Theme;
+  id?: string;
+};
+
+// Lo que puede venir desde Sanity / legacy
+type BenefitItemInput =
+  | string
+  | {
+      title?: string;
+      description?: string;
+      highlight?: string;
+      icon?: string;
+    }
+  | null
+  | undefined;
+
+type Props = {
+  title?: string;
+  subtitle?: string;
+  items?: BenefitItemInput[] | null;
+  theme?: Theme; // legacy
+  settings?: SectionSettings;
+};
+
+// Tipo final limpio (sin undefined)
+type NormalizedBenefitItem = {
+  title: string;
+  description: string;
+  highlight: string;
+  icon: string;
+};
+
+const props = Astro.props as Props;
+
+const title = props.title ?? "";
+const subtitle = props.subtitle ?? "";
+const themeLegacy = props.theme ?? "light";
+const settings = props.settings;
+
+const resolvedTheme: Theme = settings?.theme ?? themeLegacy ?? "light";
+const sectionId: string | undefined = settings?.id;
+
+const rawItems: BenefitItemInput[] = Array.isArray(props.items) ? props.items : [];
+
+// ✅ Normalización “a prueba de TS”
+const normalizedItems: NormalizedBenefitItem[] = rawItems
+  .filter((it): it is Exclude<BenefitItemInput, null | undefined> => it != null)
+  .map((it): NormalizedBenefitItem => {
+    if (typeof it === "string") {
+      return { title: it, description: "", highlight: "", icon: "" };
+    }
+
+    return {
+      title: (it.title ?? "").trim(),
+      description: (it.description ?? "").trim(),
+      highlight: (it.highlight ?? "").trim(),
+      icon: (it.icon ?? "").trim(),
+    };
+  })
+  .filter((it) => it.title.length > 0);
+
+const hasStructured = normalizedItems.some(
+  (x) => x.description.length > 0 || x.highlight.length > 0 || x.icon.length > 0
+);
+
+// Icon registry sin broncas
+const ICONS: Record<string, string> = {
+  seo: "↗",
+  sem: "◎",
+  redes: "✦",
+  web: "⌁",
+  analytics: "◷",
+  cro: "◉",
+};
+
+function getIcon(key: string): string | null {
+  const k = key.trim().toLowerCase();
+  return ICONS[k] ?? null;
+}
+---
+
+<section id={sectionId} class={`section section--${resolvedTheme} benefits`}>
+  <div class="container benefits__container">
+    <header class="benefits__header">
+      {title && <h2 class="benefits__title">{title}</h2>}
+      {subtitle && <p class="benefits__subtitle">{subtitle}</p>}
+    </header>
+
+    {normalizedItems.length ? (
+      hasStructured ? (
+        <div class="benefits__grid">
+          {normalizedItems.map((item) => {
+            const icon = item.icon ? getIcon(item.icon) : null;
+            return (
+              <article class="benefits__card">
+                <div class="benefits__cardTop">
+                  {item.highlight && <span class="benefits__badge">{item.highlight}</span>}
+                  {icon && <span class="benefits__icon" aria-hidden="true">{icon}</span>}
+                </div>
+
+                <h3 class="benefits__cardTitle">{item.title}</h3>
+                {item.description && <p class="benefits__cardText">{item.description}</p>}
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <ul class="benefits__list">
+          {normalizedItems.map((item) => (
+            <li>{item.title}</li>
+          ))}
+        </ul>
+      )
+    ) : null}
+  </div>
+</section>

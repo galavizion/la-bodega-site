@@ -1,0 +1,131 @@
+---
+import { urlFor } from "../../lib/sanity/image";
+
+const { title, steps = [], settings } = Astro.props;
+
+const theme = settings?.theme ?? "transparent";
+const sectionId = settings?.id;
+
+const safeSteps = Array.isArray(steps) ? steps : [];
+---
+
+<section id={sectionId} class={`section section--${theme} process`}>
+  <div class="container">
+    {title && <h2 class="process__title">{title}</h2>}
+
+    {safeSteps.length ? (
+      <div class="process__grid">
+        {safeSteps.map((step, i) => {
+          const iconUrl = step?.icon ? urlFor(step.icon).width(120).quality(80).auto("format").url() : null;
+          const stepTitle = step?.title ?? `Paso ${i + 1}`;
+          const stepDesc = step?.description ?? "";
+
+          return (
+          <article class="process__step">
+  <div class="process__number">{String(i + 1).padStart(2, "0")}</div>
+
+  <div class="process__content">
+    <h3>{stepTitle}</h3>
+    <p>{stepDesc}</p>
+  </div>
+
+  {iconUrl && (
+    <img class="process__icon" src={iconUrl} alt={stepTitle} />
+  )}
+</article>
+          );
+        })}
+      </div>
+    ) : (
+      <p class="process__empty">No hay pasos configurados en esta sección.</p>
+    )}
+  </div>
+</section>
+
+<style>
+ .process__step {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  align-items: center;
+  gap: 30px;
+  padding: 30px 40px;
+  margin-bottom: 20px;
+
+  border-radius: 999px; /* 👈 PÍLDORA */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+
+  transition: transform .3s ease, box-shadow .3s ease;
+}
+
+/* Hover elegante */
+.process__step:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 40px rgba(0,0,0,.15);
+}
+
+/* Modo light */
+.section--light .process__step {
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(0,0,0,.08);
+}
+
+/* Número en círculo */
+.process__number {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 1px;
+  background: rgba(255,255,255,.15);
+}
+
+.section--light .process__number {
+  background: rgba(0,0,0,.06);
+}
+
+/* Texto */
+.process__content h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.process__content p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  opacity: .85;
+}
+
+/* Icono flotando */
+.process__icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  opacity: .7;
+  transition: transform .3s ease;
+}
+
+.process__step:hover .process__icon {
+  transform: translateX(6px);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .process__step {
+    grid-template-columns: 60px 1fr;
+    border-radius: 24px;
+  }
+
+  .process__icon {
+    display: none;
+  }
+}
+</style>

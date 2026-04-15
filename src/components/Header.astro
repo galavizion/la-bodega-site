@@ -1,0 +1,250 @@
+---
+import { sanityClient } from "../lib/sanity";
+import { resolveHref } from "../lib/nav";
+import { SITE_SETTINGS_QUERY } from "../lib/sanity/queries";
+import type { NavItem } from "../lib/types";
+
+const settings = await sanityClient.fetch(SITE_SETTINGS_QUERY);
+const nav: NavItem[] = settings?.navigation ?? [];
+---
+
+<header class="site-header" data-header>
+  <nav class="main-nav container">
+    <a class="logo" href="/" aria-label="Ir al inicio">
+      {settings?.logoUrl ? (
+        <img src={settings.logoUrl} alt="Ranking Agencia" width="180" height="40" loading="eager" />
+      ) : (
+        "Logo"
+      )}
+    </a>
+
+    {/* Acciones derecha (desktop) */}
+    <div class="nav-actions">
+      
+
+      <button
+        class="menu-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="mainMenu"
+        data-menu-toggle
+      >
+        ☰
+        <span class="sr-only">Abrir menú</span>
+      </button>
+    </div>
+
+    <ul class="menu" id="mainMenu" data-menu>
+      {nav.map((item: NavItem) => {
+        const hasChildren = !!item.children?.length;
+
+        return (
+          <li class={hasChildren ? "has-submenu" : undefined}>
+            {hasChildren ? (
+              <>
+                <button class="submenu-toggle" type="button" aria-expanded="false" data-submenu-toggle>
+                  {item.label}
+                  <span class="chev" aria-hidden="true">▾</span>
+                </button>
+
+                <ul class="submenu" data-submenu>
+                  {item.children!.map((child: NavItem) => (
+                    <li>
+                      <a href={resolveHref(child)}>{child.label}</a>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <a href={resolveHref(item)}>{item.label}</a>
+            )}
+          </li>
+        );
+      })}
+
+      {settings?.cta?.url ? (
+        <li class="menu-cta">
+          <a class="cta" href={settings.cta.url}>
+            {settings.cta.label ?? "Agendar"}
+          </a>
+        </li>
+      ) : null}
+    </ul>
+<a class="nav-cart" href="/carrito/" aria-label="Ver carrito">
+        <span class="nav-cart__icon" aria-hidden="true">🛒</span>
+        <span class="nav-cart__badge" data-cart-badge hidden>0</span>
+      </a>
+
+  </nav>
+</header>
+
+<div class="header-spacer" aria-hidden="true"></div>
+
+<script is:inline>
+  (() => {
+    const header = document.querySelector("[data-header]");
+    const spacer = document.querySelector(".header-spacer");
+    if (!header || !spacer) return;
+
+    // --- spacer auto (para header fixed) ---
+    const setSpacer = () => {
+      const h = header.offsetHeight;
+      spacer.style.height = `${h}px`;
+      document.documentElement.style.setProperty("--header-h", `${h}px`);
+    };
+
+    setSpacer();
+    window.addEventListener("resize", setSpacer);
+
+    const mo = new MutationObserver(setSpacer);
+    mo.observe(header, { attributes: true, childList: true, subtree: true });
+
+    // --- menú móvil / dropdowns ---
+    const toggle = header.querySelector("[data-menu-toggle]");
+    const menu = header.querySelector("[data-menu]");
+    if (!toggle || !menu) return;
+
+    const submenuToggles = header.querySelectorAll("[data-submenu-toggle]");
+
+    const closeDropdowns = () => {
+      submenuToggles.forEach((b) => b.setAttribute("aria-expanded", "false"));
+    };
+
+    const closeMenu = () => {
+      toggle.setAttribute("aria-expanded", "false");
+      menu.classList.remove("is-open");
+      document.documentElement.classList.remove("menu-open");
+      closeDropdowns();
+      setSpacer();
+    };
+
+    const openMenu = () => {
+      toggle.setAttribute("aria-expanded", "true");
+      menu.classList.add("is-open");
+      document.documentElement.classList.add("menu-open");
+      setSpacer();
+    };
+
+    toggle.addEventListener("click", () => {
+      const expanded = toggle.getAttribute("aria-expanded") === "true";
+      expanded ? closeMenu() : openMenu();
+    });
+
+    submenuToggles.forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const expanded = btn.getAttribute("aria-expanded") === "true";
+        closeDropdowns();
+        btn.setAttribute("aria-expanded", expanded ? "false" : "true");
+        setSpacer();
+      });
+    });
+
+    header.querySelectorAll("a").forEach((a) => {
+      a.addEventListener("click", () => closeMenu());
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeMenu();
+    });
+
+    document.addEventListener("click", (e) => {
+      const target = e.target;
+      if (!(target instanceof Node)) return;
+      if (!header.contains(target)) {
+        closeDropdowns();
+        if (toggle.getAttribute("aria-expanded") === "true") closeMenu();
+      }
+    });
+
+    window.matchMedia("(min-width: 901px)").addEventListener("change", () => {
+      closeMenu();
+    });
+  })();
+</script>
+
+{/* ✅ Badge carrito */}
+<script is:inline>
+  (() => {
+    const badge = document.querySelector("[data-cart-badge]");
+    if (!badge) return;
+
+    const KEY = "ranking_cart_v1";
+
+    const getCount = () => {
+      try {
+        const items = JSON.parse(localStorage.getItem(KEY) || "[]");
+        return Array.isArray(items) ? items.length : 0;
+      } catch {
+        return 0;
+      }
+    };
+
+    const render = (count) => {
+      if (!count) {
+        badge.hidden = true;
+        badge.textContent = "0";
+      } else {
+        badge.hidden = false;
+        badge.textContent = String(count);
+      }
+    };
+
+    // init
+    render(getCount());
+
+    // live updates desde cart.js (detail.count)
+    window.addEventListener("cart:updated", (e) => {
+      const c = e?.detail?.count;
+      render(typeof c === "number" ? c : getCount());
+    });
+
+    // sync entre pestañas
+    window.addEventListener("storage", (e) => {
+      if (e.key === KEY) render(getCount());
+    });
+  })();
+</script>
+
+<style>
+  .nav-actions{
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .nav-cart{
+    position: relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    text-decoration:none;
+    color: inherit;
+  }
+
+  .nav-cart:hover{
+    background: rgba(255,255,255,.08);
+  }
+
+  .nav-cart__badge{
+    position:absolute;
+    top: 6px;
+    right: 6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #111827;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    line-height: 1;
+  }
+</style>
