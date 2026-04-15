@@ -21,8 +21,23 @@ function slugify(text: string): string {
     .replace(/--+/g, "-");
 }
 
+/**
+ * Parsea especificaciones técnicas desde string.
+ * Formato: "Presión Max:300 PSI, Temperatura:180°F"
+ */
+function parseSpecs(raw: string) {
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => {
+      const [label, ...rest] = s.split(":");
+      return { _type: "object", _key: crypto.randomUUID(), label: label.trim(), value: rest.join(":").trim() };
+    });
+}
+
 export const POST: APIRoute = async ({ request }) => {
-  // Solo en dev o con token de acceso
   if (!import.meta.env.DEV && !import.meta.env.SANITY_WRITE_TOKEN) {
     return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401 });
   }
@@ -39,47 +54,103 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: "Campo 'title' requerido" }), { status: 400 });
   }
 
-  const slug = slugify(row.sku ? String(row.sku) : title);
-
-  // Buscar si ya existe por SKU o slug
-  const existing = await client.fetch(
-    `*[_type=="catalogItem" && (slug.current==$slug || sku==$sku)][0]._id`,
-    { slug, sku: String(row.sku || "") }
-  );
+  // El slug del producto se basa en el SKU principal o el título
+  const productSlug = slugify(row.sku ? String(row.sku) : title);
 
   const tags = row.tags
     ? String(row.tags).split(",").map((t: string) => t.trim()).filter(Boolean)
     : [];
 
-  const doc: Record<string, unknown> & { _type: "catalogItem" } = {
-    _type: "catalogItem",
-    title,
-    slug: { _type: "slug", current: slug },
-    sku: String(row.sku || ""),
-    excerpt: String(row.excerpt || ""),
-    brand: String(row.brand || ""),
-    tags,
-    price: row.price ? Number(row.price) : undefined,
-    comparePrice: row.comparePrice ? Number(row.comparePrice) : undefined,
-    stock: row.stock !== undefined ? Number(row.stock) : 0,
-    published: true,
-    whatsapp: row.whatsappPhone
-      ? {
-          enabled: true,
-          phone: String(row.whatsappPhone),
-          message: String(row.whatsappMessage || `Hola, me interesa: ${title}`),
-        }
-      : undefined,
-  };
+  const certifications = row.certifications
+    ? String(row.certifications).split(",").map((c: string) => c.trim().toLowerCase()).filter(Boolean)
+    : [];
+
+  // ── Construir variante si hay datos de variante en la fila ──
+  const hasVariant = row.variant_sku || row.variant_size || row.variant_price;
+  const variant = hasVariant
+    ? {
+        _type: "object" as const,
+        _key: crypto.randomUUID(),
+        sku:          String(row.variant_sku   || ""),
+        size:         String(row.variant_size  || ""),
+        label:        String(row.variant_label || ""),
+        price:        row.variant_price ? Number(row.variant_price) : undefined,
+        comparePrice: row.variant_comparePrice ? Number(row.variant_comparePrice) : undefined,
+        stock:        row.variant_stock !== undefined ? Number(row.variant_stock) : 0,
+        specifications: parseSpecs(String(row.variant_specs || "")),
+      }
+    : null;
+
+  // ── Buscar si el producto ya existe (por SKU principal o título exacto) ──
+  const existingId: string | null = await client.fetch(
+    `*[_type=="catalogItem" && (slug.current==$slug || sku==$sku || title==$title)][0]._id`,
+    { slug: productSlug, sku: String(row.sku || ""), title }
+  );
 
   try {
-    if (existing) {
-      await client.patch(existing).set(doc).commit();
-      return new Response(JSON.stringify({ action: "actualizado", id: existing }), { status: 200 });
+    if (existingId) {
+      // ── Actualizar campos base ──────────────────────────
+      await client.patch(existingId).set({
+        title,
+        sku:    String(row.sku    || ""),
+        brand:  String(row.brand  || ""),
+        excerpt: String(row.excerpt || ""),
+        tags,
+        certifications,
+        published: true,
+        ...(row.whatsappPhone ? {
+          whatsapp: {
+            enabled: true,
+            phone:   String(row.whatsappPhone),
+            message: String(row.whatsappMessage || `Hola, me interesa: ${title}`),
+          },
+        } : {}),
+      }).commit();
+
+      // ── Agregar variante si no existe ya por SKU ────────
+      if (variant) {
+        const existing = await client.fetch<string[]>(
+          `*[_type=="catalogItem" && _id==$id][0].variants[].sku`,
+          { id: existingId }
+        );
+        const existingSkus: string[] = existing ?? [];
+
+        if (!existingSkus.includes(variant.sku)) {
+          await client.patch(existingId).append("variants", [variant]).commit();
+          return new Response(JSON.stringify({ action: "variante agregada", id: existingId }), { status: 200 });
+        } else {
+          return new Response(JSON.stringify({ action: "variante ya existe (omitida)", id: existingId }), { status: 200 });
+        }
+      }
+
+      return new Response(JSON.stringify({ action: "actualizado", id: existingId }), { status: 200 });
+
     } else {
+      // ── Crear producto nuevo ────────────────────────────
+      const doc: Record<string, unknown> & { _type: "catalogItem" } = {
+        _type: "catalogItem",
+        title,
+        slug: { _type: "slug", current: productSlug },
+        sku:    String(row.sku    || ""),
+        brand:  String(row.brand  || ""),
+        excerpt: String(row.excerpt || ""),
+        tags,
+        certifications,
+        published: true,
+        variants: variant ? [variant] : [],
+        ...(row.whatsappPhone ? {
+          whatsapp: {
+            enabled: true,
+            phone:   String(row.whatsappPhone),
+            message: String(row.whatsappMessage || `Hola, me interesa: ${title}`),
+          },
+        } : {}),
+      };
+
       const created = await client.create(doc);
       return new Response(JSON.stringify({ action: "creado", id: created._id }), { status: 200 });
     }
+
   } catch (e: any) {
     return new Response(JSON.stringify({ error: e?.message ?? "Error Sanity" }), { status: 500 });
   }

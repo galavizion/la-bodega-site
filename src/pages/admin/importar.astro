@@ -145,10 +145,18 @@ if (!isDev) {
         ⬇️ Descargar plantilla Excel
       </a>
       <p class="cols-info">
-        Columnas soportadas:<br/>
-        <code>title</code> · <code>sku</code> · <code>price</code> · <code>comparePrice</code> ·
-        <code>stock</code> · <code>category</code> · <code>brand</code> · <code>excerpt</code> ·
-        <code>tags</code> (separadas por coma) · <code>whatsappPhone</code> · <code>whatsappMessage</code>
+        <strong>Producto (campos base):</strong><br/>
+        <code>title</code> · <code>sku</code> · <code>brand</code> · <code>excerpt</code> ·
+        <code>tags</code> · <code>certifications</code> · <code>whatsappPhone</code> · <code>whatsappMessage</code>
+        <br/><br/>
+        <strong>Variante (una fila por variante):</strong><br/>
+        <code>variant_sku</code> · <code>variant_size</code> · <code>variant_label</code> ·
+        <code>variant_price</code> · <code>variant_comparePrice</code> · <code>variant_stock</code> ·
+        <code>variant_specs</code>
+        <br/><br/>
+        <strong>Formato variant_specs:</strong> <code>Presión Max:300 PSI, Temperatura:180°F, Material:Hierro</code><br/>
+        <strong>Formato tags / certifications:</strong> separados por coma — <code>ul, fm, nom</code><br/>
+        <strong>Filas con mismo title/sku</strong> = mismo producto, se agregan como variantes adicionales.
       </p>
     </div>
 
