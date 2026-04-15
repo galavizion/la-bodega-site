@@ -23,7 +23,9 @@
     "swiper": "^12.1.2"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.8",
     "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3"
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3"
   }
 }

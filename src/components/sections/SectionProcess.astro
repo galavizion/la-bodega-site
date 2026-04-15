@@ -1,4 +1,5 @@
 ---
+import { Image } from "astro:assets";
 import { urlFor } from "../../lib/sanity/image";
 
 const { title, steps = [], settings } = Astro.props;
@@ -30,7 +31,7 @@ const safeSteps = Array.isArray(steps) ? steps : [];
   </div>
 
   {iconUrl && (
-    <img class="process__icon" src={iconUrl} alt={stepTitle} />
+    <Image class="process__icon" src={iconUrl} alt={stepTitle} width={80} height={80} loading="lazy" decoding="async" />
   )}
 </article>
           );

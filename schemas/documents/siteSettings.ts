@@ -4,7 +4,6 @@ export const siteSettings = defineType({
   name: "siteSettings",
   title: "Configuración del sitio",
   type: "document",
-  __experimental_actions: ["update", "publish"],
   fields: [
     defineField({ name: "siteName", title: "Nombre del sitio", type: "string" }),
     defineField({ name: "siteUrl", title: "URL del sitio", type: "url" }),

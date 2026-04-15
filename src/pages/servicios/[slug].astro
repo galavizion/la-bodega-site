@@ -149,24 +149,12 @@ const miSchema: any = {
 ---
 
 <BaseLayout
-  schema={miSchema}
+  schema={[miSchema, breadcrumbSchema, serviceSchema, ...(faqSchema ? [faqSchema] : [])]}
   title={`${pageTitle} | Ranking Agencia`}
   description={pageDesc}
   canonical={canonical}
   seo={service?.seo}
 >
-  <!-- ✅ Schemas extra (no afectan estilo) -->
-  <script type="application/ld+json" is:inline>
-    {JSON.stringify(breadcrumbSchema)}
-  </script>
-  <script type="application/ld+json" is:inline>
-    {JSON.stringify(serviceSchema)}
-  </script>
-  {faqSchema && (
-    <script type="application/ld+json" is:inline>
-      {JSON.stringify(faqSchema)}
-    </script>
-  )}
 
   <main class="container">
     {!service?.title ? (

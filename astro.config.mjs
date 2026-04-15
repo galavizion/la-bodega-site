@@ -3,8 +3,11 @@ import react from "@astrojs/react";
 import sanity from "@sanity/astro";
 
 export default defineConfig({
-  output: "static",
+  output: "server",
   trailingSlash: "always",
+  image: {
+    domains: ["cdn.sanity.io"],
+  },
   integrations: [
     react(),
     sanity({
@@ -12,6 +15,7 @@ export default defineConfig({
       dataset: "production",
       useCdn: false,
       studioBasePath: "/studio",
+      sanityConfig: "./sanity.config.ts",
     }),
   ],
 });

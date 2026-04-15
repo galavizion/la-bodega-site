@@ -46,18 +46,11 @@ const itemListSchema: any = {
 ---
 
 <BaseLayout
-  schema={miSchema}
+  schema={[miSchema, itemListSchema]}
   title="Servicios | Ranking Agencia"
   description="Servicios de SEO, Google Ads, CRO y crecimiento para negocios."
   canonical={canonical}
 >
-  <!-- ✅ Schemas de listado (no afectan estilo) -->
-  <script type="application/ld+json" is:inline>
-    {JSON.stringify(miSchema)}
-  </script>
-  <script type="application/ld+json" is:inline>
-    {JSON.stringify(itemListSchema)}
-  </script>
 
   <main class="container">
     <header class="head">

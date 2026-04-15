@@ -103,17 +103,11 @@ const itemListSchema: any = {
 ---
 
 <BaseLayout
+  schema={[blogSchema, itemListSchema]}
   title="Blog | Ranking Agencia"
   description="Artículos para crecer con estrategia."
   canonical={canonical}
 >
-  <!-- ✅ Schema: Blog + ItemList (no toca diseño) -->
-  <script type="application/ld+json" is:inline>
-    {JSON.stringify(blogSchema)}
-  </script>
-  <script type="application/ld+json" is:inline>
-    {JSON.stringify(itemListSchema)}
-  </script>
 
   <main>
     <section class="library" id="biblioteca">

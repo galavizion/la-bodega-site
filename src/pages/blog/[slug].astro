@@ -193,19 +193,12 @@ const faqSchema =
 const ADSENSE_CLIENT = "ca-pub-XXXXXXXXXXXXXXX"; // <- cámbialo
 ---
 
-<BaseLayout title={title} description={description}>
-  <!-- ✅ Schema: Breadcrumb + BlogPosting (no toca diseño) -->
- <script type="application/ld+json" is:inline>
-  {JSON.stringify(breadcrumbSchema)}
-</script>
-<script type="application/ld+json" is:inline>
-  {JSON.stringify(articleSchema)}
-</script>
-{faqSchema && (
-  <script type="application/ld+json" is:inline>
-    {JSON.stringify(faqSchema)}
-  </script>
-)}
+<BaseLayout
+  schema={[breadcrumbSchema, articleSchema, ...(faqSchema ? [faqSchema] : [])]}
+  title={title}
+  description={description}
+  canonical={canonical}
+>
   <main class="post">
     <div class="container">
       <!-- Breadcrumb -->
