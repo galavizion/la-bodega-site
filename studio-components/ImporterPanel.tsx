@@ -19,7 +19,7 @@ export function ImporterPanel() {
         productos en Sanity. Abre la herramienta de importación en una nueva pestaña.
       </p>
       <a
-        href="/admin/importar"
+        href="/admin/importar/"
         target="_blank"
         rel="noopener noreferrer"
         style={{
