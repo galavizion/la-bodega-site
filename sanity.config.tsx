@@ -2,6 +2,7 @@ import { defineConfig } from "sanity";
 import { structureTool } from "sanity/structure";
 import { visionTool } from "@sanity/vision";
 import { schemaTypes } from "./schemas";
+import { ImporterPanel } from "./studio-components/ImporterPanel";
 
 export default defineConfig({
   projectId: "a7b3q6z9",
@@ -122,7 +123,7 @@ export default defineConfig({
                       .child(
                         S.component()
                           .title("Importar desde Excel")
-                          .component(() => null) // placeholder — se maneja en /admin/importar
+                          .component(ImporterPanel)
                       ),
                   ])
               ),

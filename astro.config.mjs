@@ -15,7 +15,7 @@ export default defineConfig({
       dataset: "production",
       useCdn: false,
       studioBasePath: "/studio",
-      sanityConfig: "./sanity.config.ts",
+      sanityConfig: "./sanity.config.tsx",
     }),
   ],
 });
