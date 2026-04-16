@@ -4,17 +4,18 @@
 :root{
   --thm-font: 'Poppins', sans-serif;
   --heading-font: 'Poppins', sans-serif;
---bg: #00000025;
-  --thm-base: #ff57a4;
-  --thm-base-rgb: 255, 87, 164;
-  --thm-primary: #4275ff;
-  --thm-primary-rgb: 66, 117, 255;
+  --bg: #00000025;
+  --thm-base: #ef4444;
+  --thm-base-rgb: 239, 68, 68;
+  --thm-primary: #ef4444;
+  --thm-primary-rgb: 239, 68, 68;
+  --color-accent: #ef4444;
 
-  --thm-black: #42495b;
-  --thm-black-rgb: 66, 73, 91;
+  --thm-black: #1e293b;
+  --thm-black-rgb: 30, 41, 59;
 
-  --thm-gray: #7b86f1;
-  --thm-gray-rgb: 123, 134, 241;
+  --thm-gray: #64748b;
+  --thm-gray-rgb: 100, 116, 139;
 
   /* Layout */
   --bp-sm: 576px;
@@ -58,8 +59,8 @@ body{
   line-height: 1.35;
 
   background: linear-gradient(
-    -75deg, 
-   #16b988, #e73c7e, #23a6d5, #332b79);
+    -75deg,
+    #1e293b, #7f1d1d, #1e293b, #450a0a);
 
  
   background-size: 450% 450%;

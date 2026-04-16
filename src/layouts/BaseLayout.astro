@@ -75,7 +75,7 @@ const settings = await sanityFetch<any>({ query: SITE_SETTINGS_QUERY });
 // Base
 const siteUrl =
   settings?.siteUrl ||
-  "https://www.rankingagencia.com";
+  "https://www.labodegadelinstalador.net";
 
 // SEO final con prioridad al bloque SEO de Sanity
 const metaTitle =
@@ -83,18 +83,18 @@ const metaTitle =
   title ||
   settings?.defaultTitle ||
   settings?.siteName ||
-  "Ranking Agencia";
+  "La Bodega del Instalador";
 
 const metaDescription =
   seo?.description ||
   description ||
   settings?.defaultDescription ||
-  "SEO y Publicidad Digital enfocados en generar ventas.";
+  "Materiales y suministros para instaladores profesionales.";
 
 const metaCanonical =
   seo?.canonical ||
   canonical ||
-  "https://www.rankingagencia.com/";
+  "https://www.labodegadelinstalador.net/";
 
 const metaImage =
   seo?.ogImage?.asset?.url ||
