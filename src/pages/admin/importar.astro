@@ -199,7 +199,8 @@ if (!isDev) {
       const buffer = await file.arrayBuffer();
       const wb = XLSX.read(buffer, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+      // range:1 → salta la primera fila (título del template) y usa la segunda como encabezados
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: "", range: 1 });
 
       parsedRows = rows;
       renderPreview(rows.slice(0, 5));
