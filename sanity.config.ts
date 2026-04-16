@@ -3,6 +3,7 @@ import { structureTool } from "sanity/structure";
 import { visionTool } from "@sanity/vision";
 import { schemaTypes } from "./schemas";
 import { ImporterPanel } from "./studio-components/ImporterPanel";
+import { ProductManagerPanel } from "./studio-components/ProductManagerPanel";
 
 export default defineConfig({
   projectId: "a7b3q6z9",
@@ -79,7 +80,22 @@ export default defineConfig({
                   .items([
                     S.listItem()
                       .title("📦 Productos")
-                      .child(S.documentTypeList("catalogItem").title("Productos")),
+                      .child(
+                        S.list()
+                          .title("Productos")
+                          .items([
+                            S.listItem()
+                              .title("📋 Lista de productos")
+                              .child(S.documentTypeList("catalogItem").title("Productos")),
+                            S.listItem()
+                              .title("🗂 Seleccionar y eliminar")
+                              .child(
+                                S.component()
+                                  .title("Gestionar productos")
+                                  .component(ProductManagerPanel)
+                              ),
+                          ])
+                      ),
                     S.listItem()
                       .title("🏷️ Categorías de producto")
                       .child(S.documentTypeList("productCategory").title("Categorías")),
