@@ -70,36 +70,60 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: "JSON inválido" }), { status: 400 });
   }
 
-  // ── Normalizar columnas: soporta formato nuevo (nombre/variante_*) y formato legacy ──
-  const title = String(row.nombre || row.title || "").trim();
+  // ── Normalizar columnas: búsqueda case-insensitive por si hay variación en el Excel ──
+  // Busca la clave que corresponde a "nombre" o "title" sin importar mayúsculas/espacios
+  const rowKeys = Object.keys(row);
+  const findKey = (names: string[]) =>
+    rowKeys.find((k) => names.includes(k.trim().toLowerCase())) ?? "";
+
+  const nombreKey = findKey(["nombre", "title", "name", "producto", "product"]);
+  const title = String(nombreKey ? row[nombreKey] : "").trim();
+
   if (!title) {
-    return new Response(JSON.stringify({ error: "Campo 'nombre' o 'title' requerido" }), { status: 400 });
+    return new Response(
+      JSON.stringify({ error: `Campo 'nombre' requerido. Columnas recibidas: ${rowKeys.join(", ")}` }),
+      { status: 400 }
+    );
   }
 
   // Slug basado en título (para agrupar variantes del mismo producto)
   const productSlug = slugify(title);
 
-  const brand = String(row.marca || row.brand || "").trim();
-  const excerpt = String(row.descripcion || row.excerpt || "").trim();
+  const brandKey    = findKey(["marca", "brand", "fabricante"]);
+  const excerptKey  = findKey(["descripcion", "descripción", "excerpt", "description"]);
+  const categoriaKey = findKey(["categoria", "categoría", "category"]);
+  const tagsKey     = findKey(["tags", "etiquetas"]);
+  const certKey     = findKey(["certifications", "certificaciones"]);
+  const skuKey      = findKey(["sku", "codigo", "código", "code"]);
+  const precioKey   = findKey(["precio", "price", "variant_price"]);
+  const ofertaKey   = findKey(["precio_oferta", "compare_price", "variant_comparePrice", "precio_anterior"]);
+  const dispKey     = findKey(["disponible", "stock", "variant_stock", "disponibilidad"]);
+  const v1Key       = findKey(["variante_1", "variant_1", "variante1"]);
+  const v2Key       = findKey(["variante_2", "variant_2", "variante2"]);
+  const v3Key       = findKey(["variante_3", "variant_3", "variante3"]);
 
-  // Tags: usa categoria como tag si existe, o columna tags
-  const tags: string[] = row.categoria
-    ? [String(row.categoria).trim()]
-    : row.tags
-    ? String(row.tags).split(",").map((t: string) => t.trim()).filter(Boolean)
+  const brand   = String(brandKey   ? row[brandKey]   : "").trim();
+  const excerpt = String(excerptKey ? row[excerptKey] : "").trim();
+
+  const tags: string[] = categoriaKey && row[categoriaKey]
+    ? [String(row[categoriaKey]).trim()]
+    : tagsKey && row[tagsKey]
+    ? String(row[tagsKey]).split(",").map((t: string) => t.trim()).filter(Boolean)
     : [];
 
-  const certifications: string[] = row.certifications
-    ? String(row.certifications).split(",").map((c: string) => c.trim().toLowerCase()).filter(Boolean)
+  const certifications: string[] = certKey && row[certKey]
+    ? String(row[certKey]).split(",").map((c: string) => c.trim().toLowerCase()).filter(Boolean)
     : [];
 
   // ── Construir especificaciones de variante ──────────────────────────────────
   let specifications: ReturnType<typeof specsFromString> = [];
 
-  if (row.variante_1 || row.variante_2 || row.variante_3) {
-    // Formato nuevo: columnas variante_1, variante_2, variante_3
-    for (const key of ["variante_1", "variante_2", "variante_3"]) {
-      const raw = String(row[key] || "").trim();
+  const v1 = String(v1Key ? row[v1Key] : "").trim();
+  const v2 = String(v2Key ? row[v2Key] : "").trim();
+  const v3 = String(v3Key ? row[v3Key] : "").trim();
+
+  if (v1 || v2 || v3) {
+    for (const raw of [v1, v2, v3]) {
       if (!raw) continue;
       const idx = raw.indexOf(":");
       specifications.push({
@@ -110,21 +134,19 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
   } else if (row.variant_specs) {
-    // Formato legacy: string "Presión:300 PSI, ..."
     specifications = specsFromString(String(row.variant_specs));
   }
 
   // ── Determinar size desde variante_1 (ej: "Medida: 1\"" → "1\"") ──────────
-  const firstVariante = String(row.variante_1 || row.variant_size || "").trim();
-  const variantSize = firstVariante.includes(":")
-    ? firstVariante.split(":").slice(1).join(":").trim()
-    : firstVariante;
+  const variantSize = v1.includes(":")
+    ? v1.split(":").slice(1).join(":").trim()
+    : v1;
 
   // ── Construir objeto variante ───────────────────────────────────────────────
-  const variantSku = String(row.sku || row.variant_sku || "").trim();
-  const variantPrice = row.precio ?? row.variant_price;
-  const variantCompare = row.precio_oferta ?? row.variant_comparePrice;
-  const variantStock = parseStock(row.disponible ?? row.variant_stock);
+  const variantSku   = String(skuKey  ? row[skuKey]  : row.variant_sku  || "").trim();
+  const variantPrice = precioKey ? row[precioKey] : row.variant_price;
+  const variantCompare = ofertaKey ? row[ofertaKey] : row.variant_comparePrice;
+  const variantStock = parseStock(dispKey ? row[dispKey] : row.variant_stock);
 
   const hasVariant = variantSku || variantPrice || specifications.length > 0;
   const variant = hasVariant
