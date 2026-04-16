@@ -1,4 +1,4 @@
-import type {} from "react";
+import React from "react";
 
 export function ImporterPanel() {
   return (
