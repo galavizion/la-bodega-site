@@ -4,7 +4,7 @@ import sanity from "@sanity/astro";
 
 export default defineConfig({
   output: "server",
-  trailingSlash: "always",
+  trailingSlash: "ignore",
   image: {
     domains: ["cdn.sanity.io"],
   },

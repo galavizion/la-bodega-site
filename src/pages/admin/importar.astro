@@ -243,7 +243,7 @@ if (!isDev) {
         progressFill.style.width = pct + "%";
 
         try {
-          const res = await fetch("/api/import-product/", {
+          const res = await fetch("/api/import-product", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(row),
