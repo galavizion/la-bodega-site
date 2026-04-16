@@ -198,16 +198,20 @@ if (!isDev) {
 
       const buffer = await file.arrayBuffer();
       const wb = XLSX.read(buffer, { type: "array" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      // range:1 → salta la primera fila (título del template) y usa la segunda como encabezados
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: "", range: 1 });
+      // Busca la hoja "Catalogo" / "Catálogo" / "Products"; si no existe usa la primera
+      const sheetName =
+        wb.SheetNames.find((n) =>
+          /cat[aá]logo|products|productos/i.test(n)
+        ) ?? wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
 
       parsedRows = rows;
-      renderPreview(rows.slice(0, 5));
+      renderPreview(rows.slice(0, 5), sheetName);
       importBtn.disabled = rows.length === 0;
     });
 
-    function renderPreview(rows) {
+    function renderPreview(rows, sheetName) {
       if (!rows.length) return;
       const keys = Object.keys(rows[0]);
       const thead = `<tr>${keys.map(k => `<th>${k}</th>`).join("")}</tr>`;
@@ -217,7 +221,7 @@ if (!isDev) {
 
       previewEl.style.display = "block";
       previewEl.innerHTML = `
-        <p style="font-size:13px;opacity:.6;margin:0 0 10px">${parsedRows.length} filas detectadas — mostrando primeras ${rows.length}</p>
+        <p style="font-size:13px;opacity:.6;margin:0 0 10px">Hoja: <strong>${sheetName}</strong> · ${parsedRows.length} filas detectadas — mostrando primeras ${rows.length}</p>
         <div style="overflow-x:auto"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>
       `;
     }
