@@ -1,3 +1,5 @@
+import type {} from "react";
+
 export function ImporterPanel() {
   return (
     <div
