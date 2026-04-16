@@ -1,0 +1,370 @@
+---
+export const prerender = false;
+
+const isDev = import.meta.env.DEV;
+if (!isDev) {
+  return Astro.redirect("/");
+}
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestionar productos</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      margin: 0;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    h1 { font-size: 24px; margin: 0 0 8px; }
+    .sub { opacity: .6; margin: 0 0 28px; font-size: 14px; }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .toolbar select {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.15);
+      color: inherit;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn:disabled { opacity: .35; cursor: not-allowed; }
+    .btn-ghost  { background: rgba(255,255,255,.08); color: inherit; }
+    .btn-ghost:hover:not(:disabled)  { background: rgba(255,255,255,.14); }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .btn-danger:hover:not(:disabled) { opacity: .85; }
+    .btn-primary { background: #4275ff; color: #fff; }
+    .btn-primary:hover:not(:disabled) { opacity: .85; }
+
+    .count-badge {
+      background: #4275ff;
+      color: #fff;
+      border-radius: 99px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 22px;
+      text-align: center;
+    }
+
+    .card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead { background: rgba(255,255,255,.06); }
+    th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.06); }
+    th { font-size: 11px; text-transform: uppercase; opacity: .5; font-weight: 600; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.03); }
+    tr.selected td { background: rgba(66,117,255,.1); }
+
+    input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; accent-color: #4275ff; }
+
+    .tag {
+      display: inline-block;
+      background: rgba(255,255,255,.1);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 11px;
+      margin: 1px;
+    }
+
+    .loading { text-align: center; padding: 60px; opacity: .4; }
+
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      display: none;
+      z-index: 999;
+    }
+    #toast.ok  { background: #22c55e; color: #fff; }
+    #toast.err { background: #ef4444; color: #fff; }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.6);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 16px;
+      padding: 28px;
+      max-width: 400px;
+      width: 90%;
+    }
+    .modal h3 { margin: 0 0 12px; font-size: 18px; }
+    .modal p  { margin: 0 0 24px; opacity: .7; font-size: 14px; line-height: 1.6; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🗂 Gestionar productos</h1>
+    <p class="sub">Selecciona uno o varios productos para eliminarlos de Sanity.</p>
+
+    <div class="toolbar">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="selectAll" />
+        Seleccionar todos
+      </label>
+
+      <select id="groupFilter">
+        <option value="">— Filtrar por grupo —</option>
+      </select>
+
+      <button class="btn btn-ghost" id="selectGroupBtn" disabled>Seleccionar grupo</button>
+
+      <span style="flex:1"></span>
+
+      <span id="selectedCount" class="count-badge" style="display:none">0</span>
+      <button class="btn btn-danger" id="deleteBtn" disabled>🗑 Eliminar seleccionados</button>
+    </div>
+
+    <div class="card">
+      <div class="loading" id="loading">Cargando productos…</div>
+      <table id="table" style="display:none">
+        <thead>
+          <tr>
+            <th style="width:36px"></th>
+            <th>Nombre</th>
+            <th>Marca</th>
+            <th>Categoría / Tags</th>
+            <th>Variantes</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal de confirmación -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <h3>¿Eliminar productos?</h3>
+      <p id="modalMsg">Se eliminarán los productos seleccionados de Sanity. Esta acción no se puede deshacer.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="modalCancel">Cancelar</button>
+        <button class="btn btn-danger" id="modalConfirm">Sí, eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script is:inline>
+    const SANITY_PROJECT = document.currentScript?.dataset?.project || "";
+
+    let allProducts = [];
+    let selected = new Set();
+
+    const tbody       = document.getElementById("tbody");
+    const tableEl     = document.getElementById("table");
+    const loadingEl   = document.getElementById("loading");
+    const selectAll   = document.getElementById("selectAll");
+    const groupFilter = document.getElementById("groupFilter");
+    const selectGroup = document.getElementById("selectGroupBtn");
+    const deleteBtn   = document.getElementById("deleteBtn");
+    const countBadge  = document.getElementById("selectedCount");
+    const modal       = document.getElementById("modal");
+    const modalMsg    = document.getElementById("modalMsg");
+    const modalCancel = document.getElementById("modalCancel");
+    const modalConfirm= document.getElementById("modalConfirm");
+    const toast       = document.getElementById("toast");
+
+    // ── Cargar productos desde Sanity GROQ ──────────────
+    async function loadProducts() {
+      const projectId = "a7b3q6z9";
+      const dataset   = "production";
+      const query = encodeURIComponent(
+        `*[_type=="catalogItem"] | order(_createdAt desc) {
+          _id, title, brand, tags, published,
+          "variantCount": count(variants)
+        }`
+      );
+      const url = `https://${projectId}.api.sanity.io/v2025-01-01/data/query/${dataset}?query=${query}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      return json.result ?? [];
+    }
+
+    async function init() {
+      try {
+        allProducts = await loadProducts();
+      } catch(e) {
+        loadingEl.textContent = "Error al cargar productos.";
+        return;
+      }
+
+      loadingEl.style.display = "none";
+      tableEl.style.display = "table";
+
+      // Poblar filtro de grupos (tags únicos)
+      const allTags = [...new Set(allProducts.flatMap(p => p.tags ?? []))].sort();
+      allTags.forEach(tag => {
+        const opt = document.createElement("option");
+        opt.value = tag;
+        opt.textContent = tag;
+        groupFilter.appendChild(opt);
+      });
+      if (allTags.length) selectGroup.disabled = false;
+
+      renderTable(allProducts);
+    }
+
+    function renderTable(products) {
+      tbody.innerHTML = "";
+      products.forEach(p => {
+        const tr = document.createElement("tr");
+        if (selected.has(p._id)) tr.classList.add("selected");
+        tr.innerHTML = `
+          <td><input type="checkbox" data-id="${p._id}" ${selected.has(p._id) ? "checked" : ""} /></td>
+          <td><strong>${p.title ?? "—"}</strong></td>
+          <td>${p.brand ?? "—"}</td>
+          <td>${(p.tags ?? []).map(t => `<span class="tag">${t}</span>`).join("") || "—"}</td>
+          <td style="opacity:.6">${p.variantCount ?? 0} variante${p.variantCount !== 1 ? "s" : ""}</td>
+          <td>${p.published ? '<span style="color:#4ade80">●</span> Publicado' : '<span style="opacity:.4">● Oculto</span>'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Eventos de checkbox
+      tbody.querySelectorAll("input[type=checkbox]").forEach(cb => {
+        cb.addEventListener("change", () => {
+          const id = cb.dataset.id;
+          if (cb.checked) selected.add(id);
+          else selected.delete(id);
+          cb.closest("tr").classList.toggle("selected", cb.checked);
+          updateUI();
+        });
+      });
+    }
+
+    function updateUI() {
+      const n = selected.size;
+      countBadge.textContent = n;
+      countBadge.style.display = n ? "inline-block" : "none";
+      deleteBtn.disabled = n === 0;
+      selectAll.indeterminate = n > 0 && n < allProducts.length;
+      selectAll.checked = n > 0 && n === allProducts.length;
+    }
+
+    // ── Seleccionar todos ────────────────────────────────
+    selectAll.addEventListener("change", () => {
+      if (selectAll.checked) {
+        allProducts.forEach(p => selected.add(p._id));
+      } else {
+        selected.clear();
+      }
+      renderTable(allProducts);
+      updateUI();
+    });
+
+    // ── Filtro de grupo ──────────────────────────────────
+    groupFilter.addEventListener("change", () => {
+      selectGroup.disabled = !groupFilter.value;
+    });
+
+    selectGroup.addEventListener("click", () => {
+      const tag = groupFilter.value;
+      if (!tag) return;
+      allProducts
+        .filter(p => (p.tags ?? []).includes(tag))
+        .forEach(p => selected.add(p._id));
+      renderTable(allProducts);
+      updateUI();
+    });
+
+    // ── Eliminar ─────────────────────────────────────────
+    deleteBtn.addEventListener("click", () => {
+      const n = selected.size;
+      modalMsg.textContent = `Se eliminarán ${n} producto${n !== 1 ? "s" : ""} de Sanity. Esta acción no se puede deshacer.`;
+      modal.classList.add("open");
+    });
+
+    modalCancel.addEventListener("click", () => modal.classList.remove("open"));
+
+    modalConfirm.addEventListener("click", async () => {
+      modal.classList.remove("open");
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = "Eliminando…";
+
+      try {
+        const res = await fetch("/api/delete-products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: [...selected] }),
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          showToast(`✅ ${data.deleted} producto${data.deleted !== 1 ? "s" : ""} eliminado${data.deleted !== 1 ? "s" : ""}`, "ok");
+          allProducts = allProducts.filter(p => !selected.has(p._id));
+          selected.clear();
+          renderTable(allProducts);
+          updateUI();
+        } else {
+          showToast(`❌ Error: ${data.error}`, "err");
+        }
+      } catch(e) {
+        showToast("❌ Error de red", "err");
+      }
+
+      deleteBtn.textContent = "🗑 Eliminar seleccionados";
+      updateUI();
+    });
+
+    // ── Toast ─────────────────────────────────────────────
+    function showToast(msg, type) {
+      toast.textContent = msg;
+      toast.className = type;
+      toast.style.display = "block";
+      setTimeout(() => toast.style.display = "none", 4000);
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -25,25 +25,37 @@ export function ImporterPanel() {
       " para crear o actualizar productos en Sanity."
     ),
     React.createElement(
-      "a",
-      {
-        href: "/admin/importar",
-        target: "_blank",
-        rel: "noopener noreferrer",
-        style: {
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "8px",
-          padding: "12px 24px",
-          borderRadius: "8px",
-          background: "#4275ff",
-          color: "#fff",
-          textDecoration: "none",
-          fontWeight: 700,
-          fontSize: "15px",
+      "div",
+      { style: { display: "flex", gap: "12px", flexWrap: "wrap" as const, justifyContent: "center" } },
+      React.createElement(
+        "a",
+        {
+          href: "/admin/importar",
+          target: "_blank",
+          rel: "noopener noreferrer",
+          style: {
+            display: "inline-flex", alignItems: "center", gap: "8px",
+            padding: "12px 24px", borderRadius: "8px", background: "#4275ff",
+            color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: "15px",
+          },
         },
-      },
-      "Abrir importador →"
+        "📥 Importar Excel"
+      ),
+      React.createElement(
+        "a",
+        {
+          href: "/admin/productos",
+          target: "_blank",
+          rel: "noopener noreferrer",
+          style: {
+            display: "inline-flex", alignItems: "center", gap: "8px",
+            padding: "12px 24px", borderRadius: "8px",
+            background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.2)",
+            color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: "15px",
+          },
+        },
+        "🗂 Gestionar / Eliminar"
+      )
     )
   );
 }
