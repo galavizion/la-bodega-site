@@ -88,7 +88,7 @@ export const POST: APIRoute = async ({ request }) => {
       </div>`;
 
     await resend.emails.send({
-      from: "La Bodega <onboarding@resend.dev>",
+      from: "La Bodega del Instalador <noreply@labodegadelinstalador.net>",
       to: notifyEmail,
       subject: `[La Bodega] ${formLabel}${name ? ` — ${name}` : ""}`,
       html,
