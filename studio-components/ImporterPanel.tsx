@@ -1,30 +1,36 @@
 import React from "react";
 
 export function ImporterPanel() {
-  return (
-    <div
-      style={{
+  return React.createElement(
+    "div",
+    {
+      style: {
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "column" as const,
         alignItems: "center",
         justifyContent: "center",
         height: "100%",
         gap: "16px",
         padding: "40px",
-        textAlign: "center",
-      }}
-    >
-      <div style={{ fontSize: "48px" }}>📥</div>
-      <h2 style={{ margin: 0, fontSize: "20px" }}>Importar productos desde Excel</h2>
-      <p style={{ margin: 0, opacity: 0.6, maxWidth: "400px", lineHeight: 1.6 }}>
-        Carga un archivo <strong>.xlsx / .xls / .csv</strong> para crear o actualizar
-        productos en Sanity. Abre la herramienta de importación en una nueva pestaña.
-      </p>
-      <a
-        href="/admin/importar/"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
+        textAlign: "center" as const,
+      },
+    },
+    React.createElement("div", { style: { fontSize: "48px" } }, "📥"),
+    React.createElement("h2", { style: { margin: 0, fontSize: "20px" } }, "Importar productos desde Excel"),
+    React.createElement(
+      "p",
+      { style: { margin: 0, opacity: 0.6, maxWidth: "400px", lineHeight: 1.6 } },
+      "Carga un archivo ",
+      React.createElement("strong", null, ".xlsx / .xls / .csv"),
+      " para crear o actualizar productos en Sanity."
+    ),
+    React.createElement(
+      "a",
+      {
+        href: "/admin/importar",
+        target: "_blank",
+        rel: "noopener noreferrer",
+        style: {
           display: "inline-flex",
           alignItems: "center",
           gap: "8px",
@@ -35,10 +41,9 @@ export function ImporterPanel() {
           textDecoration: "none",
           fontWeight: 700,
           fontSize: "15px",
-        }}
-      >
-        Abrir importador →
-      </a>
-    </div>
+        },
+      },
+      "Abrir importador →"
+    )
   );
 }
