@@ -7,6 +7,7 @@ import { category } from "./documents/category";
 import { catalogItem } from "./documents/catalogItem";
 import { productCategory } from "./documents/productCategory";
 import { order } from "./documents/order";
+import { formSubmission } from "./documents/formSubmission";
 
 // Objects
 import { seo } from "./objects/seo";
@@ -20,6 +21,8 @@ import { sectionFAQ } from "./sections/sectionFAQ";
 import { sectionCTA } from "./sections/sectionCTA";
 import { sectionContentSplit } from "./sections/sectionContentSplit";
 import { sectionRichText } from "./sections/sectionRichText";
+import { sectionCards } from "./sections/sectionCards";
+import { sectionForm } from "./sections/sectionForm";
 
 export const schemaTypes = [
   // Documents
@@ -31,6 +34,7 @@ export const schemaTypes = [
   catalogItem,
   productCategory,
   order,
+  formSubmission,
   // Objects
   seo,
   navItem,
@@ -42,4 +46,6 @@ export const schemaTypes = [
   sectionCTA,
   sectionContentSplit,
   sectionRichText,
+  sectionCards,
+  sectionForm,
 ];

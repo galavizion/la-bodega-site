@@ -135,6 +135,9 @@ export default defineConfig({
                           ])
                       ),
                     S.listItem()
+                      .title("📩 Envíos de formulario")
+                      .child(S.documentTypeList("formSubmission").title("Envíos")),
+                    S.listItem()
                       .title("📥 Importar productos (Excel)")
                       .child(
                         S.component()
