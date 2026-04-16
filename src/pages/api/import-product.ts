@@ -22,19 +22,40 @@ function slugify(text: string): string {
 }
 
 /**
- * Parsea especificaciones técnicas desde string.
- * Formato: "Presión Max:300 PSI, Temperatura:180°F"
+ * Parsea specs desde un string "Presión Max:300 PSI, Temperatura:180°F"
+ * o desde columnas variante_1/2/3 con formato "Medida: 1\""
  */
-function parseSpecs(raw: string) {
+function specsFromString(raw: string) {
   if (!raw) return [];
   return raw
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean)
     .map((s) => {
-      const [label, ...rest] = s.split(":");
-      return { _type: "object", _key: crypto.randomUUID(), label: label.trim(), value: rest.join(":").trim() };
+      const idx = s.indexOf(":");
+      if (idx === -1) return { _type: "object", _key: crypto.randomUUID(), label: s, value: "" };
+      return {
+        _type: "object",
+        _key: crypto.randomUUID(),
+        label: s.slice(0, idx).trim(),
+        value: s.slice(idx + 1).trim(),
+      };
     });
+}
+
+/**
+ * Convierte "si"/"no" o número a valor de stock numérico.
+ */
+function parseStock(raw: unknown): number {
+  if (typeof raw === "number") return raw;
+  if (typeof raw === "string") {
+    const lower = raw.toLowerCase().trim();
+    if (lower === "si" || lower === "sí" || lower === "yes") return 1;
+    if (lower === "no") return 0;
+    const n = Number(raw);
+    return isNaN(n) ? 0 : n;
+  }
+  return 0;
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -49,71 +70,108 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: "JSON inválido" }), { status: 400 });
   }
 
-  const title = String(row.title || "").trim();
+  // ── Normalizar columnas: soporta formato nuevo (nombre/variante_*) y formato legacy ──
+  const title = String(row.nombre || row.title || "").trim();
   if (!title) {
-    return new Response(JSON.stringify({ error: "Campo 'title' requerido" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "Campo 'nombre' o 'title' requerido" }), { status: 400 });
   }
 
-  // El slug del producto se basa en el SKU principal o el título
-  const productSlug = slugify(row.sku ? String(row.sku) : title);
+  // Slug basado en título (para agrupar variantes del mismo producto)
+  const productSlug = slugify(title);
 
-  const tags = row.tags
+  const brand = String(row.marca || row.brand || "").trim();
+  const excerpt = String(row.descripcion || row.excerpt || "").trim();
+
+  // Tags: usa categoria como tag si existe, o columna tags
+  const tags: string[] = row.categoria
+    ? [String(row.categoria).trim()]
+    : row.tags
     ? String(row.tags).split(",").map((t: string) => t.trim()).filter(Boolean)
     : [];
 
-  const certifications = row.certifications
+  const certifications: string[] = row.certifications
     ? String(row.certifications).split(",").map((c: string) => c.trim().toLowerCase()).filter(Boolean)
     : [];
 
-  // ── Construir variante si hay datos de variante en la fila ──
-  const hasVariant = row.variant_sku || row.variant_size || row.variant_price;
+  // ── Construir especificaciones de variante ──────────────────────────────────
+  let specifications: ReturnType<typeof specsFromString> = [];
+
+  if (row.variante_1 || row.variante_2 || row.variante_3) {
+    // Formato nuevo: columnas variante_1, variante_2, variante_3
+    for (const key of ["variante_1", "variante_2", "variante_3"]) {
+      const raw = String(row[key] || "").trim();
+      if (!raw) continue;
+      const idx = raw.indexOf(":");
+      specifications.push({
+        _type: "object",
+        _key: crypto.randomUUID(),
+        label: idx > -1 ? raw.slice(0, idx).trim() : raw,
+        value: idx > -1 ? raw.slice(idx + 1).trim() : "",
+      });
+    }
+  } else if (row.variant_specs) {
+    // Formato legacy: string "Presión:300 PSI, ..."
+    specifications = specsFromString(String(row.variant_specs));
+  }
+
+  // ── Determinar size desde variante_1 (ej: "Medida: 1\"" → "1\"") ──────────
+  const firstVariante = String(row.variante_1 || row.variant_size || "").trim();
+  const variantSize = firstVariante.includes(":")
+    ? firstVariante.split(":").slice(1).join(":").trim()
+    : firstVariante;
+
+  // ── Construir objeto variante ───────────────────────────────────────────────
+  const variantSku = String(row.sku || row.variant_sku || "").trim();
+  const variantPrice = row.precio ?? row.variant_price;
+  const variantCompare = row.precio_oferta ?? row.variant_comparePrice;
+  const variantStock = parseStock(row.disponible ?? row.variant_stock);
+
+  const hasVariant = variantSku || variantPrice || specifications.length > 0;
   const variant = hasVariant
     ? {
         _type: "object" as const,
         _key: crypto.randomUUID(),
-        sku:          String(row.variant_sku   || ""),
-        size:         String(row.variant_size  || ""),
-        label:        String(row.variant_label || ""),
-        price:        row.variant_price ? Number(row.variant_price) : undefined,
-        comparePrice: row.variant_comparePrice ? Number(row.variant_comparePrice) : undefined,
-        stock:        row.variant_stock !== undefined ? Number(row.variant_stock) : 0,
-        specifications: parseSpecs(String(row.variant_specs || "")),
+        sku: variantSku,
+        size: variantSize,
+        label: String(row.variant_label || ""),
+        price: variantPrice !== undefined && variantPrice !== "" ? Number(variantPrice) : undefined,
+        comparePrice: variantCompare !== undefined && variantCompare !== "" ? Number(variantCompare) : undefined,
+        stock: variantStock,
+        specifications,
       }
     : null;
 
-  // ── Buscar si el producto ya existe (por SKU principal o título exacto) ──
+  // ── Buscar producto existente por slug o título ─────────────────────────────
   const existingId: string | null = await client.fetch(
-    `*[_type=="catalogItem" && (slug.current==$slug || sku==$sku || title==$title)][0]._id`,
-    { slug: productSlug, sku: String(row.sku || ""), title }
+    `*[_type=="catalogItem" && (slug.current==$slug || title==$title)][0]._id`,
+    { slug: productSlug, title }
   );
 
   try {
     if (existingId) {
-      // ── Actualizar campos base ──────────────────────────
+      // ── Actualizar campos base ──────────────────────────────────────────────
       await client.patch(existingId).set({
         title,
-        sku:    String(row.sku    || ""),
-        brand:  String(row.brand  || ""),
-        excerpt: String(row.excerpt || ""),
+        brand,
+        excerpt,
         tags,
         certifications,
         published: true,
         ...(row.whatsappPhone ? {
           whatsapp: {
             enabled: true,
-            phone:   String(row.whatsappPhone),
+            phone: String(row.whatsappPhone),
             message: String(row.whatsappMessage || `Hola, me interesa: ${title}`),
           },
         } : {}),
       }).commit();
 
-      // ── Agregar variante si no existe ya por SKU ────────
+      // ── Agregar variante si no existe ya por SKU ────────────────────────────
       if (variant) {
-        const existing = await client.fetch<string[]>(
+        const existingSkus: string[] = (await client.fetch<string[]>(
           `*[_type=="catalogItem" && _id==$id][0].variants[].sku`,
           { id: existingId }
-        );
-        const existingSkus: string[] = existing ?? [];
+        )) ?? [];
 
         if (!existingSkus.includes(variant.sku)) {
           await client.patch(existingId).append("variants", [variant]).commit();
@@ -126,25 +184,23 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(JSON.stringify({ action: "actualizado", id: existingId }), { status: 200 });
 
     } else {
-      // ── Crear producto nuevo ────────────────────────────
+      // ── Crear producto nuevo ────────────────────────────────────────────────
       const doc: Record<string, unknown> & { _type: "catalogItem" } = {
         _type: "catalogItem",
         title,
         slug: { _type: "slug", current: productSlug },
-        sku:    String(row.sku    || ""),
-        brand:  String(row.brand  || ""),
-        excerpt: String(row.excerpt || ""),
+        sku: "",
+        brand,
+        excerpt,
         tags,
         certifications,
         published: true,
         variants: variant ? [variant] : [],
-        ...(row.whatsappPhone ? {
-          whatsapp: {
-            enabled: true,
-            phone:   String(row.whatsappPhone),
-            message: String(row.whatsappMessage || `Hola, me interesa: ${title}`),
-          },
-        } : {}),
+        whatsapp: {
+          enabled: true,
+          phone: String(row.whatsappPhone || ""),
+          message: String(row.whatsappMessage || `Hola, me interesa: ${title}`),
+        },
       };
 
       const created = await client.create(doc);

@@ -145,18 +145,19 @@ if (!isDev) {
         ⬇️ Descargar plantilla Excel
       </a>
       <p class="cols-info">
-        <strong>Producto (campos base):</strong><br/>
-        <code>title</code> · <code>sku</code> · <code>brand</code> · <code>excerpt</code> ·
-        <code>tags</code> · <code>certifications</code> · <code>whatsappPhone</code> · <code>whatsappMessage</code>
+        <strong>Columnas requeridas:</strong><br/>
+        <code>nombre</code> · <code>sku</code> · <code>marca</code> · <code>descripcion</code> ·
+        <code>precio</code> · <code>precio_oferta</code> · <code>disponible</code> · <code>categoria</code>
         <br/><br/>
-        <strong>Variante (una fila por variante):</strong><br/>
-        <code>variant_sku</code> · <code>variant_size</code> · <code>variant_label</code> ·
-        <code>variant_price</code> · <code>variant_comparePrice</code> · <code>variant_stock</code> ·
-        <code>variant_specs</code>
+        <strong>Especificaciones de variante (opcional):</strong><br/>
+        <code>variante_1</code> · <code>variante_2</code> · <code>variante_3</code><br/>
+        Formato: <code>Medida: 1"</code> · <code>Cantidad: 500 pzas</code> · <code>Color: Gris</code>
         <br/><br/>
-        <strong>Formato variant_specs:</strong> <code>Presión Max:300 PSI, Temperatura:180°F, Material:Hierro</code><br/>
-        <strong>Formato tags / certifications:</strong> separados por coma — <code>ul, fm, nom</code><br/>
-        <strong>Filas con mismo title/sku</strong> = mismo producto, se agregan como variantes adicionales.
+        <strong>Columnas opcionales:</strong><br/>
+        <code>certifications</code> (ul, fm, nom, nsf, ce, iso9001) · <code>whatsappPhone</code> · <code>whatsappMessage</code>
+        <br/><br/>
+        <strong>Disponible:</strong> <code>si</code> / <code>no</code><br/>
+        <strong>Filas con mismo <code>nombre</code></strong> = mismo producto, se agrupan como variantes.
       </p>
     </div>
 
