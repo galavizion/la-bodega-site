@@ -168,9 +168,14 @@ if (!isDev) {
 
       <div id="preview"></div>
 
-      <button class="btn btn-primary" id="importBtn" disabled>
-        ⬆️ Importar a Sanity
-      </button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-primary" id="importBtn" disabled>
+          ⬆️ Importar a Sanity
+        </button>
+        <button class="btn" id="clearLogBtn" style="background:rgba(255,255,255,.08);color:inherit" onclick="localStorage.removeItem('importar_log');document.getElementById('log').innerHTML='';document.getElementById('log').style.display='none'">
+          🗑 Limpiar log
+        </button>
+      </div>
 
       <div class="progress-bar" id="progressBar">
         <div class="progress-bar__fill" id="progressFill"></div>
@@ -189,7 +194,18 @@ if (!isDev) {
     const progressBar = document.getElementById("progressBar");
     const progressFill = document.getElementById("progressFill");
 
+    const LOG_KEY = "importar_log";
     let parsedRows = [];
+
+    // ── Restaurar log previo al cargar la página ─────────
+    (function restoreLog() {
+      const saved = localStorage.getItem(LOG_KEY);
+      if (!saved) return;
+      const entries = JSON.parse(saved);
+      if (!entries.length) return;
+      logEl.style.display = "block";
+      entries.forEach(({ type, msg }) => _renderLogItem(type, msg));
+    })();
 
     // ── Parse file ──────────────────────────────────────
     fileInput.addEventListener("change", async (e) => {
@@ -198,7 +214,6 @@ if (!isDev) {
 
       const buffer = await file.arrayBuffer();
       const wb = XLSX.read(buffer, { type: "array" });
-      // Busca la hoja "Catalogo" / "Catálogo" / "Products"; si no existe usa la primera
       const sheetName =
         wb.SheetNames.find((n) =>
           /cat[aá]logo|products|productos/i.test(n)
@@ -234,13 +249,19 @@ if (!isDev) {
       logEl.style.display = "block";
       logEl.innerHTML = "";
       progressBar.style.display = "block";
+      localStorage.removeItem(LOG_KEY);
 
       let ok = 0, err = 0, skip = 0;
+      const timestamp = new Date().toLocaleString("es-MX");
+      addLog("skip", `⏱ Importación iniciada — ${timestamp} — ${parsedRows.length} filas`);
 
       for (let i = 0; i < parsedRows.length; i++) {
         const row = parsedRows[i];
         const pct = Math.round(((i + 1) / parsedRows.length) * 100);
         progressFill.style.width = pct + "%";
+
+        // Nombre para mostrar en el log
+        const label = row.nombre || row.title || row.sku || `Fila ${i+1}`;
 
         try {
           const res = await fetch("/api/import-product", {
@@ -252,22 +273,31 @@ if (!isDev) {
 
           if (res.ok) {
             ok++;
-            addLog("ok", `✅ ${row.title || row.sku || `Fila ${i+1}`} — ${data.action ?? "creado"}`);
+            addLog("ok", `✅ ${label} — ${data.action ?? "creado"}`);
           } else {
             err++;
-            addLog("err", `❌ ${row.title || `Fila ${i+1}`} — ${data.error ?? "error"}`);
+            addLog("err", `❌ ${label} — ${data.error ?? "error"}`);
           }
         } catch (e) {
           err++;
-          addLog("err", `❌ Fila ${i+1} — Error de red`);
+          addLog("err", `❌ ${label} — Error de red`);
         }
       }
 
-      addLog("ok", `─── Listo: ${ok} importados · ${skip} omitidos · ${err} errores ───`);
+      addLog("skip", `─── Listo: ${ok} importados · ${skip} omitidos · ${err} errores ───`);
       importBtn.disabled = false;
     });
 
+    // ── Renderiza y persiste cada entrada del log ────────
     function addLog(type, msg) {
+      _renderLogItem(type, msg);
+      // Guardar en localStorage
+      const saved = JSON.parse(localStorage.getItem(LOG_KEY) || "[]");
+      saved.push({ type, msg });
+      localStorage.setItem(LOG_KEY, JSON.stringify(saved));
+    }
+
+    function _renderLogItem(type, msg) {
       const div = document.createElement("div");
       div.className = `log-item log-${type}`;
       div.textContent = msg;
