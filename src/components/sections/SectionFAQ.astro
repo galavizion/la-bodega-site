@@ -1,34 +1,107 @@
 ---
-const { settings } = Astro.props;
-
-const theme = settings?.theme ?? "transparent";
-const sectionId = settings?.id;
-import { toHTML } from "@portabletext/to-html";
-
 type FAQItem = {
+  _key?: string;
   question: string;
-  answer?: any; // portable text
+  answer?: string;
+};
+
+type Props = {
+  title?: string;
+  subtitle?: string;
+  faqs?: FAQItem[] | null;
+  settings?: { sectionId?: string };
 };
 
 const {
   title = "Preguntas frecuentes",
-  items = [],
-} = Astro.props as { title?: string; items?: FAQItem[] };
+  subtitle,
+  faqs,
+  settings,
+} = Astro.props as Props;
 
-const renderAnswer = (value: any) => (value ? toHTML(value) : "");
+const sectionId = settings?.sectionId;
+const safeItems: FAQItem[] = Array.isArray(faqs) ? faqs.filter(Boolean) : [];
 ---
 
-<section id={sectionId} class={`section section--${theme}`}>
+<section id={sectionId} class="section faq-section">
   <div class="container">
-    <h2>{title}</h2>
+    {(title || subtitle) && (
+      <header class="faq__header">
+        {title    && <h2 class="faq__title">{title}</h2>}
+        {subtitle && <p  class="faq__subtitle">{subtitle}</p>}
+      </header>
+    )}
 
     <div class="faq__list">
-      {items.map((it) => (
+      {safeItems.map((item) => (
         <details class="faq__item">
-          <summary class="faq__q">{it.question}</summary>
-          <div class="faq__a" set:html={renderAnswer(it.answer)} />
+          <summary class="faq__q">
+            <span>{item.question}</span>
+            <svg class="faq__icon" viewBox="0 0 24 24" width="20" height="20" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              aria-hidden="true">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </summary>
+          {item.answer && (
+            <div class="faq__a">{item.answer}</div>
+          )}
         </details>
       ))}
     </div>
   </div>
 </section>
+
+<style>
+  .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+  .faq__header { text-align: center; margin-bottom: 48px; }
+  .faq__title  { font-size: clamp(1.5rem, 3vw, 2.2rem); margin: 0 0 12px; }
+  .faq__subtitle { opacity: .65; font-size: 1.05rem; line-height: 1.6; margin: 0; }
+
+  .faq__list { display: grid; gap: 12px; }
+
+  .faq__item {
+    border: 1px solid rgba(0,0,0,.1);
+    border-radius: 14px;
+    overflow: hidden;
+    background: rgba(255,255,255,.06);
+    backdrop-filter: blur(6px);
+    transition: border-color .2s;
+  }
+  .faq__item[open] {
+    border-color: var(--color-accent, #ef4444);
+  }
+
+  .faq__q {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 20px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 15px;
+    list-style: none;
+    user-select: none;
+  }
+  .faq__q::-webkit-details-marker { display: none; }
+
+  .faq__icon {
+    flex: 0 0 20px;
+    transition: transform .25s ease;
+    opacity: .6;
+  }
+  .faq__item[open] .faq__icon {
+    transform: rotate(180deg);
+    opacity: 1;
+    stroke: var(--color-accent, #ef4444);
+  }
+
+  .faq__a {
+    padding: 0 20px 18px;
+    line-height: 1.7;
+    opacity: .82;
+    font-size: 14px;
+  }
+</style>

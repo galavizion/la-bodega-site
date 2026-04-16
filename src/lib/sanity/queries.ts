@@ -87,6 +87,45 @@ export const homeQuery = groq`
       title,
       content,
       settings
+    },
+
+    _type == "sectionCards" => {
+      title,
+      subtitle,
+      columns,
+      cardStyle,
+      items[]{
+        _key,
+        badge,
+        image,
+        title,
+        description,
+        linkLabel,
+        linkUrl
+      },
+      settings
+    },
+
+    _type == "sectionForm" => {
+      title,
+      subtitle,
+      formType,
+      fields[]{
+        _key,
+        type,
+        label,
+        placeholder,
+        required,
+        options
+      },
+      submitLabel,
+      successMessage,
+      whatsappFallback{
+        enabled,
+        phone,
+        label
+      },
+      settings
     }
   }
 }
@@ -178,6 +217,45 @@ export const pageBySlugQuery = groq`
     _type == "sectionRichText" => {
       title,
       content,
+      settings
+    },
+
+    _type == "sectionCards" => {
+      title,
+      subtitle,
+      columns,
+      cardStyle,
+      items[]{
+        _key,
+        badge,
+        image,
+        title,
+        description,
+        linkLabel,
+        linkUrl
+      },
+      settings
+    },
+
+    _type == "sectionForm" => {
+      title,
+      subtitle,
+      formType,
+      fields[]{
+        _key,
+        type,
+        label,
+        placeholder,
+        required,
+        options
+      },
+      submitLabel,
+      successMessage,
+      whatsappFallback{
+        enabled,
+        phone,
+        label
+      },
       settings
     }
   }
