@@ -16,6 +16,7 @@ type Props = {
   subtitle?: string;
   columns?: number;
   cardStyle?: "shadow" | "outline" | "filled" | "minimal";
+  bgColor?: string;
   items?: CardItem[] | null;
   settings?: { sectionId?: string };
 };
@@ -25,6 +26,7 @@ const {
   subtitle,
   columns = 3,
   cardStyle = "shadow",
+  bgColor,
   items,
   settings,
 } = Astro.props as Props;
@@ -32,9 +34,17 @@ const {
 const sectionId = settings?.sectionId;
 const safeItems = Array.isArray(items) ? items.filter(Boolean) : [];
 const cols = [2, 3, 4].includes(columns) ? columns : 3;
+
+const hasBg = bgColor && bgColor !== "none";
+const bgStyle = hasBg ? `background-color:${bgColor};` : undefined;
+
+// Si el fondo es oscuro, el texto heredado puede ser ilegible → forzar color claro
+const darkBgs = ["#1e293b", "#0f172a", "#7f1d1d", "#ef4444"];
+const forceDark = hasBg && !darkBgs.includes(bgColor!) ? "cards--light-bg" : "";
+const forceLight = hasBg && darkBgs.includes(bgColor!) ? "cards--dark-bg" : "";
 ---
 
-<section id={sectionId} class={`section cards cards--${cardStyle}`}>
+<section id={sectionId} class={`section cards cards--${cardStyle} ${forceDark} ${forceLight}`} style={bgStyle}>
   <div class="container">
     {(title || subtitle) && (
       <header class="cards__header">
@@ -72,7 +82,16 @@ const cols = [2, 3, 4].includes(columns) ? columns : 3;
 </section>
 
 <style>
+  /* El section ocupa todo el ancho; el container centra el contenido */
+  .cards { width: 100%; }
   .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+  /* Texto según luminosidad del fondo */
+  .cards--dark-bg  { color: #fff; }
+  .cards--dark-bg  .cards__subtitle { opacity: .75; }
+  .cards--dark-bg  .card__desc      { opacity: .72; }
+  .cards--light-bg { color: #111; }
+  .cards--light-bg .cards__subtitle { opacity: .65; }
 
   .cards__header { text-align: left; margin-bottom: 36px; }
   .cards__title  { font-size: clamp(1.5rem, 3vw, 2.2rem); margin: 0 0 10px; }

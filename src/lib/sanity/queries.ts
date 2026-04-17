@@ -94,6 +94,7 @@ export const homeQuery = groq`
       subtitle,
       columns,
       cardStyle,
+      bgColor,
       items[]{
         _key,
         badge,
@@ -225,6 +226,7 @@ export const pageBySlugQuery = groq`
       subtitle,
       columns,
       cardStyle,
+      bgColor,
       items[]{
         _key,
         badge,

@@ -51,6 +51,24 @@ export const sectionCards = defineType({
       ],
     }),
     defineField({
+      name: "bgColor",
+      title: "Color de fondo",
+      type: "string",
+      options: {
+        list: [
+          { title: "Ninguno (transparente)", value: "none" },
+          { title: "Blanco",                 value: "#ffffff" },
+          { title: "Gris claro",             value: "#f1f5f9" },
+          { title: "Gris oscuro",            value: "#1e293b" },
+          { title: "Negro",                  value: "#0f172a" },
+          { title: "Rojo (acento)",          value: "#ef4444" },
+          { title: "Rojo oscuro",            value: "#7f1d1d" },
+        ],
+        layout: "radio",
+      },
+      initialValue: "none",
+    }),
+    defineField({
       name: "settings",
       title: "Configuración",
       type: "object",
