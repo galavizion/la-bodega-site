@@ -110,25 +110,19 @@ const topBar = settings?.topBar;
   </nav>
 </header>
 
-<div class="header-spacer" aria-hidden="true"></div>
-
 <script is:inline>
   (() => {
     const header = document.querySelector("[data-header]");
-    const spacer = document.querySelector(".header-spacer");
-    if (!header || !spacer) return;
+    if (!header) return;
 
-    // --- spacer auto (para header fixed) ---
-    const setSpacer = () => {
-      const h = header.offsetHeight;
-      spacer.style.height = `${h}px`;
-      document.documentElement.style.setProperty("--header-h", `${h}px`);
+    const setHeaderH = () => {
+      document.documentElement.style.setProperty("--header-h", `${header.offsetHeight}px`);
     };
 
-    setSpacer();
-    window.addEventListener("resize", setSpacer);
+    setHeaderH();
+    window.addEventListener("resize", setHeaderH);
 
-    const mo = new MutationObserver(setSpacer);
+    const mo = new MutationObserver(setHeaderH);
     mo.observe(header, { attributes: true, childList: true, subtree: true });
 
     // --- menú móvil / dropdowns ---

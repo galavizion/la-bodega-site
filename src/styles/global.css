@@ -106,20 +106,8 @@ p{ margin: 0 0 14px; }
   top:0; left:0; right:0;
   height: var(--header-h);
   z-index: 9999;
-
-  background: var(--bg);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-
-  border-bottom: 1px solid transparent;
-  transition: border-color .2s ease, background .2s ease;
-}
-
-.header-spacer{ height: var(--header-h); }
-
-.site-header.is-scrolled{
-  border-color: var(--border);
-  background: rgba(255,255,255,.92);
+  background: #000;
+  border-bottom: 1px solid rgba(255,255,255,.08);
 }
 
 /* Layout nav */
@@ -1306,10 +1294,6 @@ width: 50%; text-align: center; margin: 0 auto;
 }
 
 
-.site-header {
-  background: rgba(0,0,0,0.35);
-  backdrop-filter: blur(8px);
-}
 .benefits--transparent {
   background: transparent;
   color: #fff;
