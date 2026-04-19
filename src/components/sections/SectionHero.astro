@@ -92,48 +92,56 @@ if (visualStyle === "map" && mapUrl) {
 
 const overlayOpacity = Math.min(90, Math.max(0, bgOverlay ?? 40)) / 100;
 
-// Construye el style del hero bg-image: color base + imagen encima si existe
-const bgStyle = (() => {
-  const parts: string[] = [];
-  if (bgColor) parts.push(`--bg-color:${bgColor}`);
-  if (bgImgUrl) parts.push(`--bg-img:url('${bgImgUrl}')`);
-  parts.push(`--overlay:${overlayOpacity}`);
-  return parts.join(";");
-})();
 ---
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      MODO 1: bg-image — imagen de fondo + contenido centrado
 ════════════════════════════════════════════════════════════════════════════ -->
 {visualStyle === "bg-image" && (
-  <section
-    id={sectionId}
-    class="hero hero--bg-image section"
-    style={bgStyle}
-  >
-    <div class="hero-bg__overlay" aria-hidden="true"></div>
-    <div class="container hero-bg__content">
-      <div class="hero__copy hero__copy--center">
-        {heading    && <h1>{heading}</h1>}
-        {subheading && <p class="hero__sub">{subheading}</p>}
+  <section id={sectionId} class="hero hero--bg-image section" style={bgColor ? `--bg-color:${bgColor}` : undefined}>
+    <div class="container">
+      <div class="hero-bg__frame" style={`--overlay:${overlayOpacity}`}>
 
-        {safeBullets.length > 0 && (
-          <ul class="hero__bullets">
-            {safeBullets.map((b) => <li>{b}</li>)}
-          </ul>
+        {/* Imagen de fondo dentro del container */}
+        {bgImgUrl && (
+          <img
+            class="hero-bg__img"
+            src={bgImgUrl}
+            alt=""
+            aria-hidden="true"
+            loading="eager"
+          />
         )}
 
-        <div class="hero__cta">
-          {primaryCta?.url   && <a class="btn btn--primary" href={primaryCta.url}>{primaryCta.label}</a>}
-          {secondaryCta?.url && <a class="btn btn--ghost"   href={secondaryCta.url}>{secondaryCta.label}</a>}
-        </div>
-      </div>
+        {/* Overlay oscuro sobre la imagen */}
+        <div class="hero-bg__overlay" aria-hidden="true"></div>
 
-      {centerImgUrl && (
-        <div class="hero-bg__center-img">
-          <img src={centerImgUrl} alt={heading ?? ""} loading="eager" />
+        {/* Contenido encima */}
+        <div class="hero-bg__content">
+          <div class="hero__copy hero__copy--center">
+            {heading    && <h1>{heading}</h1>}
+            {subheading && <p class="hero__sub">{subheading}</p>}
+
+            {safeBullets.length > 0 && (
+              <ul class="hero__bullets">
+                {safeBullets.map((b) => <li>{b}</li>)}
+              </ul>
+            )}
+
+            <div class="hero__cta">
+              {primaryCta?.url   && <a class="btn btn--primary" href={primaryCta.url}>{primaryCta.label}</a>}
+              {secondaryCta?.url && <a class="btn btn--ghost"   href={secondaryCta.url}>{secondaryCta.label}</a>}
+            </div>
+          </div>
+
+          {centerImgUrl && (
+            <div class="hero-bg__center-img">
+              <img src={centerImgUrl} alt={heading ?? ""} loading="eager" />
+            </div>
+          )}
         </div>
-      )}
+
+      </div>
     </div>
   </section>
 )}
@@ -303,16 +311,30 @@ const bgStyle = (() => {
 
   /* ── Modo bg-image ──────────────────────────────────────────────────────── */
   .hero--bg-image {
-    position: relative;
-    background-color: var(--bg-color, #1e293b);
-    background-image: var(--bg-img, none);
-    background-size: cover;
-    background-position: center;
+    background-color: var(--bg-color, transparent);
     color: #fff;
-    display: flex;
-    align-items: center;
+    /* sin min-height: el alto lo dicta la imagen */
+    padding: 0;
   }
 
+  /* Wrapper relativo que contiene imagen + overlay + contenido */
+  .hero-bg__frame {
+    position: relative;
+    width: 100%;
+    border-radius: 18px;
+    overflow: hidden;
+    /* Color de fondo mientras carga la imagen */
+    background-color: var(--bg-color, #1e293b);
+  }
+
+  /* Imagen real: 100% ancho, alto natural */
+  .hero-bg__img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* Overlay: cubre el frame completo */
   .hero-bg__overlay {
     position: absolute;
     inset: 0;
@@ -320,30 +342,38 @@ const bgStyle = (() => {
     pointer-events: none;
   }
 
+  /* Contenido centrado encima */
   .hero-bg__content {
-    position: relative;
-    z-index: 1;
+    position: absolute;
+    inset: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 40px;
+    justify-content: center;
+    gap: 32px;
+    padding: 48px 32px;
+    z-index: 1;
+  }
+
+  /* Si no hay imagen, el frame necesita altura mínima */
+  .hero-bg__frame:not(:has(.hero-bg__img)) {
+    min-height: 480px;
   }
 
   .hero__copy--center {
     text-align: center;
     max-width: 720px;
   }
-
-  .hero__copy--center h1 { color: #fff; }
-  .hero__copy--center .hero__cta { justify-content: center; }
-  .hero__copy--center .btn--ghost { border-color: rgba(255,255,255,.4); }
+  .hero__copy--center h1              { color: #fff; }
+  .hero__copy--center .hero__cta      { justify-content: center; }
+  .hero__copy--center .btn--ghost     { border-color: rgba(255,255,255,.4); }
 
   .hero-bg__center-img img {
-    max-width: min(600px, 90vw);
+    max-width: min(560px, 80%);
     height: auto;
     display: block;
-    border-radius: 16px;
-    box-shadow: 0 16px 48px rgba(0,0,0,.3);
+    border-radius: 14px;
+    box-shadow: 0 16px 48px rgba(0,0,0,.35);
   }
 
   /* ── Responsive ─────────────────────────────────────────────────────────── */
