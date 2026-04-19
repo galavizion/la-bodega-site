@@ -56,6 +56,24 @@ export const sectionHero = defineType({
       hidden: ({ parent }) => parent?.visualStyle !== "bg-image",
     }),
     defineField({
+      name: "aspectRatio",
+      title: "Proporción del banner",
+      type: "string",
+      options: {
+        list: [
+          { title: "Ultra ancho  (21:8 — banner promocional)", value: "21/8"  },
+          { title: "Ancho        (16:6 — hero estándar)",      value: "16/6"  },
+          { title: "Medio        (16:7)",                      value: "16/7"  },
+          { title: "Widescreen   (16:9)",                      value: "16/9"  },
+          { title: "Cuadrado     (4:3)",                       value: "4/3"   },
+          { title: "Alto natural (sin recorte)",               value: "auto"  },
+        ],
+        layout: "radio",
+      },
+      initialValue: "16/6",
+      hidden: ({ parent }) => parent?.visualStyle !== "bg-image",
+    }),
+    defineField({
       name: "bgOverlay",
       title: "Oscurecer fondo (0–90%)",
       type: "number",
