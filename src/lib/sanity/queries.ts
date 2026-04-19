@@ -23,10 +23,15 @@ export const homeQuery = groq`
     _type,
 
     _type == "sectionHero" => {
+      visualStyle,
       heading,
       subheading,
       bullets,
       image,
+      bgImage,
+      bgOverlay,
+      centerImage,
+      mapUrl,
       primaryCta,
       secondaryCta,
       settings
@@ -155,10 +160,15 @@ export const pageBySlugQuery = groq`
     _type,
 
     _type == "sectionHero" => {
+      visualStyle,
       heading,
       subheading,
       bullets,
       image,
+      bgImage,
+      bgOverlay,
+      centerImage,
+      mapUrl,
       primaryCta,
       secondaryCta,
       settings

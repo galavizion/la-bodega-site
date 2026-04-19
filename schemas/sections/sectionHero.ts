@@ -5,40 +5,103 @@ export const sectionHero = defineType({
   title: "Hero",
   type: "object",
   fields: [
-    defineField({ name: "heading", title: "Título principal", type: "string" }),
-    defineField({ name: "subheading", title: "Subtítulo", type: "text", rows: 3 }),
+    // ── Estilo visual ────────────────────────────────────────────
+    defineField({
+      name: "visualStyle",
+      title: "Estilo visual",
+      type: "string",
+      options: {
+        list: [
+          { title: "Texto + imagen lateral (default)", value: "default" },
+          { title: "Imagen de fondo + imagen central",  value: "bg-image" },
+          { title: "Texto + mapa de Google",            value: "map"      },
+        ],
+        layout: "radio",
+      },
+      initialValue: "default",
+    }),
+
+    // ── Contenido ────────────────────────────────────────────────
+    defineField({ name: "heading",    title: "Título principal", type: "string" }),
+    defineField({ name: "subheading", title: "Subtítulo",        type: "text", rows: 3 }),
     defineField({
       name: "bullets",
       title: "Puntos clave",
       type: "array",
       of: [{ type: "string" }],
     }),
-    defineField({ name: "image", title: "Imagen", type: "image", options: { hotspot: true } }),
+
+    // ── Imagen lateral (solo estilo default) ─────────────────────
+    defineField({
+      name: "image",
+      title: "Imagen lateral",
+      type: "image",
+      options: { hotspot: true },
+      hidden: ({ parent }) => parent?.visualStyle !== "default" && parent?.visualStyle != null,
+    }),
+
+    // ── Estilo bg-image ──────────────────────────────────────────
+    defineField({
+      name: "bgImage",
+      title: "Imagen de fondo (pantalla completa)",
+      type: "image",
+      options: { hotspot: true },
+      hidden: ({ parent }) => parent?.visualStyle !== "bg-image",
+    }),
+    defineField({
+      name: "bgOverlay",
+      title: "Oscurecer fondo (0–90%)",
+      type: "number",
+      options: { list: [0,10,20,30,40,50,60,70,80,90] },
+      initialValue: 40,
+      hidden: ({ parent }) => parent?.visualStyle !== "bg-image",
+    }),
+    defineField({
+      name: "centerImage",
+      title: "Imagen central (opcional)",
+      type: "image",
+      options: { hotspot: true },
+      hidden: ({ parent }) => parent?.visualStyle !== "bg-image",
+    }),
+
+    // ── Estilo map ───────────────────────────────────────────────
+    defineField({
+      name: "mapUrl",
+      title: "Enlace de Google Maps",
+      type: "url",
+      description: "Pega el enlace de compartir de Google Maps (maps.app.goo.gl/... o maps.google.com/...)",
+      hidden: ({ parent }) => parent?.visualStyle !== "map",
+    }),
+
+    // ── CTAs ─────────────────────────────────────────────────────
     defineField({
       name: "primaryCta",
-      title: "CTA primario",
+      title: "Botón primario",
       type: "object",
       fields: [
         { name: "label", title: "Texto", type: "string" },
-        { name: "url", title: "URL", type: "string" },
+        { name: "url",   title: "URL",   type: "string" },
       ],
     }),
     defineField({
       name: "secondaryCta",
-      title: "CTA secundario",
+      title: "Botón secundario",
       type: "object",
       fields: [
         { name: "label", title: "Texto", type: "string" },
-        { name: "url", title: "URL", type: "string" },
+        { name: "url",   title: "URL",   type: "string" },
       ],
     }),
+
+    // ── Configuración ────────────────────────────────────────────
     defineField({
       name: "settings",
       title: "Configuración",
       type: "object",
       fields: [
         { name: "sectionId", title: "ID de sección", type: "string" },
-        { name: "bgColor", title: "Color de fondo", type: "string" },
+        { name: "theme",     title: "Tema de texto", type: "string",
+          options: { list: [{ title: "Claro (sobre oscuro)", value: "transparent" }, { title: "Oscuro (sobre claro)", value: "light" }] } },
       ],
     }),
   ],

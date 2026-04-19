@@ -1,177 +1,349 @@
 ---
-import { Image } from "astro:assets";
 import { urlFor } from "../../lib/sanity/image";
+
+type Props = {
+  visualStyle?: "default" | "bg-image" | "map";
+  heading?: string;
+  subheading?: string;
+  bullets?: any[];
+  image?: any;
+  bgImage?: any;
+  bgOverlay?: number;
+  centerImage?: any;
+  mapUrl?: string;
+  primaryCta?: { label?: string; url?: string };
+  secondaryCta?: { label?: string; url?: string };
+  settings?: { sectionId?: string; theme?: string };
+};
+
 const {
+  visualStyle = "default",
   heading,
   subheading,
   bullets,
   image,
+  bgImage,
+  bgOverlay = 40,
+  centerImage,
+  mapUrl,
   primaryCta,
   secondaryCta,
-   
-} = Astro.props;
+  settings,
+} = Astro.props as Props;
 
-// 🔒 bullets puede venir undefined / string[] / objetos (PortableText u otro)
-// Lo convertimos a string[] sí o sí.
+const sectionId = settings?.sectionId;
+const theme     = settings?.theme ?? "transparent";
+
+// ── Bullets ──────────────────────────────────────────────────────────────────
 const safeBullets: string[] = Array.isArray(bullets)
-  ? bullets
-      .map((x) => {
-        if (typeof x === "string") return x;
-
-        // Intentos comunes si llega como objeto
-        if (typeof x?.text === "string") return x.text;
-        if (Array.isArray(x?.children) && typeof x.children?.[0]?.text === "string") return x.children[0].text;
- 
-        return "";
-      })
-      .filter(Boolean)
+  ? bullets.map((x) => {
+      if (typeof x === "string") return x;
+      if (typeof x?.text === "string") return x.text;
+      if (Array.isArray(x?.children)) return x.children[0]?.text ?? "";
+      return "";
+    }).filter(Boolean)
   : [];
 
-const imgUrl = image ? urlFor(image).width(900).height(600).quality(80).auto("format").url() : null;
-const imgAlt = image?.alt ?? heading ?? "Hero";
-const { settings } = Astro.props;
+// ── Imágenes ─────────────────────────────────────────────────────────────────
+const sideImgUrl = image
+  ? urlFor(image).width(900).height(600).quality(80).auto("format").url()
+  : null;
 
-const theme = settings?.theme ?? "transparent";
-const sectionId = settings?.id;
----
-<section id={sectionId} class={`section section--${theme} process`}>
+const bgImgUrl = bgImage
+  ? urlFor(bgImage).width(1920).height(1080).quality(85).auto("format").url()
+  : null;
 
-  <div class="container hero__grid">
-    <div class="hero__content">
-        <h1>{heading}</h1>
-         {subheading && <p class="hero__sub">{subheading}</p>}
-    
+const centerImgUrl = centerImage
+  ? urlFor(centerImage).width(800).quality(85).auto("format").url()
+  : null;
 
-   
+// ── Mapa ─────────────────────────────────────────────────────────────────────
+let mapEmbedUrl: string | null = null;
 
-      {safeBullets.length ? (
-        <ul class="hero__bullets">
-          {safeBullets.map((b) => (
-            <li><span>{b}</span></li>
-          ))}
-        </ul>
-      ) : null}
+if (visualStyle === "map" && mapUrl) {
+  try {
+    let resolved = mapUrl.trim();
 
-      <div class="hero__cta">
-        {primaryCta?.href ? (
-          <a class="btn btn--primary" href={primaryCta.href}>{primaryCta.label}</a>
-        ) : null}
+    // Seguir el redirect de URLs cortas (maps.app.goo.gl / goo.gl)
+    if (/goo\.gl/.test(resolved)) {
+      const r = await fetch(resolved, {
+        redirect: "follow",
+        signal: AbortSignal.timeout(4000),
+      });
+      resolved = r.url;
+    }
 
-        {secondaryCta?.href ? (
-          <a class="btn btn--ghost" href={secondaryCta.href}>{secondaryCta.label}</a>
-        ) : null}
-      </div>
-    </div>
-
-    {imgUrl ? (
-      <div class="hero__visual">
-        <Image src={imgUrl} alt={imgAlt} width={900} height={600} loading="eager" fetchpriority="high" decoding="async" />
-      </div>
-    ) : null}
-  </div>
-</section>
-
-<style>
-  .hero{
-    padding: 60px 0 100px;
-    background: transparent;
-   min-height: calc(100vh - var(--header-h, 80px));
+    // Extraer coordenadas del formato /@lat,lng,zoom
+    const coords = resolved.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (coords) {
+      mapEmbedUrl = `https://maps.google.com/maps?q=${coords[1]},${coords[2]}&output=embed&z=16&hl=es`;
+    } else {
+      // Fallback: incrustar URL tal como está
+      mapEmbedUrl = resolved.includes("output=embed")
+        ? resolved
+        : `https://maps.google.com/maps?q=${encodeURIComponent(resolved)}&output=embed`;
+    }
+  } catch {
+    mapEmbedUrl = null;
+  }
 }
 
-  .hero--transparent{
-    color:#fff;
+const overlayOpacity = Math.min(90, Math.max(0, bgOverlay ?? 40)) / 100;
+---
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODO 1: bg-image — imagen de fondo + contenido centrado
+════════════════════════════════════════════════════════════════════════════ -->
+{visualStyle === "bg-image" && (
+  <section
+    id={sectionId}
+    class="hero hero--bg-image section"
+    style={bgImgUrl ? `--bg-img: url('${bgImgUrl}'); --overlay: ${overlayOpacity};` : ""}
+  >
+    <div class="hero-bg__overlay" aria-hidden="true"></div>
+    <div class="container hero-bg__content">
+      <div class="hero__copy hero__copy--center">
+        {heading    && <h1>{heading}</h1>}
+        {subheading && <p class="hero__sub">{subheading}</p>}
+
+        {safeBullets.length > 0 && (
+          <ul class="hero__bullets">
+            {safeBullets.map((b) => <li>{b}</li>)}
+          </ul>
+        )}
+
+        <div class="hero__cta">
+          {primaryCta?.url   && <a class="btn btn--primary" href={primaryCta.url}>{primaryCta.label}</a>}
+          {secondaryCta?.url && <a class="btn btn--ghost"   href={secondaryCta.url}>{secondaryCta.label}</a>}
+        </div>
+      </div>
+
+      {centerImgUrl && (
+        <div class="hero-bg__center-img">
+          <img src={centerImgUrl} alt={heading ?? ""} loading="eager" />
+        </div>
+      )}
+    </div>
+  </section>
+)}
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODO 2: default — texto izquierda, imagen derecha
+════════════════════════════════════════════════════════════════════════════ -->
+{(visualStyle === "default" || !visualStyle) && (
+  <section id={sectionId} class={`hero hero--default section section--${theme}`}>
+    <div class="container hero__grid">
+      <div class="hero__copy">
+        {heading    && <h1>{heading}</h1>}
+        {subheading && <p class="hero__sub">{subheading}</p>}
+
+        {safeBullets.length > 0 && (
+          <ul class="hero__bullets">
+            {safeBullets.map((b) => <li>{b}</li>)}
+          </ul>
+        )}
+
+        <div class="hero__cta">
+          {primaryCta?.url   && <a class="btn btn--primary" href={primaryCta.url}>{primaryCta.label}</a>}
+          {secondaryCta?.url && <a class="btn btn--ghost"   href={secondaryCta.url}>{secondaryCta.label}</a>}
+        </div>
+      </div>
+
+      {sideImgUrl && (
+        <div class="hero__visual">
+          <img src={sideImgUrl} alt={heading ?? ""} width={900} height={600} loading="eager" />
+        </div>
+      )}
+    </div>
+  </section>
+)}
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODO 3: map — texto izquierda, mapa derecha
+════════════════════════════════════════════════════════════════════════════ -->
+{visualStyle === "map" && (
+  <section id={sectionId} class={`hero hero--map section section--${theme}`}>
+    <div class="container hero__grid">
+      <div class="hero__copy">
+        {heading    && <h1>{heading}</h1>}
+        {subheading && <p class="hero__sub">{subheading}</p>}
+
+        {safeBullets.length > 0 && (
+          <ul class="hero__bullets">
+            {safeBullets.map((b) => <li>{b}</li>)}
+          </ul>
+        )}
+
+        <div class="hero__cta">
+          {primaryCta?.url   && <a class="btn btn--primary" href={primaryCta.url}>{primaryCta.label}</a>}
+          {secondaryCta?.url && <a class="btn btn--ghost"   href={secondaryCta.url}>{secondaryCta.label}</a>}
+        </div>
+      </div>
+
+      <div class="hero__map-wrap">
+        {mapEmbedUrl ? (
+          <iframe
+            src={mapEmbedUrl}
+            title="Ubicación en Google Maps"
+            loading="lazy"
+            allowfullscreen
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+        ) : (
+          <div class="hero__map-placeholder">
+            <p>No se pudo cargar el mapa. Verifica el enlace.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+)}
+
+<style>
+  /* ── Shared ─────────────────────────────────────────────────────────────── */
+  .hero {
+    min-height: calc(100vh - var(--header-h, 80px));
+    padding: 60px 0 80px;
   }
 
-  .hero--transparent h1{
-    color:#fff;
-  }
-  .hero--light{
-    color:#111;
-    background: rgba(255,255,255,.7);
-    border-radius: 24px;
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+  h1 {
+    font-size: clamp(36px, 5vw, 64px);
+    line-height: .95;
+    letter-spacing: -1px;
+    margin: 0 0 16px;
   }
 
-  .hero__grid{
-    display:grid;
-    grid-template-columns: 1.1fr .9fr;
-    gap: 56px;
-    align-items:center;
-  }
-
-  .section--transparent  h1 {
-    font-size: clamp(38px, 5vw, 64px);
-    line-height: .9;
-    letter-spacing: -1px; color: #fff;
-    margin: 0;
-  }
-  .section--transparent  h2{
-    color: #fff;
-    
-  }
-
-
-  .hero__sub{
-    opacity:.85;
+  .hero__sub {
     font-size: 18px;
-    line-height: 1.1;
-    margin-top: 20px;
+    line-height: 1.5;
+    margin: 0 0 24px;
+    opacity: .85;
   }
 
-  .hero__bullets{
-    margin: 28px 0;
+  .hero__bullets {
+    margin: 0 0 28px;
     padding: 0;
     list-style: none;
+    display: grid;
+    gap: 8px;
   }
+  .hero__bullets li { opacity: .9; }
 
-  .hero__bullets li{
-    margin-bottom: 10px;
-    opacity: .9;
-  }
+  .hero__cta { display: flex; gap: 16px; flex-wrap: wrap; }
 
-  .hero__cta{
-    display:flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-top: 18px;
-  }
-
-  .btn{
-    display:inline-flex;
-    align-items:center;
-    padding: 14px 22px;
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 13px 22px;
     border-radius: 12px;
-    text-decoration:none;
+    text-decoration: none;
     font-weight: 700;
+    font-size: 15px;
+    transition: opacity .2s;
+  }
+  .btn:hover { opacity: .88; }
+  .btn--primary { background: var(--color-accent, #ef4444); color: #fff; }
+  .btn--ghost   { border: 1px solid rgba(255,255,255,.3); color: inherit; }
+
+  /* ── Modo default & map: grid dos columnas ──────────────────────────────── */
+  .hero__grid {
+    display: grid;
+    grid-template-columns: 1.1fr .9fr;
+    gap: 56px;
+    align-items: center;
+    height: 100%;
   }
 
-  .btn--primary{
-    background:#111827;
-    color:#fff;
-  }
+  .section--light h1         { color: #111; }
+  .section--light .btn--ghost { border-color: rgba(0,0,0,.2); color: #111; }
+  .section--transparent h1   { color: #fff; }
 
-  .btn--ghost{
-    border: 1px solid rgba(255,255,255,.25);
-    color: inherit;
-  }
-
-  .hero--light .btn--ghost{
-    border-color: rgba(0,0,0,.18);
-  }
-
-  .hero__visual img{
-    width:100%;
-    height:auto;
+  .hero__visual img {
+    width: 100%;
+    height: auto;
     border-radius: 18px;
-    display:block;
+    display: block;
   }
 
-  @media (max-width: 900px){
-    .hero__grid{
+  /* ── Modo map ────────────────────────────────────────────────────────────── */
+  .hero__map-wrap {
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,.2);
+    height: 480px;
+  }
+
+  .hero__map-wrap iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+
+  .hero__map-placeholder {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,.08);
+    border-radius: 18px;
+    opacity: .6;
+  }
+
+  /* ── Modo bg-image ──────────────────────────────────────────────────────── */
+  .hero--bg-image {
+    position: relative;
+    background-image: var(--bg-img);
+    background-size: cover;
+    background-position: center;
+    color: #fff;
+    display: flex;
+    align-items: center;
+  }
+
+  .hero-bg__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, var(--overlay, .4));
+    pointer-events: none;
+  }
+
+  .hero-bg__content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+  }
+
+  .hero__copy--center {
+    text-align: center;
+    max-width: 720px;
+  }
+
+  .hero__copy--center h1 { color: #fff; }
+  .hero__copy--center .hero__cta { justify-content: center; }
+  .hero__copy--center .btn--ghost { border-color: rgba(255,255,255,.4); }
+
+  .hero-bg__center-img img {
+    max-width: min(600px, 90vw);
+    height: auto;
+    display: block;
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0,0,0,.3);
+  }
+
+  /* ── Responsive ─────────────────────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .hero__grid {
       grid-template-columns: 1fr;
+      gap: 32px;
       text-align: center;
     }
-    .hero__cta{
-      justify-content: center;
-    }
+    .hero__cta { justify-content: center; }
+    .hero__map-wrap { height: 340px; }
   }
 </style>
