@@ -10,21 +10,20 @@ const social = settings?.social ?? {};
 const topBar = settings?.topBar;
 ---
 
-{topBar?.enabled && (
-  <div
-    class="top-bar"
-    style={topBar.bgColor ? `background:${topBar.bgColor}` : undefined}
-  >
-    <div class="container top-bar__inner">
-      {topBar.text && <span>{topBar.text}</span>}
-      {topBar.linkUrl && topBar.linkLabel && (
-        <a href={topBar.linkUrl}>{topBar.linkLabel}</a>
-      )}
-    </div>
-  </div>
-)}
-
 <header class="site-header" data-header>
+  {topBar?.enabled && (
+    <div
+      class="top-bar"
+      style={topBar.bgColor ? `background:${topBar.bgColor}` : undefined}
+    >
+      <div class="container top-bar__inner">
+        {topBar.text && <span>{topBar.text}</span>}
+        {topBar.linkUrl && topBar.linkLabel && (
+          <a href={topBar.linkUrl}>{topBar.linkLabel}</a>
+        )}
+      </div>
+    </div>
+  )}
   <nav class="main-nav container">
     <a class="logo" href="/" aria-label="Ir al inicio">
       {settings?.logoUrl ? (
@@ -141,14 +140,12 @@ const topBar = settings?.topBar;
       menu.classList.remove("is-open");
       document.documentElement.classList.remove("menu-open");
       closeDropdowns();
-      setSpacer();
     };
 
     const openMenu = () => {
       toggle.setAttribute("aria-expanded", "true");
       menu.classList.add("is-open");
       document.documentElement.classList.add("menu-open");
-      setSpacer();
     };
 
     toggle.addEventListener("click", () => {
@@ -162,7 +159,6 @@ const topBar = settings?.topBar;
         const expanded = btn.getAttribute("aria-expanded") === "true";
         closeDropdowns();
         btn.setAttribute("aria-expanded", expanded ? "false" : "true");
-        setSpacer();
       });
     });
 
