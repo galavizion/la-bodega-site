@@ -90,7 +90,7 @@ p{ margin: 0 0 14px; }
    CONTAINERS
 ========================= */
 .container{
-  width: min(100% - (var(--gutter) * 2), var(--container));
+  width: min(100% - 40px, var(--container));
   margin-inline: auto;
 }
 .container-fluid{

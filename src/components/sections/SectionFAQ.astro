@@ -24,7 +24,7 @@ const safeItems: FAQItem[] = Array.isArray(faqs) ? faqs.filter(Boolean) : [];
 ---
 
 <section id={sectionId} class="section faq-section">
-  <div class="container">
+  <div class="container faq__container">
     {(title || subtitle) && (
       <header class="faq__header">
         {title    && <h2 class="faq__title">{title}</h2>}
@@ -53,7 +53,7 @@ const safeItems: FAQItem[] = Array.isArray(faqs) ? faqs.filter(Boolean) : [];
 </section>
 
 <style>
-  .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+  .faq__container { max-width: 860px; }
 
   .faq__header { text-align: center; margin-bottom: 48px; }
   .faq__title  { font-size: clamp(1.5rem, 3vw, 2.2rem); margin: 0 0 12px; }

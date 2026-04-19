@@ -42,8 +42,15 @@ export const sectionHero = defineType({
 
     // ── Estilo bg-image ──────────────────────────────────────────
     defineField({
+      name: "bgColor",
+      title: "Color de fondo sólido",
+      type: "string",
+      description: "Color CSS válido: #1e293b, rgb(0,0,0), etc. Si hay imagen, se usa como fallback.",
+      hidden: ({ parent }) => parent?.visualStyle !== "bg-image",
+    }),
+    defineField({
       name: "bgImage",
-      title: "Imagen de fondo (pantalla completa)",
+      title: "Imagen de fondo (opcional, cubre el color)",
       type: "image",
       options: { hotspot: true },
       hidden: ({ parent }) => parent?.visualStyle !== "bg-image",
