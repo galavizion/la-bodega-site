@@ -7,6 +7,7 @@ import SectionContentSplit from "./sections/SectionContentSplit.astro";
 import SectionRichText from "./sections/SectionRichText.astro";
 import SectionCards from "./sections/SectionCards.astro";
 import SectionForm from "./sections/SectionForm.astro";
+import SectionSpace from "./sections/SectionSpace.astro";
 
 export const sectionRegistry = {
   sectionHero: SectionHero,
@@ -18,6 +19,7 @@ export const sectionRegistry = {
   sectionRichText: SectionRichText,
   sectionCards: SectionCards,
   sectionForm: SectionForm,
+  sectionSpace: SectionSpace,
 } as const;
 
 export type SectionType = keyof typeof sectionRegistry;

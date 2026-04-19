@@ -114,6 +114,8 @@ export const homeQuery = groq`
       settings
     },
 
+    _type == "sectionSpace" => { height, bgColor },
+
     _type == "sectionForm" => {
       title,
       subtitle,
@@ -252,6 +254,8 @@ export const pageBySlugQuery = groq`
       },
       settings
     },
+
+    _type == "sectionSpace" => { height, bgColor },
 
     _type == "sectionForm" => {
       title,

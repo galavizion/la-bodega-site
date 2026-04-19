@@ -81,6 +81,7 @@ export const page = defineType({
         { type: "sectionRichText" },
         { type: "sectionCards" },
         { type: "sectionForm" },
+        { type: "sectionSpace" },
       ],
     }),
   ],

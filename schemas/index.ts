@@ -23,6 +23,7 @@ import { sectionContentSplit } from "./sections/sectionContentSplit";
 import { sectionRichText } from "./sections/sectionRichText";
 import { sectionCards } from "./sections/sectionCards";
 import { sectionForm } from "./sections/sectionForm";
+import { sectionSpace } from "./sections/sectionSpace";
 
 export const schemaTypes = [
   // Documents
@@ -48,4 +49,5 @@ export const schemaTypes = [
   sectionRichText,
   sectionCards,
   sectionForm,
+  sectionSpace,
 ];

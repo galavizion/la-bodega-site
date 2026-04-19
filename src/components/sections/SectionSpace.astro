@@ -1,0 +1,14 @@
+---
+type Props = {
+  height?: number;
+  bgColor?: string;
+};
+
+const { height = 80, bgColor = "transparent" } = Astro.props as Props;
+---
+
+<div
+  class="section-space"
+  style={`height:${height}px;background:${bgColor};`}
+  aria-hidden="true"
+></div>
