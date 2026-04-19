@@ -5,7 +5,7 @@ import { urlFor } from "../../lib/sanity/image";
 
 const {
   title,
-  layout = "full",
+  layout = "default",
   image,
   imageSide = "right",
   content = [],
@@ -14,11 +14,12 @@ const {
 } = Astro.props;
 
 const theme = settings?.background || "transparent";
+const resolvedId = sectionId || settings?.sectionId;
 const imgUrl = image ? urlFor(image).width(1200).height(800).quality(80).auto("format").url() : null;
-const hasSplit = layout === "split" && imgUrl;
+const hasSplit = !!imgUrl;
 ---
 
-<section id={sectionId} class={`section section--${theme} content-split`}>
+<section id={resolvedId} class={`section section--${theme} content-split content-split--${layout}`}>
   <div class="container">
     {!hasSplit ? (
       <div class="content-split__single">
