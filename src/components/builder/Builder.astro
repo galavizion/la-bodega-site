@@ -8,16 +8,7 @@ type Props = {
 
 const { sections } = Astro.props;
 const safeSections = Array.isArray(sections) ? sections : [];
-
-// Si quieres forzar Hero primero
-const sorted = [...safeSections].sort((a, b) => {
-  if (a?._type === "sectionHero") return -1;
-  if (b?._type === "sectionHero") return 1;
-  return 0;
-});
-
-console.log("REGISTRY KEYS:", Object.keys(sectionRegistry));
-console.log("SECTIONS:", sorted.map((s) => s?._type));
+const sorted = safeSections;
 
 ---
 
