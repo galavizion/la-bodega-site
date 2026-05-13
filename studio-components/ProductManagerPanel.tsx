@@ -65,7 +65,9 @@ export function ProductManagerPanel() {
   const unpublishSelected = async () => {
     setWorking(true);
     try {
-      await Promise.all([...selected].map((id) => client.patch(id).set({ published: false }).commit()));
+      const tx = client.transaction();
+      [...selected].forEach((id) => tx.patch(id, { set: { published: false } }));
+      await tx.commit();
       const count = selected.size;
       setProducts((prev) => prev.map((p) => selected.has(p._id) ? { ...p, published: false } : p));
       setSelected(new Set());
@@ -80,7 +82,9 @@ export function ProductManagerPanel() {
   const publishSelected = async () => {
     setWorking(true);
     try {
-      await Promise.all([...selected].map((id) => client.patch(id).set({ published: true }).commit()));
+      const tx = client.transaction();
+      [...selected].forEach((id) => tx.patch(id, { set: { published: true } }));
+      await tx.commit();
       const count = selected.size;
       setProducts((prev) => prev.map((p) => selected.has(p._id) ? { ...p, published: true } : p));
       setSelected(new Set());
