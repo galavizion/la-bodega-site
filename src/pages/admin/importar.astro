@@ -1,9 +1,9 @@
 ---
 export const prerender = false;
 
-// Protección básica — solo en dev o con token
-const isDev = import.meta.env.DEV;
-if (!isDev) {
+// Protección: si ADMIN_KEY está definida, requiere ?key=VALOR en la URL
+const adminKey = import.meta.env.ADMIN_KEY;
+if (adminKey && Astro.url.searchParams.get("key") !== adminKey) {
   return Astro.redirect("/");
 }
 ---

@@ -107,7 +107,10 @@ const bgTheme = bg === "#000000" ? "section--on-dark"
   .cards__grid--3  { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
   .cards__grid--4  { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
   .cards__grid--6  { grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); }
-  .cards__grid--12 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 80px),  1fr)); }
+  .cards__grid--12 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 80px),  1fr)); align-items: center; }
+  .cards__grid--12 .card { align-items: center; justify-content: center; }
+  .cards__grid--12 .card__img-wrap { display: flex; align-items: center; justify-content: center; }
+  .cards__grid--12 .card__img-wrap img { width: auto; max-width: 100%; height: auto; }
 
   /* Base card — sin fondo, sin borde, sin border-radius */
   .card {
