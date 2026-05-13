@@ -19,7 +19,8 @@ export function ProductManagerPanel() {
   const [loading, setLoading]     = useState(true);
   const [working, setWorking]     = useState(false);
   const [confirm, setConfirm]     = useState<"delete" | null>(null);
-  const [tagFilter, setTagFilter] = useState("");
+  const [tagFilter, setTagFilter]       = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "published" | "hidden">("all");
   const [toast, setToast]         = useState<{ msg: string; ok: boolean } | null>(null);
 
   const load = useCallback(() => {
@@ -40,6 +41,12 @@ export function ProductManagerPanel() {
 
   const allTags = [...new Set(products.flatMap((p) => p.tags ?? []))].sort();
 
+  const filteredProducts = products.filter((p) => {
+    if (statusFilter === "published") return p.published !== false;
+    if (statusFilter === "hidden")    return p.published === false;
+    return true;
+  });
+
   const toggle = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -49,7 +56,7 @@ export function ProductManagerPanel() {
   };
 
   const selectAll = () => {
-    setSelected(selected.size === products.length ? new Set() : new Set(products.map((p) => p._id)));
+    setSelected(selected.size === filteredProducts.length ? new Set() : new Set(filteredProducts.map((p) => p._id)));
   };
 
   const selectByTag = () => {
@@ -158,7 +165,7 @@ export function ProductManagerPanel() {
         { style: { display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" } },
         React.createElement("input", {
           type: "checkbox",
-          checked: products.length > 0 && selected.size === products.length,
+          checked: filteredProducts.length > 0 && filteredProducts.every(p => selected.has(p._id)),
           onChange: selectAll,
           style: { width: "15px", height: "15px", accentColor: "#4275ff" },
         }),
@@ -177,6 +184,28 @@ export function ProductManagerPanel() {
       ),
 
       React.createElement("button", { onClick: selectByTag, disabled: !tagFilter, style: btn("rgba(0,0,0,.08)", "#333", !tagFilter) }, "Sel. grupo"),
+
+      // Status filter pills
+      ...(["all", "published", "hidden"] as const).map((f) =>
+        React.createElement(
+          "button",
+          {
+            key: f,
+            onClick: () => setStatusFilter(f),
+            style: {
+              padding: "6px 12px", borderRadius: "20px", border: "none",
+              fontSize: "12px", fontWeight: 600, cursor: "pointer",
+              background: statusFilter === f
+                ? (f === "hidden" ? "#f59e0b" : f === "published" ? "#16a34a" : "#4275ff")
+                : "rgba(0,0,0,.08)",
+              color: statusFilter === f ? "#fff" : "#555",
+            },
+          },
+          f === "all" ? `Todos (${products.length})` :
+          f === "published" ? `Públicos (${products.filter(p => p.published !== false).length})` :
+          `Ocultos (${products.filter(p => p.published === false).length})`
+        )
+      ),
 
       React.createElement("span", { style: { flex: 1 } }),
 
@@ -233,9 +262,9 @@ export function ProductManagerPanel() {
             React.createElement(
               "tbody",
               null,
-              products.length === 0
+              filteredProducts.length === 0
                 ? React.createElement("tr", null, React.createElement("td", { colSpan: 7, style: { textAlign: "center", padding: "40px", opacity: 0.4 } }, "Sin productos"))
-                : products.map((p) => {
+                : filteredProducts.map((p) => {
                     const sel = selected.has(p._id);
                     const isPublished = p.published !== false;
                     return React.createElement(
