@@ -145,8 +145,8 @@ export const POST: APIRoute = async ({ request }) => {
   const productSlug = slugify(title);
 
   const brandKey     = findKey(["marca", "brand", "fabricante"]);
-  const excerptKey   = findKey(["descripcion", "descripción", "excerpt", "description", "desc", "resumen", "short_description"]);
-  const bodyKey      = findKey(["descripcion_larga", "descripción_larga", "long_description", "body", "detalle", "detalles", "detail", "details", "contenido", "content"]);
+  const excerptKey   = findKey(["descripcion corta", "descripción corta", "descripcion", "descripción", "excerpt", "description", "desc", "resumen", "short_description", "short description"]);
+  const bodyKey      = findKey(["descripcion detallada", "descripción detallada", "descripcion_detallada", "descripcion_larga", "descripción_larga", "long_description", "long description", "body", "detalle", "detalles", "detail", "details", "contenido", "content"]);
   const categoriaKey = findKey(["categoria", "categoría", "category"]);
   const imageUrlKey = findKey([
     "imagen", "image", "image url", "image_url", "imageurl", "image src", "image_src",
@@ -168,16 +168,26 @@ export const POST: APIRoute = async ({ request }) => {
   const brand   = fixEncoding(String(brandKey ? row[brandKey] : "").trim());
   const excerpt = fixEncoding(String(excerptKey ? row[excerptKey] : "").trim());
 
-  // Body: texto plano → bloque portable text
+  // Body: texto (puede tener HTML) → párrafos en portable text
   const bodyRaw = fixEncoding(String(bodyKey ? row[bodyKey] : "").trim());
   const body = bodyRaw
-    ? [{
-        _type: "block",
-        _key: crypto.randomUUID(),
-        style: "normal",
-        markDefs: [],
-        children: [{ _type: "span", _key: crypto.randomUUID(), text: bodyRaw, marks: [] }],
-      }]
+    ? bodyRaw
+        // <br> doble o sencillo → separador de párrafo
+        .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, "\n\n")
+        .replace(/<br\s*\/?>/gi, "\n")
+        // quitar cualquier otra etiqueta HTML
+        .replace(/<[^>]+>/g, "")
+        // separar por doble salto para múltiples párrafos
+        .split(/\n{2,}/)
+        .map(p => p.replace(/\n/g, " ").trim())
+        .filter(Boolean)
+        .map(p => ({
+          _type: "block",
+          _key: crypto.randomUUID(),
+          style: "normal",
+          markDefs: [],
+          children: [{ _type: "span", _key: crypto.randomUUID(), text: p, marks: [] }],
+        }))
     : undefined;
 
   const imageRaw = imageUrlKey && row[imageUrlKey] ? String(row[imageUrlKey]).trim() : "";
@@ -277,6 +287,7 @@ export const POST: APIRoute = async ({ request }) => {
       // ── Actualizar campos base ──────────────────────────────────────────────
       await client.patch(existingId).set({
         title,
+        ...(variantSku ? { sku: variantSku } : {}),
         brand,
         excerpt,
         ...(body ? { body } : {}),
@@ -319,7 +330,7 @@ export const POST: APIRoute = async ({ request }) => {
         _type: "catalogItem",
         title,
         slug: { _type: "slug", current: productSlug },
-        sku: "",
+        sku: variantSku,
         brand,
         excerpt,
         tags,
