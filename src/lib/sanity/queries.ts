@@ -520,5 +520,9 @@ export const SITE_SETTINGS_QUERY = groq`
   "tagManagerId":              coalesce(*[_type == "siteSettingsCodes"][0].tagManagerId,              *[_type == "siteSettings"][0].tagManagerId),
   "adsenseClient":             coalesce(*[_type == "siteSettingsCodes"][0].adsenseClient,             *[_type == "siteSettings"][0].adsenseClient),
   "searchConsoleVerification": coalesce(*[_type == "siteSettingsCodes"][0].searchConsoleVerification, *[_type == "siteSettings"][0].searchConsoleVerification),
+
+  // ── Tienda ─────────────────────────────────────────────
+  "shopCurrency": *[_type == "siteSettings"][0].shop.currency,
+  "usdRate":      *[_type == "siteSettings"][0].shop.usdRate,
 }
 `;

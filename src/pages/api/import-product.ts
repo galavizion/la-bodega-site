@@ -144,8 +144,9 @@ export const POST: APIRoute = async ({ request }) => {
   // Slug basado en título (para agrupar variantes del mismo producto)
   const productSlug = slugify(title);
 
-  const brandKey    = findKey(["marca", "brand", "fabricante"]);
-  const excerptKey  = findKey(["descripcion", "descripción", "excerpt", "description"]);
+  const brandKey     = findKey(["marca", "brand", "fabricante"]);
+  const excerptKey   = findKey(["descripcion", "descripción", "excerpt", "description", "desc", "resumen", "short_description"]);
+  const bodyKey      = findKey(["descripcion_larga", "descripción_larga", "long_description", "body", "detalle", "detalles", "detail", "details", "contenido", "content"]);
   const categoriaKey = findKey(["categoria", "categoría", "category"]);
   const imageUrlKey = findKey([
     "imagen", "image", "image url", "image_url", "imageurl", "image src", "image_src",
@@ -164,8 +165,21 @@ export const POST: APIRoute = async ({ request }) => {
   const v2Key       = findKey(["variante_2", "variant_2", "variante2"]);
   const v3Key       = findKey(["variante_3", "variant_3", "variante3"]);
 
-  const brand    = fixEncoding(String(brandKey    ? row[brandKey]    : "").trim());
-  const excerpt  = fixEncoding(String(excerptKey  ? row[excerptKey]  : "").trim());
+  const brand   = fixEncoding(String(brandKey ? row[brandKey] : "").trim());
+  const excerpt = fixEncoding(String(excerptKey ? row[excerptKey] : "").trim());
+
+  // Body: texto plano → bloque portable text
+  const bodyRaw = fixEncoding(String(bodyKey ? row[bodyKey] : "").trim());
+  const body = bodyRaw
+    ? [{
+        _type: "block",
+        _key: crypto.randomUUID(),
+        style: "normal",
+        markDefs: [],
+        children: [{ _type: "span", _key: crypto.randomUUID(), text: bodyRaw, marks: [] }],
+      }]
+    : undefined;
+
   const imageRaw = imageUrlKey && row[imageUrlKey] ? String(row[imageUrlKey]).trim() : "";
   const imageUrl = imageRaw && (imageRaw.startsWith("http://") || imageRaw.startsWith("https://"))
     ? imageRaw
@@ -178,11 +192,24 @@ export const POST: APIRoute = async ({ request }) => {
     ? String(row[tagsKey]).split(",").map((t: string) => fixEncoding(t.trim())).filter(Boolean)
     : [];
 
-  // Resolve category reference: take first path segment (e.g. "CONEXIONES DE TUBERÍA / Codos" → "CONEXIONES DE TUBERÍA")
+  // Resolve category — toma el primer segmento (ej: "CONEXIONES / Codos" → "CONEXIONES")
   const rawCategory = categoriaKey && row[categoriaKey]
     ? fixEncoding(String(row[categoriaKey]).split("/")[0].trim())
     : "";
-  const categoryRefId = rawCategory ? categoryByTitle.get(rawCategory.toLowerCase()) : undefined;
+
+  let categoryRefId = rawCategory ? categoryByTitle.get(rawCategory.toLowerCase()) : undefined;
+
+  // Si no existe la categoría en Sanity, la crea automáticamente
+  if (rawCategory && !categoryRefId) {
+    const newCat = await client.create({
+      _type: "productCategory",
+      title: rawCategory,
+      slug: { _type: "slug", current: slugify(rawCategory) },
+    });
+    categoryRefId = newCat._id;
+    categoryByTitle.set(rawCategory.toLowerCase(), newCat._id);
+  }
+
   const categoryRef = categoryRefId
     ? { _type: "reference" as const, _ref: categoryRefId }
     : undefined;
@@ -252,6 +279,7 @@ export const POST: APIRoute = async ({ request }) => {
         title,
         brand,
         excerpt,
+        ...(body ? { body } : {}),
         tags,
         certifications,
         published: true,
@@ -281,8 +309,9 @@ export const POST: APIRoute = async ({ request }) => {
         }
       }
 
-      const imgTag = coverImageAsset ? " +img(sanity)" : imageUrl ? " +img(url)" : "";
-      return new Response(JSON.stringify({ action: `actualizado${imgTag}`, id: existingId }), { status: 200 });
+      const imgTag = coverImageAsset ? " +img" : imageUrl ? " +img(url)" : "";
+      const catTag = categoryRef ? ` +cat(${rawCategory})` : rawCategory ? ` !cat(${rawCategory})` : "";
+      return new Response(JSON.stringify({ action: `actualizado${imgTag}${catTag}`, id: existingId }), { status: 200 });
 
     } else {
       // ── Crear producto nuevo ────────────────────────────────────────────────
@@ -298,6 +327,7 @@ export const POST: APIRoute = async ({ request }) => {
         published: true,
         ...(coverImageAsset ? { coverImage: coverImageAsset } : imageUrl ? { imageUrl } : {}),
         ...(categoryRef ? { category: categoryRef } : {}),
+        ...(body ? { body } : {}),
         variants: variant ? [variant] : [],
         whatsapp: {
           enabled: true,
@@ -307,8 +337,9 @@ export const POST: APIRoute = async ({ request }) => {
       };
 
       const created = await client.create(doc);
-      const imgTag = coverImageAsset ? " +img(sanity)" : imageUrl ? " +img(url)" : "";
-      return new Response(JSON.stringify({ action: `creado${imgTag}`, id: created._id }), { status: 200 });
+      const imgTag = coverImageAsset ? " +img" : imageUrl ? " +img(url)" : "";
+      const catTag = categoryRef ? ` +cat(${rawCategory})` : rawCategory ? ` !cat(no encontrada)` : "";
+      return new Response(JSON.stringify({ action: `creado${imgTag}${catTag}`, id: created._id }), { status: 200 });
     }
 
   } catch (e: any) {

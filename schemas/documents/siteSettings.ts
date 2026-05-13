@@ -156,6 +156,31 @@ export const siteSettings = defineType({
       group: "footer",
     }),
 
+    // ── TIENDA ───────────────────────────────────────────
+    defineField({
+      name: "shop",
+      title: "Tienda / Precios",
+      type: "object",
+      group: "general",
+      fields: [
+        {
+          name: "currency",
+          title: "Moneda de los precios en catálogo",
+          type: "string",
+          options: { list: ["USD", "MXN"], layout: "radio" },
+          initialValue: "USD",
+          description: "Si los precios están en USD se convierten a MXN usando el tipo de cambio.",
+        },
+        {
+          name: "usdRate",
+          title: "Tipo de cambio USD → MXN",
+          type: "number",
+          description: "Ejemplo: 17.50 significa que $1 USD = $17.50 MXN. Actualiza este valor manualmente.",
+          initialValue: 17,
+        },
+      ],
+    }),
+
     // ── SEO ──────────────────────────────────────────────
     defineField({ name: "defaultTitle", title: "Título por defecto", type: "string", group: "seo" }),
     defineField({ name: "defaultDescription", title: "Descripción por defecto", type: "text", rows: 3, group: "seo" }),

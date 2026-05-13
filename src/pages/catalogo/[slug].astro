@@ -1,14 +1,21 @@
 ﻿---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { client as sanityClient } from "../../lib/sanity/client";
-import { CATALOG_BY_SLUG } from "../../lib/sanity/queries";
+import { CATALOG_BY_SLUG, SITE_SETTINGS_QUERY } from "../../lib/sanity/queries";
 import PortableTextRenderer from "../../components/PortableTextRenderer.astro";
 import { urlFor } from "../../lib/sanity/image";
 
 export const prerender = false;
 
 const { slug } = Astro.params;
-const item = await sanityClient.fetch(CATALOG_BY_SLUG, { slug });
+const [item, settings] = await Promise.all([
+  sanityClient.fetch(CATALOG_BY_SLUG, { slug }),
+  sanityClient.fetch(SITE_SETTINGS_QUERY),
+]);
+
+const shopCurrency: string = settings?.shopCurrency ?? "USD";
+const usdRate: number = settings?.usdRate ?? 17;
+const toMXN = (n: number) => shopCurrency === "USD" ? n * usdRate : n;
 
 const cover = item?.coverImage?.asset
   ? urlFor(item.coverImage).width(1600).quality(85).auto("format").url()
@@ -30,10 +37,12 @@ const variants: any[] = Array.isArray(item?.variants) ? item.variants : [];
 const hasVariants = variants.length > 0;
 
 // Precio base: primer variante con precio, o campo price, o priceLabel
-const basePrice =
+const basePriceRaw =
   variants.find((v: any) => v.price != null)?.price ??
   item?.price ??
   null;
+
+const basePrice = basePriceRaw != null ? toMXN(basePriceRaw) : null;
 
 const priceText =
   basePrice != null ? formatMXN(basePrice) : item?.priceLabel || "Cotización personalizada";
@@ -211,7 +220,7 @@ if (basePrice != null) {
     </div>
   </main>
 
-  <script is:inline>
+  <script is:inline define:vars={{ usdRate, shopCurrency }}>
     // ── Carrito ──────────────────────────────────────────
     document.addEventListener("click", (e) => {
       const btn = e.target?.closest?.("[data-add]");
@@ -239,10 +248,12 @@ if (basePrice != null) {
         const compare = btn.getAttribute("data-compare");
         const idx     = btn.getAttribute("data-index");
 
+        const rate = shopCurrency === "USD" ? usdRate : 1;
+
         if (priceDisplay) {
           if (price) {
-            const n = Number(price);
-            priceDisplay.textContent = "$" + n.toLocaleString("es-MX") + " MXN";
+            const n = Number(price) * rate;
+            priceDisplay.textContent = "$" + n.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " MXN";
           } else {
             priceDisplay.textContent = "Cotización personalizada";
           }
@@ -251,7 +262,8 @@ if (basePrice != null) {
         if (compareDisplay) {
           if (compare) {
             compareDisplay.style.display = "block";
-            compareDisplay.innerHTML = "Antes: <s>$" + Number(compare).toLocaleString("es-MX") + " MXN</s>";
+            const cn = Number(compare) * rate;
+            compareDisplay.innerHTML = "Antes: <s>$" + cn.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " MXN</s>";
           } else {
             compareDisplay.style.display = "none";
           }
