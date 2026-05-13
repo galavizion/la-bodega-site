@@ -11,6 +11,7 @@ type CatalogItem = {
   excerpt?: string;
   category?: string;
   coverImage?: any;
+  imageUrl?: string;
   price?: number;
   priceLabel?: string;
   whatsapp?: {
@@ -22,8 +23,12 @@ type CatalogItem = {
 
 const items: CatalogItem[] = await sanityClient.fetch(CATALOG_LIST);
 
-const img = (src: any) =>
-  src ? urlFor(src).width(800).quality(80).auto("format").url() : null;
+const img = (item: CatalogItem): string | null => {
+  if (item.coverImage?.asset) {
+    return urlFor(item.coverImage).width(800).quality(80).auto("format").url();
+  }
+  return item.imageUrl ?? null;
+};
 
 const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
 ---
@@ -39,7 +44,7 @@ const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
   <main class="container" style="padding:32px 0 60px;">
     <div class="grid">
       {items.map((item) => {
-        const cover = img(item.coverImage);
+        const cover = img(item);
         const href = `/catalogo/${item.slug}/`;
 
         return (
@@ -87,7 +92,8 @@ const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
     .catalog-header {
       background: #fff;
       border-bottom: 1px solid rgba(0,0,0,.07);
-      padding: 28px 0 22px;
+      padding-top: calc(var(--header-h, 72px) + 40px);
+      padding-bottom: 22px;
     }
     .catalog-title {
       margin: 0 0 4px;
@@ -108,7 +114,7 @@ const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
     }
 
     .card{
-      border-radius:20px;
+      border-radius:0;
       overflow:hidden;
       background:#ffffff;
       border:1px solid rgba(0,0,0,.05);
@@ -179,7 +185,7 @@ const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
     .add{
       width:100%;
       padding:14px;
-      border-radius:14px;
+      border-radius:0;
       border:0;
       background:#111827;
       color:#fff;

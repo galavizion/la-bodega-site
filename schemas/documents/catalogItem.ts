@@ -68,6 +68,13 @@ export const catalogItem = defineType({
       group: "media",
     }),
     defineField({
+      name: "imageUrl",
+      title: "URL de imagen externa",
+      description: "URL de imagen externa (ej: WordPress CDN). Se usa si no hay imagen subida arriba.",
+      type: "url",
+      group: "media",
+    }),
+    defineField({
       name: "gallery",
       title: "Galería de imágenes",
       type: "array",

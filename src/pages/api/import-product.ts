@@ -102,6 +102,7 @@ export const POST: APIRoute = async ({ request }) => {
   const brandKey    = findKey(["marca", "brand", "fabricante"]);
   const excerptKey  = findKey(["descripcion", "descripción", "excerpt", "description"]);
   const categoriaKey = findKey(["categoria", "categoría", "category"]);
+  const imageUrlKey = findKey(["imagen", "image", "image_url", "imageurl", "foto", "photo", "thumbnail", "img"]);
   const tagsKey     = findKey(["tags", "etiquetas"]);
   const certKey     = findKey(["certifications", "certificaciones"]);
   const skuKey      = findKey(["sku", "codigo", "código", "code"]);
@@ -112,8 +113,9 @@ export const POST: APIRoute = async ({ request }) => {
   const v2Key       = findKey(["variante_2", "variant_2", "variante2"]);
   const v3Key       = findKey(["variante_3", "variant_3", "variante3"]);
 
-  const brand   = fixEncoding(String(brandKey   ? row[brandKey]   : "").trim());
-  const excerpt = fixEncoding(String(excerptKey ? row[excerptKey] : "").trim());
+  const brand    = fixEncoding(String(brandKey    ? row[brandKey]    : "").trim());
+  const excerpt  = fixEncoding(String(excerptKey  ? row[excerptKey]  : "").trim());
+  const imageUrl = imageUrlKey && row[imageUrlKey] ? String(row[imageUrlKey]).trim() : undefined;
 
   const tags: string[] = categoriaKey && row[categoriaKey]
     ? [fixEncoding(String(row[categoriaKey]).trim())]
@@ -189,6 +191,7 @@ export const POST: APIRoute = async ({ request }) => {
         tags,
         certifications,
         published: true,
+        ...(imageUrl ? { imageUrl } : {}),
         ...(row.whatsappPhone ? {
           whatsapp: {
             enabled: true,
@@ -227,6 +230,7 @@ export const POST: APIRoute = async ({ request }) => {
         tags,
         certifications,
         published: true,
+        ...(imageUrl ? { imageUrl } : {}),
         variants: variant ? [variant] : [],
         whatsapp: {
           enabled: true,

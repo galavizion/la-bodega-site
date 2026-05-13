@@ -358,6 +358,7 @@ export const CATALOG_LIST = groq`
   excerpt,
   category,
   coverImage,
+  imageUrl,
   price,
   priceLabel,
   whatsapp{
