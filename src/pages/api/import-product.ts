@@ -110,7 +110,13 @@ export const POST: APIRoute = async ({ request }) => {
   const brandKey    = findKey(["marca", "brand", "fabricante"]);
   const excerptKey  = findKey(["descripcion", "descripción", "excerpt", "description"]);
   const categoriaKey = findKey(["categoria", "categoría", "category"]);
-  const imageUrlKey = findKey(["imagen", "image", "image url", "image_url", "imageurl", "foto", "photo", "thumbnail", "img"]);
+  const imageUrlKey = findKey([
+    "imagen", "image", "image url", "image_url", "imageurl", "image src", "image_src",
+    "imagesrc", "foto", "photo", "thumbnail", "img", "img_url", "img url",
+    "imagen_url", "url_imagen", "imagen url", "picture", "picture_url",
+    "image link", "image_link", "variant image", "variant_image", "media",
+    "url", "src",
+  ]);
   const tagsKey     = findKey(["tags", "etiquetas"]);
   const certKey     = findKey(["certifications", "certificaciones"]);
   const skuKey      = findKey(["sku", "codigo", "código", "code"]);
@@ -123,7 +129,10 @@ export const POST: APIRoute = async ({ request }) => {
 
   const brand    = fixEncoding(String(brandKey    ? row[brandKey]    : "").trim());
   const excerpt  = fixEncoding(String(excerptKey  ? row[excerptKey]  : "").trim());
-  const imageUrl = imageUrlKey && row[imageUrlKey] ? String(row[imageUrlKey]).trim() : undefined;
+  const imageRaw = imageUrlKey && row[imageUrlKey] ? String(row[imageUrlKey]).trim() : "";
+  const imageUrl = imageRaw && (imageRaw.startsWith("http://") || imageRaw.startsWith("https://"))
+    ? imageRaw
+    : undefined;
 
   const tags: string[] = tagsKey && row[tagsKey]
     ? String(row[tagsKey]).split(",").map((t: string) => fixEncoding(t.trim())).filter(Boolean)
@@ -232,7 +241,7 @@ export const POST: APIRoute = async ({ request }) => {
         }
       }
 
-      return new Response(JSON.stringify({ action: "actualizado", id: existingId }), { status: 200 });
+      return new Response(JSON.stringify({ action: `actualizado${imageUrl ? " +img" : ""}`, id: existingId }), { status: 200 });
 
     } else {
       // ── Crear producto nuevo ────────────────────────────────────────────────
@@ -257,7 +266,7 @@ export const POST: APIRoute = async ({ request }) => {
       };
 
       const created = await client.create(doc);
-      return new Response(JSON.stringify({ action: "creado", id: created._id }), { status: 200 });
+      return new Response(JSON.stringify({ action: `creado${imageUrl ? " +img" : ""}`, id: created._id }), { status: 200 });
     }
 
   } catch (e: any) {
