@@ -13,9 +13,12 @@ type Props = {
   bgOverlay?: number;
   centerImage?: any;
   mapUrl?: string;
+  mapFullWidth?: boolean;
+  fullWidth?: boolean;
+  textAlign?: "left" | "center" | "right";
   primaryCta?: { label?: string; url?: string };
   secondaryCta?: { label?: string; url?: string };
-  settings?: { sectionId?: string; theme?: string };
+  settings?: { sectionId?: string };
 };
 
 const {
@@ -30,13 +33,20 @@ const {
   bgOverlay = 40,
   centerImage,
   mapUrl,
+  mapFullWidth = false,
+  fullWidth = false,
+  textAlign = "left",
   primaryCta,
   secondaryCta,
   settings,
 } = Astro.props as Props;
 
 const sectionId = settings?.sectionId;
-const theme     = settings?.theme ?? "transparent";
+
+const bg = bgColor && bgColor !== "none" ? bgColor : null;
+const bgTheme = bg === "#000000" ? "section--on-dark"
+  : (bg === "#ffffff" || bg?.toLowerCase() === "#f7e96a") ? "section--on-light"
+  : "section--on-dark"; // default: transparent over dark body = white text
 
 // ── Bullets ──────────────────────────────────────────────────────────────────
 const safeBullets: string[] = Array.isArray(bullets)
@@ -100,25 +110,16 @@ const overlayOpacity = Math.min(90, Math.max(0, bgOverlay ?? 40)) / 100;
      MODO 1: bg-image — imagen de fondo + contenido centrado
 ════════════════════════════════════════════════════════════════════════════ -->
 {visualStyle === "bg-image" && (
-  <section id={sectionId} class="hero hero--bg-image section" style={bgColor ? `--bg-color:${bgColor}` : undefined}>
-    <div class="container">
-      <div class="hero-bg__frame" style={`--overlay:${overlayOpacity};--aspect:${aspectRatio === "auto" ? "unset" : aspectRatio}`}>
+  <section id={sectionId} class={`hero hero--bg-image section${fullWidth ? " hero--full" : ""}`} style={bgColor ? `--bg-color:${bgColor}` : undefined}>
+    <div class={fullWidth ? undefined : "container"}>
+      <div class={`hero-bg__frame${fullWidth ? " hero-bg__frame--full" : ""}`} style={`--overlay:${overlayOpacity};--aspect:${aspectRatio === "auto" ? "unset" : aspectRatio}`}>
 
-        {/* Imagen de fondo dentro del container */}
         {bgImgUrl && (
-          <img
-            class="hero-bg__img"
-            src={bgImgUrl}
-            alt=""
-            aria-hidden="true"
-            loading="eager"
-          />
+          <img class="hero-bg__img" src={bgImgUrl} alt="" aria-hidden="true" loading="eager" />
         )}
 
-        {/* Overlay oscuro sobre la imagen */}
         <div class="hero-bg__overlay" aria-hidden="true"></div>
 
-        {/* Contenido encima */}
         <div class="hero-bg__content">
           <div class="hero__copy hero__copy--center">
             {heading    && <h1>{heading}</h1>}
@@ -152,9 +153,9 @@ const overlayOpacity = Math.min(90, Math.max(0, bgOverlay ?? 40)) / 100;
      MODO 2: default — texto izquierda, imagen derecha
 ════════════════════════════════════════════════════════════════════════════ -->
 {(visualStyle === "default" || !visualStyle) && (
-  <section id={sectionId} class={`hero hero--default section section--${theme}`}>
+  <section id={sectionId} class={`hero hero--default section ${bgTheme}`} style={bg ? `background-color:${bg}` : undefined}>
     <div class="container hero__grid">
-      <div class="hero__copy">
+      <div class="hero__copy" style={`text-align:${textAlign}`}>
         {heading    && <h1>{heading}</h1>}
         {subheading && <p class="hero__sub">{subheading}</p>}
 
@@ -180,21 +181,65 @@ const overlayOpacity = Math.min(90, Math.max(0, bgOverlay ?? 40)) / 100;
 )}
 
 <!-- ══════════════════════════════════════════════════════════════════════════
-     MODO 3: map — texto izquierda, mapa derecha
+     MODO 3a: map full width — mapa full width, texto como overlay
 ════════════════════════════════════════════════════════════════════════════ -->
-{visualStyle === "map" && (
-  <section id={sectionId} class={`hero hero--map section section--${theme}`}>
+{visualStyle === "map" && mapFullWidth && (
+  <section id={sectionId} class="hero hero--map">
+    <div class="hero__map-bg">
+
+      {mapEmbedUrl ? (
+        <iframe
+          src={mapEmbedUrl}
+          title="Ubicación en Google Maps"
+          loading="lazy"
+          allowfullscreen
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+      ) : (
+        <div class="hero__map-placeholder">
+          <p>No se pudo cargar el mapa. Verifica el enlace.</p>
+        </div>
+      )}
+
+      {(heading || subheading || safeBullets.length > 0 || primaryCta?.url || secondaryCta?.url) && (
+        <>
+          <div class="hero__map-gradient" aria-hidden="true"></div>
+          <div class="hero__map-content container">
+            <div class="hero__copy" style={`text-align:${textAlign}`}>
+              {heading    && <h1>{heading}</h1>}
+              {subheading && <p class="hero__sub">{subheading}</p>}
+              {safeBullets.length > 0 && (
+                <ul class="hero__bullets">
+                  {safeBullets.map((b) => <li>{b}</li>)}
+                </ul>
+              )}
+              <div class="hero__cta">
+                {primaryCta?.url   && <a class="btn btn--primary" href={primaryCta.url}>{primaryCta.label}</a>}
+                {secondaryCta?.url && <a class="btn btn--ghost"   href={secondaryCta.url}>{secondaryCta.label}</a>}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+    </div>
+  </section>
+)}
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODO 3b: map 2 columnas — texto izquierda, mapa derecha
+════════════════════════════════════════════════════════════════════════════ -->
+{visualStyle === "map" && !mapFullWidth && (
+  <section id={sectionId} class={`hero hero--map-split section ${bgTheme}`} style={bg ? `background-color:${bg}` : undefined}>
     <div class="container hero__grid">
-      <div class="hero__copy">
+      <div class="hero__copy" style={`text-align:${textAlign}`}>
         {heading    && <h1>{heading}</h1>}
         {subheading && <p class="hero__sub">{subheading}</p>}
-
         {safeBullets.length > 0 && (
           <ul class="hero__bullets">
             {safeBullets.map((b) => <li>{b}</li>)}
           </ul>
         )}
-
         <div class="hero__cta">
           {primaryCta?.url   && <a class="btn btn--primary" href={primaryCta.url}>{primaryCta.label}</a>}
           {secondaryCta?.url && <a class="btn btn--ghost"   href={secondaryCta.url}>{secondaryCta.label}</a>}
@@ -282,9 +327,10 @@ const overlayOpacity = Math.min(90, Math.max(0, bgOverlay ?? 40)) / 100;
     height: 100%;
   }
 
-  .section--light h1         { color: #111; }
-  .section--light .btn--ghost { border-color: rgba(0,0,0,.2); color: #111; }
-  .section--transparent h1   { color: #fff; }
+  .section--on-light h1         { color: #000; }
+  .section--on-light .btn--ghost { border-color: rgba(0,0,0,.2); color: #000; }
+  .section--on-dark h1          { color: #fff; }
+  .section--on-dark .hero__sub  { color: rgba(255,255,255,.85); }
 
   .hero__visual img {
     width: 100%;
@@ -293,14 +339,13 @@ const overlayOpacity = Math.min(90, Math.max(0, bgOverlay ?? 40)) / 100;
     display: block;
   }
 
-  /* ── Modo map ────────────────────────────────────────────────────────────── */
+  /* ── Modo map 2 columnas ────────────────────────────────────────────────── */
   .hero__map-wrap {
     border-radius: 18px;
     overflow: hidden;
     box-shadow: 0 12px 40px rgba(0,0,0,.2);
     height: 480px;
   }
-
   .hero__map-wrap iframe {
     width: 100%;
     height: 100%;
@@ -308,23 +353,72 @@ const overlayOpacity = Math.min(90, Math.max(0, bgOverlay ?? 40)) / 100;
     display: block;
   }
 
+  /* ── Modo map (full width) ───────────────────────────────────────────────── */
+  .hero--map {
+    padding: 0;
+    min-height: unset;
+  }
+
+  .hero__map-bg {
+    position: relative;
+    width: 100%;
+    height: 520px;
+    overflow: hidden;
+  }
+
+  .hero__map-bg iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+
+  /* Gradiente izq→transparente para que el texto sea legible */
+  .hero__map-gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, rgba(0,0,0,.75) 0%, rgba(0,0,0,.45) 45%, transparent 72%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Contenido overlay centrado verticalmente */
+  .hero__map-content {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    z-index: 2;
+  }
+
+  .hero__map-content .hero__copy {
+    max-width: 520px;
+    color: #fff;
+  }
+  .hero__map-content h1          { color: #fff; }
+  .hero__map-content .hero__sub  { color: rgba(255,255,255,.85); }
+  .hero__map-content .btn--ghost { border-color: rgba(255,255,255,.4); }
+
   .hero__map-placeholder {
     width: 100%;
     height: 100%;
     display: grid;
     place-items: center;
-    background: rgba(255,255,255,.08);
-    border-radius: 18px;
-    opacity: .6;
+    background: #1e293b;
+    opacity: .8;
   }
 
   /* ── Modo bg-image ──────────────────────────────────────────────────────── */
   .hero--bg-image {
     background-color: var(--bg-color, transparent);
     color: #fff;
-    /* sin min-height: el alto lo dicta la imagen */
     padding: 0;
   }
+
+  /* Full width: sin márgenes, sin border-radius */
+  .hero--full { overflow: hidden; }
 
   /* Wrapper: aspect-ratio controla la altura, imagen cubre el frame */
   .hero-bg__frame {
@@ -334,6 +428,11 @@ const overlayOpacity = Math.min(90, Math.max(0, bgOverlay ?? 40)) / 100;
     border-radius: 18px;
     overflow: hidden;
     background-color: var(--bg-color, #1e293b);
+  }
+
+  /* Full width: sin border-radius */
+  .hero-bg__frame--full {
+    border-radius: 0;
   }
 
   /* Imagen: cubre todo el frame sin deformar */
@@ -392,6 +491,18 @@ const overlayOpacity = Math.min(90, Math.max(0, bgOverlay ?? 40)) / 100;
       text-align: center;
     }
     .hero__cta { justify-content: center; }
-    .hero__map-wrap { height: 340px; }
+    .hero__map-bg { height: 360px; }
+    .hero__map-gradient {
+      background: linear-gradient(to top, rgba(0,0,0,.8) 0%, rgba(0,0,0,.4) 55%, transparent 80%);
+    }
+    .hero__map-content {
+      align-items: flex-end;
+      padding-bottom: 24px;
+    }
+    .hero__map-content .hero__copy {
+      max-width: 100%;
+      text-align: center;
+    }
+    .hero__map-content .hero__cta { justify-content: center; }
   }
 </style>

@@ -1,9 +1,11 @@
 import { defineConfig } from "astro/config";
 import react from "@astrojs/react";
 import sanity from "@sanity/astro";
+import vercel from "@astrojs/vercel";
 
 export default defineConfig({
   output: "server",
+  adapter: vercel(),
   trailingSlash: "ignore",
   image: {
     domains: ["cdn.sanity.io"],

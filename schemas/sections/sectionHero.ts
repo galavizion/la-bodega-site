@@ -22,6 +22,13 @@ export const sectionHero = defineType({
     }),
 
     // ── Contenido ────────────────────────────────────────────────
+    defineField({
+      name: "textAlign",
+      title: "Alineación del texto",
+      type: "string",
+      options: { list: [{ title: "Izquierda", value: "left" }, { title: "Centro", value: "center" }, { title: "Derecha", value: "right" }], layout: "radio" },
+      initialValue: "left",
+    }),
     defineField({ name: "heading",    title: "Título principal", type: "string" }),
     defineField({ name: "subheading", title: "Subtítulo",        type: "text", rows: 3 }),
     defineField({
@@ -41,6 +48,14 @@ export const sectionHero = defineType({
     }),
 
     // ── Estilo bg-image ──────────────────────────────────────────
+    defineField({
+      name: "fullWidth",
+      title: "Full width (sin container)",
+      type: "boolean",
+      description: "Activa para que la imagen ocupe todo el ancho de la pantalla sin márgenes.",
+      initialValue: false,
+      hidden: ({ parent }) => parent?.visualStyle !== "bg-image",
+    }),
     defineField({
       name: "bgColor",
       title: "Color de fondo sólido",
@@ -95,6 +110,14 @@ export const sectionHero = defineType({
       title: "Enlace de Google Maps",
       type: "url",
       description: "Pega el enlace de compartir de Google Maps (maps.app.goo.gl/... o maps.google.com/...)",
+      hidden: ({ parent }) => parent?.visualStyle !== "map",
+    }),
+    defineField({
+      name: "mapFullWidth",
+      title: "Mapa full width (sin container)",
+      type: "boolean",
+      description: "Activado: mapa ocupa todo el ancho con texto encima. Desactivado: texto izquierda, mapa derecha.",
+      initialValue: false,
       hidden: ({ parent }) => parent?.visualStyle !== "map",
     }),
 

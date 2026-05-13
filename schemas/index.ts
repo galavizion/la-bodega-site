@@ -1,6 +1,13 @@
 // Documents
 import { page } from "./documents/page";
-import { siteSettings } from "./documents/siteSettings";
+import { siteSettings } from "./documents/siteSettings"; // legacy — mantener para no perder datos
+import { siteSettingsGeneral } from "./documents/siteSettingsGeneral";
+import { siteSettingsMenu } from "./documents/siteSettingsMenu";
+import { siteSettingsHeader } from "./documents/siteSettingsHeader";
+import { siteSettingsFooter } from "./documents/siteSettingsFooter";
+import { siteSettingsSeo } from "./documents/siteSettingsSeo";
+import { siteSettingsCodes } from "./documents/siteSettingsCodes";
+import { sharedSection } from "./documents/sharedSection";
 import { post } from "./documents/post";
 import { author } from "./documents/author";
 import { category } from "./documents/category";
@@ -12,6 +19,7 @@ import { formSubmission } from "./documents/formSubmission";
 // Objects
 import { seo } from "./objects/seo";
 import { navItem } from "./objects/navItem";
+import { sectionSharedRef } from "./objects/sectionSharedRef";
 
 // Sections
 import { sectionHero } from "./sections/sectionHero";
@@ -29,6 +37,13 @@ export const schemaTypes = [
   // Documents
   page,
   siteSettings,
+  siteSettingsGeneral,
+  siteSettingsMenu,
+  siteSettingsHeader,
+  siteSettingsFooter,
+  siteSettingsSeo,
+  siteSettingsCodes,
+  sharedSection,
   post,
   author,
   category,
@@ -39,6 +54,7 @@ export const schemaTypes = [
   // Objects
   seo,
   navItem,
+  sectionSharedRef,
   // Sections
   sectionHero,
   sectionBenefits,

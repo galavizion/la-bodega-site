@@ -7,6 +7,13 @@ export const sectionForm = defineType({
   fields: [
     defineField({ name: "title",          title: "Título",            type: "string" }),
     defineField({ name: "subtitle",       title: "Subtítulo",         type: "string" }),
+    defineField({
+      name: "textAlign",
+      title: "Alineación del texto",
+      type: "string",
+      options: { list: [{ title: "Izquierda", value: "left" }, { title: "Centro", value: "center" }, { title: "Derecha", value: "right" }], layout: "radio" },
+      initialValue: "left",
+    }),
     defineField({ name: "submitLabel",    title: "Texto del botón",   type: "string", initialValue: "Enviar mensaje" }),
     defineField({ name: "successMessage", title: "Mensaje de éxito",  type: "string", initialValue: "¡Mensaje recibido! Te contactamos pronto." }),
     defineField({
@@ -69,6 +76,15 @@ export const sectionForm = defineType({
       ],
     }),
     defineField({
+      name: "cta",
+      title: "Botón adicional",
+      type: "object",
+      fields: [
+        { name: "label", title: "Texto del botón", type: "string" },
+        { name: "url",   title: "URL",             type: "string" },
+      ],
+    }),
+    defineField({
       name: "whatsappFallback",
       title: "Botón alternativo de WhatsApp",
       type: "object",
@@ -77,6 +93,21 @@ export const sectionForm = defineType({
         { name: "phone",   title: "Número (con código de país, ej: 5215512345678)", type: "string" },
         { name: "label",   title: "Texto del botón", type: "string", initialValue: "O escríbenos por WhatsApp" },
       ],
+    }),
+    defineField({
+      name: "bgColor",
+      title: "Color de fondo",
+      type: "string",
+      options: {
+        list: [
+          { title: "Transparente (default)", value: "none"    },
+          { title: "Negro",                  value: "#000000" },
+          { title: "Blanco",                 value: "#ffffff" },
+          { title: "Amarillo",               value: "#F7E96A" },
+        ],
+        layout: "radio",
+      },
+      initialValue: "none",
     }),
     defineField({
       name: "settings",

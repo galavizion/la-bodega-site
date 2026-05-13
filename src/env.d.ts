@@ -1,5 +1,11 @@
 /// <reference types="astro/client" />
 
+declare namespace JSX {
+  interface IntrinsicElements {
+    [elemName: string]: any;
+  }
+}
+
 interface ImportMetaEnv {
   readonly PUBLIC_SANITY_PROJECT_ID: string;
   readonly PUBLIC_SANITY_DATASET: string;

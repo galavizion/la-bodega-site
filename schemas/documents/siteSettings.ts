@@ -6,9 +6,11 @@ export const siteSettings = defineType({
   type: "document",
   groups: [
     { name: "general", title: "General" },
-    { name: "header", title: "Header" },
-    { name: "footer", title: "Footer" },
-    { name: "seo", title: "SEO & Analytics" },
+    { name: "menu",    title: "Menú" },
+    { name: "header",  title: "Header" },
+    { name: "footer",  title: "Footer" },
+    { name: "seo",     title: "SEO" },
+    { name: "codes",   title: "Códigos" },
   ],
   fields: [
     // ── GENERAL ──────────────────────────────────────────
@@ -79,62 +81,59 @@ export const siteSettings = defineType({
       title: "Navegación principal",
       type: "array",
       of: [{ type: "navItem" }],
-      group: "header",
+      group: "menu",
     }),
 
     // ── FOOTER ───────────────────────────────────────────
     defineField({
-      name: "footerTagline",
-      title: "Tagline del footer",
-      type: "string",
+      name: "footerMatriz",
+      title: "Datos de Matriz / CEDIS principal",
+      type: "object",
       group: "footer",
-    }),
-    defineField({
-      name: "footerColumns",
-      title: "Columnas del footer",
-      type: "array",
-      group: "footer",
-      of: [
-        {
-          type: "object",
-          name: "footerColumn",
-          fields: [
-            { name: "title", title: "Título de columna", type: "string" },
-            {
-              name: "links",
-              title: "Enlaces",
-              type: "array",
-              of: [
-                {
-                  type: "object",
-                  fields: [
-                    { name: "label", title: "Texto", type: "string" },
-                    { name: "url", title: "URL", type: "string" },
-                  ],
-                  preview: { select: { title: "label", subtitle: "url" } },
-                },
-              ],
-            },
-          ],
-          preview: { select: { title: "title" } },
-        },
+      fields: [
+        { name: "colTitle",  title: "Título de columna (ej: Contacto)",     type: "string", initialValue: "Contacto" },
+        { name: "name",      title: "Nombre (ej: CEDIS MONTERREY)",          type: "string" },
+        { name: "address",   title: "Dirección",                             type: "string" },
+        { name: "phone",     title: "Teléfono",                              type: "string" },
       ],
     }),
     defineField({
-      name: "footerLocations",
-      title: "Ubicaciones / Contactos",
+      name: "footerCategoriesTitle",
+      title: "Título columna Categorías",
+      type: "string",
+      initialValue: "Categorías",
+      group: "footer",
+    }),
+    defineField({
+      name: "footerNavTitle",
+      title: "Título columna Menú",
+      type: "string",
+      initialValue: "Menú",
+      group: "footer",
+    }),
+    defineField({
+      name: "footerSocialTitle",
+      title: "Título columna Redes",
+      type: "string",
+      initialValue: "Síguenos",
+      group: "footer",
+    }),
+    defineField({
+      name: "footerBranches",
+      title: "Sucursales",
       type: "array",
       group: "footer",
+      description: "Máximo 4 sucursales para el segundo renglón del footer",
       of: [
         {
           type: "object",
           fields: [
-            { name: "city", title: "Ciudad", type: "string" },
-            { name: "phone", title: "Teléfono", type: "string" },
-            { name: "whatsapp", title: "WhatsApp (wa.me/...)", type: "string" },
-            { name: "email", title: "Email", type: "string" },
+            { name: "name",    title: "Nombre de sucursal", type: "string" },
+            { name: "url",     title: "URL (clic en el título)", type: "string" },
+            { name: "address", title: "Dirección",          type: "string" },
+            { name: "phone",   title: "Teléfono",           type: "string" },
           ],
-          preview: { select: { title: "city", subtitle: "phone" } },
+          preview: { select: { title: "name", subtitle: "phone" } },
         },
       ],
     }),
@@ -157,14 +156,16 @@ export const siteSettings = defineType({
       group: "footer",
     }),
 
-    // ── SEO & ANALYTICS ──────────────────────────────────
+    // ── SEO ──────────────────────────────────────────────
     defineField({ name: "defaultTitle", title: "Título por defecto", type: "string", group: "seo" }),
     defineField({ name: "defaultDescription", title: "Descripción por defecto", type: "text", rows: 3, group: "seo" }),
     defineField({ name: "defaultOgImage", title: "Imagen OG por defecto", type: "image", options: { hotspot: true }, group: "seo" }),
-    defineField({ name: "analyticsId", title: "Google Analytics ID", type: "string", group: "seo" }),
-    defineField({ name: "tagManagerId", title: "Google Tag Manager ID", type: "string", group: "seo" }),
-    defineField({ name: "adsenseClient", title: "AdSense Client ID", type: "string", group: "seo" }),
-    defineField({ name: "searchConsoleVerification", title: "Search Console Verification", type: "string", group: "seo" }),
+
+    // ── CÓDIGOS ──────────────────────────────────────────
+    defineField({ name: "analyticsId", title: "Google Analytics ID (G-XXXXXXX)", type: "string", group: "codes" }),
+    defineField({ name: "tagManagerId", title: "Google Tag Manager ID (GTM-XXXXX)", type: "string", group: "codes" }),
+    defineField({ name: "adsenseClient", title: "AdSense Client ID (ca-pub-XXXXXX)", type: "string", group: "codes" }),
+    defineField({ name: "searchConsoleVerification", title: "Search Console Verification meta", type: "string", group: "codes" }),
   ],
   preview: {
     select: { title: "siteName" },

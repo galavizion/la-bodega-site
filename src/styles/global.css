@@ -5,11 +5,11 @@
   --thm-font: 'Poppins', sans-serif;
   --heading-font: 'Poppins', sans-serif;
   --bg: #00000025;
-  --thm-base: #ef4444;
-  --thm-base-rgb: 239, 68, 68;
-  --thm-primary: #ef4444;
-  --thm-primary-rgb: 239, 68, 68;
-  --color-accent: #ef4444;
+  --thm-base: #F7E96A;
+  --thm-base-rgb: 247, 233, 106;
+  --thm-primary: #F7E96A;
+  --thm-primary-rgb: 247, 233, 106;
+  --color-accent: #F7E96A;
 
   --thm-black: #1e293b;
   --thm-black-rgb: 30, 41, 59;
@@ -58,19 +58,13 @@ body{
   font-size: 14px;
   line-height: 1.35;
 
-  background: linear-gradient(
-    -75deg,
-    #1e293b, #7f1d1d, #1e293b, #450a0a);
-
- 
-  background-size: 450% 450%;
-  animation: gradient 55s ease infinite;
+  background: #000;
+  animation: none;
 }
 
-@keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+body.is-shop{
+  background: #f5f5f5;
+  color: #111827;
 }
 
 img{ max-width: 100%; height: auto; display: block; }
@@ -903,7 +897,7 @@ width: 50%; text-align: center; margin: 0 auto;
 }
 
 .site-footer-one{
-  color: rgba(255, 255, 255, 0.945); background-color: #00000013;
+  color: #fff; background-color: #000;
   margin-top: 40px;
 }
 
@@ -944,17 +938,16 @@ width: 50%; text-align: center; margin: 0 auto;
   gap: 10px;
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(255,255,255,.12);
-  border: 1px solid rgba(255,255,255,.18);
-  color: #fff;
+  background: #F7E96A;
+  border: none;
+  color: #000;
   font-weight: 700;
   width: fit-content;
-  transition: transform .15s ease, background .15s ease, border-color .15s ease;
+  transition: transform .15s ease, opacity .15s ease;
 }
 .footer-btn:hover{
   transform: translateY(-1px);
-  background: rgba(255,255,255,.16);
-  border-color: rgba(255,255,255,.28);
+  opacity: .88;
 }
 
 .footer-micro{
@@ -1001,15 +994,14 @@ width: 50%; text-align: center; margin: 0 auto;
   border-radius: 14px;
   display:grid;
   place-items:center;
-  background: rgba(255,255,255,.12);
-  border: 1px solid rgba(255,255,255,.18);
-  color: #fff;
-  transition: transform .15s ease, background .15s ease, border-color .15s ease;
+  background: rgba(247,233,106,.12);
+  border: 1px solid rgba(247,233,106,.25);
+  color: #F7E96A;
+  transition: transform .15s ease, background .15s ease;
 }
 .footer-social a:hover{
   transform: translateY(-1px);
-  background: rgba(255,255,255,.16);
-  border-color: rgba(255,255,255,.28);
+  background: rgba(247,233,106,.22);
 }
 .footer-social i{
   font-size: 18px;
@@ -1268,28 +1260,63 @@ width: 50%; text-align: center; margin: 0 auto;
 .section{ padding: 40px 0px; }
 
 .section--light{
-  background: rgba(255,255,255,0.85);
-  color:#111;
-  
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: #ffffff;
+  color: #000;
 }
+.section--light h1,.section--light h2,.section--light h3,.section--light h4,
+.section--light p,.section--light li,.section--light a { color: #000; }
 
 .section--transparent{
   background: transparent;
-  color:#fff;
+  color: #fff;
 }
 .section--transparent a { color: inherit; }
 .section--transparent p { color: rgba(255,255,255,0.85); }
 .section--transparent li { color: rgba(255,255,255,0.9); }
-.btn--primary {
-  background: #111827;
+
+/* ── Temas por color de fondo de sección ── */
+.section--on-dark {
   color: #fff;
-  border: 1px solid rgba(255,255,255,0.2);
+}
+.section--on-dark h1,.section--on-dark h2,.section--on-dark h3,.section--on-dark h4,
+.section--on-dark p,.section--on-dark li,.section--on-dark a,.section--on-dark span,
+.section--on-dark label { color: #fff; }
+
+.section--on-light {
+  color: #000;
+}
+.section--on-light h1,.section--on-light h2,.section--on-light h3,.section--on-light h4,
+.section--on-light p,.section--on-light li,.section--on-light a,.section--on-light span,
+.section--on-light label { color: #000; }
+
+.btn--primary {
+  background: #F7E96A;
+  color: #000;
+  border: none;
+  font-weight: 700;
+}
+.btn--primary:hover {
+  opacity: .88;
 }
 
-.btn--primary:hover {
-  box-shadow: 0 0 18px rgba(91, 192, 190, 0.4);
+/* Botones en secciones: ancho completo + color contrario al fondo */
+.section .btn {
+  width: 100%;
+  justify-content: center;
+  text-decoration: none;
+}
+
+/* Fondo oscuro → botón amarillo (ya es el default) */
+.section--on-dark .btn--primary,
+.section .btn--primary {
+  background: #F7E96A;
+  color: #000;
+}
+
+/* Fondo claro (blanco/amarillo) → botón negro */
+.section--on-light .btn--primary {
+  background: #000;
+  color: #fff !important;
 }
 
 

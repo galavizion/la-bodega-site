@@ -20,9 +20,20 @@ export const page = defineType({
     }),
     defineField({
       name: "slug",
-      title: "Slug (URL)",
+      title: "Slug / Ruta URL",
       type: "slug",
-      options: { source: "title" },
+      description: "Para rutas anidadas escribe la ruta completa sin / inicial: ej. franquicias/sistemas-contra-incendio-saltillo",
+      options: {
+        source: "title",
+        slugify: (input: string) =>
+          input
+            .toLowerCase()
+            .normalize("NFD").replace(/[̀-ͯ]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/[^a-z0-9/-]/g, "")
+            .replace(/-+/g, "-")
+            .replace(/^-|-$/g, ""),
+      },
     }),
     defineField({ name: "seo", title: "SEO", type: "seo" }),
     defineField({
@@ -82,6 +93,7 @@ export const page = defineType({
         { type: "sectionCards" },
         { type: "sectionForm" },
         { type: "sectionSpace" },
+        { type: "sectionSharedRef" },
       ],
     }),
   ],

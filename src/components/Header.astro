@@ -321,11 +321,11 @@ const topBar = settings?.topBar;
   .has-submenu { position: relative; }
   .submenu {
     position: absolute;
-    top: calc(100% + 4px);
+    top: 100%;          /* comienza justo al borde del <li>, sin brecha */
     left: 0;
     min-width: 200px;
     margin: 0;
-    padding: 6px;
+    padding: 10px 6px 6px; /* padding-top crea el gap visual sin romper el hover */
     list-style: none;
     background: #111;
     border: 1px solid rgba(255,255,255,.1);
@@ -365,8 +365,8 @@ const topBar = settings?.topBar;
     align-items: center;
     padding: 8px 16px;
     border-radius: 8px;
-    background: var(--color-accent, #ef4444);
-    color: #fff;
+    background: #F7E96A;
+    color: #000;
     font-weight: 700;
     font-size: 12px;
     text-decoration: none;
@@ -394,8 +394,8 @@ const topBar = settings?.topBar;
     min-width: 16px; height: 16px;
     padding: 0 4px;
     border-radius: 999px;
-    background: var(--color-accent, #ef4444);
-    color: #fff;
+    background: #F7E96A;
+    color: #000;
     font-size: 10px;
     font-weight: 800;
     display: flex;

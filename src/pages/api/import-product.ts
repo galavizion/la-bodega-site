@@ -21,6 +21,16 @@ function slugify(text: string): string {
     .replace(/--+/g, "-");
 }
 
+// Corrige mojibake Latin-1→UTF-8 (ej: "Ã¡" → "á")
+function fixEncoding(str: string): string {
+  if (!str) return str;
+  try {
+    return decodeURIComponent(escape(str));
+  } catch {
+    return str;
+  }
+}
+
 /**
  * Parsea specs desde un string "Presión Max:300 PSI, Temperatura:180°F"
  * o desde columnas variante_1/2/3 con formato "Medida: 1\""
@@ -77,7 +87,7 @@ export const POST: APIRoute = async ({ request }) => {
     rowKeys.find((k) => names.includes(k.trim().toLowerCase())) ?? "";
 
   const nombreKey = findKey(["nombre", "title", "name", "producto", "product"]);
-  const title = String(nombreKey ? row[nombreKey] : "").trim();
+  const title = fixEncoding(String(nombreKey ? row[nombreKey] : "").trim());
 
   if (!title) {
     return new Response(
@@ -102,13 +112,13 @@ export const POST: APIRoute = async ({ request }) => {
   const v2Key       = findKey(["variante_2", "variant_2", "variante2"]);
   const v3Key       = findKey(["variante_3", "variant_3", "variante3"]);
 
-  const brand   = String(brandKey   ? row[brandKey]   : "").trim();
-  const excerpt = String(excerptKey ? row[excerptKey] : "").trim();
+  const brand   = fixEncoding(String(brandKey   ? row[brandKey]   : "").trim());
+  const excerpt = fixEncoding(String(excerptKey ? row[excerptKey] : "").trim());
 
   const tags: string[] = categoriaKey && row[categoriaKey]
-    ? [String(row[categoriaKey]).trim()]
+    ? [fixEncoding(String(row[categoriaKey]).trim())]
     : tagsKey && row[tagsKey]
-    ? String(row[tagsKey]).split(",").map((t: string) => t.trim()).filter(Boolean)
+    ? String(row[tagsKey]).split(",").map((t: string) => fixEncoding(t.trim())).filter(Boolean)
     : [];
 
   const certifications: string[] = certKey && row[certKey]
@@ -118,9 +128,9 @@ export const POST: APIRoute = async ({ request }) => {
   // ── Construir especificaciones de variante ──────────────────────────────────
   let specifications: ReturnType<typeof specsFromString> = [];
 
-  const v1 = String(v1Key ? row[v1Key] : "").trim();
-  const v2 = String(v2Key ? row[v2Key] : "").trim();
-  const v3 = String(v3Key ? row[v3Key] : "").trim();
+  const v1 = fixEncoding(String(v1Key ? row[v1Key] : "").trim());
+  const v2 = fixEncoding(String(v2Key ? row[v2Key] : "").trim());
+  const v3 = fixEncoding(String(v3Key ? row[v3Key] : "").trim());
 
   if (v1 || v2 || v3) {
     for (const raw of [v1, v2, v3]) {

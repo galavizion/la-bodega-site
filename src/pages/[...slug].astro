@@ -1,0 +1,40 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Builder from "../components/builder/Builder.astro";
+import { sanityFetch } from "../lib/sanity/client";
+import { pageBySlugQuery } from "../lib/sanity/queries";
+import groq from "groq";
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const pages = await sanityFetch<{ slug: string }[]>({
+    query: groq`*[_type == "page" && defined(slug.current) && pageType != "home"][]{
+      "slug": slug.current
+    }`,
+  });
+
+  return (pages ?? []).map((p) => ({ params: { slug: p.slug } }));
+}
+
+const slug = Astro.params.slug as string;
+const page = await sanityFetch<any>({
+  query: pageBySlugQuery,
+  params: { slug },
+});
+
+if (!page) return new Response(null, { status: 404 });
+
+const schema = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: page.title,
+  url: `${Astro.site ?? ""}/${slug}/`,
+};
+---
+
+<BaseLayout title={page.title} seo={page.seo} schema={schema} background={page.background}>
+  <main>
+    <Builder sections={page.sections} />
+  </main>
+</BaseLayout>

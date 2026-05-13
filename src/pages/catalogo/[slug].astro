@@ -84,6 +84,7 @@ if (item?.price != null) {
   canonical={`https://www.rankingagencia.com/catalogo/${slug}/`}
   seo={item?.seo}
   schema={schema}
+  bodyClass="is-shop"
 >
   <main class="container product-wrap">
     <a class="back" href="/catalogo/">← Volver al catálogo</a>
@@ -104,7 +105,7 @@ if (item?.price != null) {
 
         <h1 class="product__title">{item?.title}</h1>
 
-        {item?.excerpt ? <p class="product__excerpt">{item.excerpt}</p> : null}
+        {item?.excerpt ? <div class="product__excerpt" set:html={item.excerpt} /> : null}
 
         <div class="product__price">{priceText}</div>
 
@@ -171,8 +172,8 @@ if (item?.price != null) {
 
   <style>
   .product-wrap{
-  background:#ffffff;
-  padding: 40px 40px 70px; color:#333;
+  padding: 40px 40px 70px;
+  color: #333;
 }
 
     .back{
@@ -239,6 +240,9 @@ if (item?.price != null) {
       max-width: 60ch;
       line-height: 1.5;
     }
+    .product__excerpt p{ margin: 0 0 8px; }
+    .product__excerpt p:last-child{ margin-bottom: 0; }
+    .product__excerpt br{ display: none; }
 
     .product__price{
       margin-top: 18px;

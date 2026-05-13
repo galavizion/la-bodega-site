@@ -8,11 +8,14 @@ type Props = {
 
 const { sections } = Astro.props;
 const safeSections = Array.isArray(sections) ? sections : [];
-const sorted = safeSections;
 
+// Normaliza secciones: si es una referencia a sección guardada, usa la sección resuelta
+const resolved = safeSections
+  .map((s) => s?._type === "sectionSharedRef" ? s?.resolvedSection : s)
+  .filter(Boolean);
 ---
 
-{sorted.map((section) => {
+{resolved.map((section) => {
   const type = section?._type as SectionType;
   const Component = sectionRegistry[type];
 

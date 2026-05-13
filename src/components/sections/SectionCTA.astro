@@ -1,32 +1,40 @@
 ---
 type CTA = { label: string; href: string };
-const { settings } = Astro.props;
-
-const theme = settings?.theme ?? "transparent";
-const sectionId = settings?.id;
 
 const {
   title,
   subtitle,
+  bgColor,
+  textAlign = "left",
   primaryCta,
   secondaryCta,
+  settings,
 } = Astro.props as {
   title?: string;
   subtitle?: string;
+  bgColor?: string;
+  textAlign?: "left" | "center" | "right";
   primaryCta?: CTA | null;
   secondaryCta?: CTA | null;
+  settings?: { sectionId?: string };
 };
 
-// Sanity puede devolver null explícito, los defaults de desestructuración no cubren eso
+const sectionId = settings?.sectionId;
+
 const resolvedTitle = title ?? "¿Listo para hacerlo bien?";
 const resolvedSubtitle = subtitle ?? "Dime qué estás construyendo y te digo cómo lo haría para que convierta.";
 const resolvedPrimary = primaryCta ?? { label: "Contáctame", href: "/contacto" };
+
+const bg = bgColor && bgColor !== "none" ? bgColor : null;
+const bgTheme = bg === "#000000" ? "section--on-dark"
+  : (bg === "#ffffff" || bg?.toLowerCase() === "#f7e96a") ? "section--on-light"
+  : "";
 ---
 
-<section id={sectionId} class={`section section--${theme}`}>
+<section id={sectionId} class={`section ${bgTheme}`} style={bg ? `background-color:${bg}` : undefined}>
   <div class="container">
     <div class="cta__card">
-      <div class="cta__copy">
+      <div class="cta__copy" style={`text-align:${textAlign}`}>
         <h2>{resolvedTitle}</h2>
         <p>{resolvedSubtitle}</p>
       </div>
@@ -56,6 +64,5 @@ const resolvedPrimary = primaryCta ?? { label: "Contáctame", href: "/contacto" 
   .cta__copy p{ margin: 0; opacity: .85; line-height: 1.6; max-width: 60ch; color: #fff; }
   .cta__actions{ display:flex; gap: 10px; flex-wrap: wrap; }
   .btn{ display:inline-flex; align-items:center; justify-content:center; padding: 10px 14px; border-radius: 12px; text-decoration:none; font-weight: 600; }
-  .btn--primary{ background:#111; color:#fff; }
-  .btn--ghost{ border:1px solid rgba(0,0,0,.18); color:#111; background:#fff; }
+  .btn--ghost{ border:1px solid rgba(255,255,255,.3); color:inherit; background:transparent; }
 </style>

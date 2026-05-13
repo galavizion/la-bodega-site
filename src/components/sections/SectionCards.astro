@@ -15,9 +15,11 @@ type Props = {
   title?: string;
   subtitle?: string;
   columns?: number;
-  cardStyle?: "shadow" | "outline" | "filled" | "minimal";
+  cardStyle?: "shadow" | "outline" | "filled" | "minimal" | "circular";
   bgColor?: string;
+  textAlign?: "left" | "center" | "right";
   items?: CardItem[] | null;
+  cta?: { label?: string; url?: string } | null;
   settings?: { sectionId?: string };
 };
 
@@ -27,27 +29,27 @@ const {
   columns = 3,
   cardStyle = "shadow",
   bgColor,
+  textAlign = "left",
   items,
+  cta,
   settings,
 } = Astro.props as Props;
 
 const sectionId = settings?.sectionId;
 const safeItems = Array.isArray(items) ? items.filter(Boolean) : [];
-const cols = [2, 3, 4].includes(columns) ? columns : 3;
+const cols = [2, 3, 4, 6, 12].includes(columns) ? columns : 3;
 
-const hasBg = bgColor && bgColor !== "none";
-const bgStyle = hasBg ? `background-color:${bgColor};` : undefined;
-
-// Si el fondo es oscuro, el texto heredado puede ser ilegible → forzar color claro
-const darkBgs = ["#1e293b", "#0f172a", "#7f1d1d", "#ef4444"];
-const forceDark = hasBg && !darkBgs.includes(bgColor!) ? "cards--light-bg" : "";
-const forceLight = hasBg && darkBgs.includes(bgColor!) ? "cards--dark-bg" : "";
+const bg = bgColor && bgColor !== "none" ? bgColor : null;
+const bgStyle = bg ? `background-color:${bg}` : undefined;
+const bgTheme = bg === "#000000" ? "section--on-dark"
+  : (bg === "#ffffff" || bg?.toLowerCase() === "#f7e96a") ? "section--on-light"
+  : "";
 ---
 
-<section id={sectionId} class={`section cards cards--${cardStyle} ${forceDark} ${forceLight}`} style={bgStyle}>
+<section id={sectionId} class={`section cards cards--${cardStyle} ${bgTheme}`} style={bgStyle}>
   <div class="container">
     {(title || subtitle) && (
-      <header class="cards__header">
+      <header class="cards__header" style={`text-align:${textAlign}`}>
         {title    && <h2 class="cards__title">{title}</h2>}
         {subtitle && <p  class="cards__subtitle">{subtitle}</p>}
       </header>
@@ -60,7 +62,7 @@ const forceLight = hasBg && darkBgs.includes(bgColor!) ? "cards--dark-bg" : "";
           : null;
 
         return (
-          <article class="card">
+          <article class="card" style={`text-align:${textAlign};align-items:${textAlign === "center" ? "center" : textAlign === "right" ? "flex-end" : "flex-start"}`}>
             {imgUrl && (
               <div class="card__img-wrap">
                 <img src={imgUrl} alt={item.title ?? ""} loading="lazy" />
@@ -78,18 +80,20 @@ const forceLight = hasBg && darkBgs.includes(bgColor!) ? "cards--dark-bg" : "";
         );
       })}
     </div>
+
+    {cta?.label && cta?.url && (
+      <div class="cards__cta">
+        <a class="btn btn--primary" href={cta.url}>{cta.label}</a>
+      </div>
+    )}
   </div>
 </section>
 
 <style>
   .cards { width: 100%; }
+  .cards__cta { margin-top: 36px; }
 
   /* Texto según luminosidad del fondo */
-  .cards--dark-bg  { color: #fff; }
-  .cards--dark-bg  .cards__subtitle { opacity: .75; }
-  .cards--dark-bg  .card__desc      { opacity: .72; }
-  .cards--light-bg { color: #111; }
-  .cards--light-bg .cards__subtitle { opacity: .65; }
 
   .cards__header { text-align: left; margin-bottom: 36px; }
   .cards__title  { font-size: clamp(1.5rem, 3vw, 2.2rem); margin: 0 0 10px; }
@@ -99,9 +103,11 @@ const forceLight = hasBg && darkBgs.includes(bgColor!) ? "cards--dark-bg" : "";
     display: grid;
     gap: 28px;
   }
-  .cards__grid--2 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
-  .cards__grid--3 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
-  .cards__grid--4 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+  .cards__grid--2  { grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
+  .cards__grid--3  { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+  .cards__grid--4  { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+  .cards__grid--6  { grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); }
+  .cards__grid--12 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 80px),  1fr)); }
 
   /* Base card — sin fondo, sin borde, sin border-radius */
   .card {
@@ -131,6 +137,41 @@ const forceLight = hasBg && darkBgs.includes(bgColor!) ? "cards--dark-bg" : "";
     width: 100%;
     height: auto;
     display: block;
+  }
+
+  /* ── Estilo circular ── */
+  .cards--circular .card {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    align-items: center;
+    text-align: center;
+  }
+
+  .cards--circular .card__img-wrap {
+    width: 40%;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.25);
+    margin: 0 auto;
+  }
+
+  .section--on-light .cards--circular .card__img-wrap {
+    border-color: rgba(0,0,0,.18);
+  }
+
+  .cards--circular .card__img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .cards--circular .card__body {
+    align-items: center;
+    text-align: center;
   }
 
   /* Texto alineado a la izquierda, sin padding lateral */

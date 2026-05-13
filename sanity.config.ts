@@ -4,6 +4,7 @@ import { visionTool } from "@sanity/vision";
 import { schemaTypes } from "./schemas";
 import { ImporterPanel } from "./studio-components/ImporterPanel";
 import { ProductManagerPanel } from "./studio-components/ProductManagerPanel";
+import { DuplicatePageAction } from "./studio-components/DuplicatePageAction";
 
 export default defineConfig({
   projectId: "a7b3q6z9",
@@ -18,12 +19,38 @@ export default defineConfig({
             // ── Configuración ──────────────────────────
             S.listItem()
               .title("⚙️ Configuración del sitio")
-              .id("siteSettings")
+              .id("configuracion")
               .child(
-                S.document()
-                  .schemaType("siteSettings")
-                  .documentId("siteSettings")
+                S.list()
+                  .title("Configuración del sitio")
+                  .items([
+                    S.listItem()
+                      .title("🌐 General")
+                      .child(S.document().schemaType("siteSettingsGeneral").documentId("siteSettingsGeneral")),
+                    S.listItem()
+                      .title("🧭 Menú")
+                      .child(S.document().schemaType("siteSettingsMenu").documentId("siteSettingsMenu")),
+                    S.listItem()
+                      .title("🔝 Header")
+                      .child(S.document().schemaType("siteSettingsHeader").documentId("siteSettingsHeader")),
+                    S.listItem()
+                      .title("🔻 Footer")
+                      .child(S.document().schemaType("siteSettingsFooter").documentId("siteSettingsFooter")),
+                    S.listItem()
+                      .title("🔍 SEO")
+                      .child(S.document().schemaType("siteSettingsSeo").documentId("siteSettingsSeo")),
+                    S.listItem()
+                      .title("📊 Códigos")
+                      .child(S.document().schemaType("siteSettingsCodes").documentId("siteSettingsCodes")),
+                  ])
               ),
+
+            S.divider(),
+
+            // ── Secciones guardadas ────────────────────
+            S.listItem()
+              .title("⭐ Secciones guardadas")
+              .child(S.documentTypeList("sharedSection").title("Secciones guardadas")),
 
             S.divider(),
 
@@ -150,6 +177,12 @@ export default defineConfig({
     }),
     visionTool(),
   ],
+  document: {
+    actions: (prev, context) =>
+      context.schemaType === "page"
+        ? [...prev, DuplicatePageAction]
+        : prev,
+  },
   schema: {
     types: schemaTypes,
   },

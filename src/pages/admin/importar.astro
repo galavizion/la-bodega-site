@@ -207,6 +207,20 @@ if (!isDev) {
       entries.forEach(({ type, msg }) => _renderLogItem(type, msg));
     })();
 
+    // Corrige mojibake Latin-1→UTF-8 (ej: "Ã¡" → "á")
+    function fixEncoding(str) {
+      if (typeof str !== "string" || !str) return str;
+      try { return decodeURIComponent(escape(str)); } catch { return str; }
+    }
+
+    function fixRowEncoding(row) {
+      const fixed = {};
+      for (const [k, v] of Object.entries(row)) {
+        fixed[k] = typeof v === "string" ? fixEncoding(v) : v;
+      }
+      return fixed;
+    }
+
     // ── Parse file ──────────────────────────────────────
     fileInput.addEventListener("change", async (e) => {
       const file = e.target.files[0];
@@ -219,7 +233,7 @@ if (!isDev) {
           /cat[aá]logo|products|productos/i.test(n)
         ) ?? wb.SheetNames[0];
       const ws = wb.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: "" }).map(fixRowEncoding);
 
       parsedRows = rows;
       renderPreview(rows.slice(0, 5), sheetName);

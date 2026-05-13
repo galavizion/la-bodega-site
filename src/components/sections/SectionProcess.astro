@@ -2,17 +2,25 @@
 import { Image } from "astro:assets";
 import { urlFor } from "../../lib/sanity/image";
 
-const { title, steps = [], settings } = Astro.props;
+const { title, subtitle, bgColor, textAlign = "left", cta, steps = [], settings } = Astro.props;
 
-const theme = settings?.theme ?? "transparent";
-const sectionId = settings?.id;
-
+const sectionId = settings?.id ?? settings?.sectionId;
 const safeSteps = Array.isArray(steps) ? steps : [];
+
+const bg = bgColor && bgColor !== "none" ? bgColor : null;
+const bgTheme = bg === "#000000" ? "section--on-dark"
+  : (bg === "#ffffff" || bg?.toLowerCase() === "#f7e96a") ? "section--on-light"
+  : "";
 ---
 
-<section id={sectionId} class={`section section--${theme} process`}>
+<section id={sectionId} class={`section process ${bgTheme}`} style={bg ? `background-color:${bg}` : undefined}>
   <div class="container">
-    {title && <h2 class="process__title">{title}</h2>}
+    {(title || subtitle) && (
+      <header class="process__header" style={`text-align:${textAlign}`}>
+        {title    && <h2 class="process__title">{title}</h2>}
+        {subtitle && <p  class="process__subtitle">{subtitle}</p>}
+      </header>
+    )}
 
     {safeSteps.length ? (
       <div class="process__grid">
@@ -39,6 +47,12 @@ const safeSteps = Array.isArray(steps) ? steps : [];
       </div>
     ) : (
       <p class="process__empty">No hay pasos configurados en esta sección.</p>
+    )}
+
+    {cta?.label && cta?.url && (
+      <div class="process__cta">
+        <a class="btn btn--primary" href={cta.url}>{cta.label}</a>
+      </div>
     )}
   </div>
 </section>

@@ -3,24 +3,39 @@ import PortableTextRenderer from "../PortableTextRenderer.astro";
 
 type Props = {
   title?: string;
+  bgColor?: string;
+  textAlign?: "left" | "center" | "right";
   content?: any[];
+  cta?: { label?: string; url?: string } | null;
+  settings?: { sectionId?: string };
 };
 
-const { title, content = [] } = Astro.props;
+const { title, bgColor, textAlign = "left", content = [], cta, settings } = Astro.props as Props;
+
+const sectionId = settings?.sectionId;
+const bg = bgColor && bgColor !== "none" ? bgColor : null;
+const bgTheme = bg === "#000000" ? "section--on-dark"
+  : (bg === "#ffffff" || bg?.toLowerCase() === "#f7e96a") ? "section--on-light"
+  : "";
 ---
 
-<section class="py-16">
-  <div class="mx-auto max-w-4xl px-4">
-
-    {title && (
-      <h2 class="text-3xl font-bold mb-8">
-        {title}
-      </h2>
-    )}
-
-    <div class="prose prose-lg max-w-none">
+<section id={sectionId} class={`section richtext ${bgTheme}`} style={bg ? `background-color:${bg}` : undefined}>
+  <div class="container richtext__inner" style={`text-align:${textAlign}`}>
+    {title && <h2 class="richtext__title">{title}</h2>}
+    <div class="richtext__body">
       <PortableTextRenderer value={content} />
     </div>
-
+    {cta?.label && cta?.url && (
+      <div class="richtext__cta">
+        <a class="btn btn--primary" href={cta.url}>{cta.label}</a>
+      </div>
+    )}
   </div>
 </section>
+
+<style>
+  .richtext__inner { max-width: 860px; margin: 0 auto; }
+  .richtext__cta { margin-top: 28px; }
+  .richtext__title { font-size: clamp(24px, 2.8vw, 38px); margin: 0 0 24px; line-height: 1.1; }
+  .richtext__body { line-height: 1.7; font-size: 16px; }
+</style>

@@ -21,7 +21,10 @@ type BenefitItemInput =
 type Props = {
   title?: string;
   subtitle?: string;
+  bgColor?: string;
+  textAlign?: "left" | "center" | "right";
   items?: BenefitItemInput[] | null;
+  cta?: { label?: string; url?: string } | null;
   theme?: Theme; // legacy
   settings?: SectionSettings;
 };
@@ -38,11 +41,15 @@ const props = Astro.props as Props;
 
 const title = props.title ?? "";
 const subtitle = props.subtitle ?? "";
-const themeLegacy = props.theme ?? "light";
+const textAlign = props.textAlign ?? "left";
+const cta = props.cta;
 const settings = props.settings;
-
-const resolvedTheme: Theme = settings?.theme ?? themeLegacy ?? "light";
 const sectionId: string | undefined = settings?.id;
+
+const bg = props.bgColor && props.bgColor !== "none" ? props.bgColor : null;
+const bgTheme = bg === "#000000" ? "section--on-dark"
+  : (bg === "#ffffff" || bg?.toLowerCase() === "#f7e96a") ? "section--on-light"
+  : "";
 
 const rawItems: BenefitItemInput[] = Array.isArray(props.items) ? props.items : [];
 
@@ -83,9 +90,9 @@ function getIcon(key: string): string | null {
 }
 ---
 
-<section id={sectionId} class={`section section--${resolvedTheme} benefits`}>
+<section id={sectionId} class={`section benefits ${bgTheme}`} style={bg ? `background-color:${bg}` : undefined}>
   <div class="container benefits__container">
-    <header class="benefits__header">
+    <header class="benefits__header" style={`text-align:${textAlign}`}>
       {title && <h2 class="benefits__title">{title}</h2>}
       {subtitle && <p class="benefits__subtitle">{subtitle}</p>}
     </header>
@@ -116,5 +123,11 @@ function getIcon(key: string): string | null {
         </ul>
       )
     ) : null}
+
+    {cta?.label && cta?.url && (
+      <div class="benefits__cta">
+        <a class="btn btn--primary" href={cta.url}>{cta.label}</a>
+      </div>
+    )}
   </div>
 </section>

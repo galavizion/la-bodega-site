@@ -11,6 +11,9 @@ type FormField = {
 type Props = {
   title?: string;
   subtitle?: string;
+  bgColor?: string;
+  textAlign?: "left" | "center" | "right";
+  cta?: { label?: string; url?: string } | null;
   formType?: "contact" | "quote" | "newsletter";
   fields?: FormField[] | null;
   submitLabel?: string;
@@ -22,6 +25,9 @@ type Props = {
 const {
   title,
   subtitle,
+  bgColor,
+  textAlign = "left",
+  cta,
   formType = "contact",
   fields,
   submitLabel = "Enviar mensaje",
@@ -31,6 +37,11 @@ const {
 } = Astro.props as Props;
 
 const sectionId = settings?.sectionId;
+
+const bg = bgColor && bgColor !== "none" ? bgColor : null;
+const bgTheme = bg === "#000000" ? "section--on-dark"
+  : (bg === "#ffffff" || bg?.toLowerCase() === "#f7e96a") ? "section--on-light"
+  : "";
 
 const safeFields: FormField[] = Array.isArray(fields) && fields.length
   ? fields
@@ -47,14 +58,18 @@ const waLabel  = whatsappFallback?.label  ?? "O escríbenos por WhatsApp";
 const waActive = whatsappFallback?.enabled && waPhone;
 ---
 
-<section id={sectionId} class="section form-section">
+<section id={sectionId} class={`section form-section ${bgTheme}`} style={`${bg ? `background-color:${bg};` : ''}--section-bg:${bg ?? '#000000'}`}>
   <div class="container">
     <div class="form-grid">
 
       <!-- Columna izquierda: copy -->
-      <div class="form-copy">
+      <div class="form-copy" style={`text-align:${textAlign}`}>
         {title    && <h2 class="form-copy__title">{title}</h2>}
         {subtitle && <p  class="form-copy__sub">{subtitle}</p>}
+
+        {cta?.label && cta?.url && (
+          <a class="btn btn--primary" href={cta.url} style="display:inline-flex;margin-bottom:16px">{cta.label}</a>
+        )}
 
         {waActive && (
           <a
@@ -223,58 +238,67 @@ const waActive = whatsappFallback?.enabled && waPhone;
   }
   .wa-btn:hover { opacity: .88; }
 
-  /* ── Tarjeta del formulario ── */
+  /* ── Tarjeta del formulario — base (fondo oscuro / transparente) ── */
   .form-card {
-    background: rgba(255,255,255,.07);
-    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.16);
     border-radius: 20px;
     padding: 36px;
     display: flex;
     flex-direction: column;
     gap: 18px;
-    backdrop-filter: blur(8px);
   }
 
   .field { display: flex; flex-direction: column; gap: 6px; }
-  .field label { font-size: 13px; font-weight: 600; opacity: .8; }
+  .field label { font-size: 13px; font-weight: 600; opacity: .85; }
 
   .field input,
   .field select,
   .field textarea {
     padding: 11px 14px;
     border-radius: 10px;
-    border: 1px solid rgba(255,255,255,.18);
-    background: rgba(255,255,255,.08);
+    border: 1.5px solid rgba(255,255,255,.30);
+    background: rgba(255,255,255,.06);
     color: inherit;
     font-size: 14px;
     font-family: inherit;
-    transition: border-color .2s, box-shadow .2s;
+    transition: border-color .2s, box-shadow .2s, background .2s;
     resize: vertical;
   }
 
   .field input::placeholder,
-  .field textarea::placeholder { opacity: .45; }
+  .field select::placeholder,
+  .field textarea::placeholder { opacity: .5; color: inherit; }
 
   .field input:focus,
   .field select:focus,
   .field textarea:focus {
     outline: none;
-    border-color: var(--color-accent, #ef4444);
-    box-shadow: 0 0 0 3px rgba(239,68,68,.18);
+    border-color: #F7E96A;
+    box-shadow: 0 0 0 3px rgba(247,233,106,.20);
+    background: rgba(255,255,255,.10);
   }
 
-  /* Modo claro: adaptar si la sección es --light */
-  .section--light .form-card {
-    background: rgba(0,0,0,.03);
-    border-color: rgba(0,0,0,.10);
-    backdrop-filter: none;
+  /* ── Fondo claro (blanco, amarillo, transparente sobre blanco) ── */
+  .section--on-light .form-card {
+    background: rgba(0,0,0,.06);
+    border-color: rgba(0,0,0,.14);
   }
-  .section--light .field input,
-  .section--light .field select,
-  .section--light .field textarea {
+  .section--on-light .field input,
+  .section--on-light .field select,
+  .section--on-light .field textarea {
     background: #fff;
-    border-color: rgba(0,0,0,.15);
-    color: #111;
+    border-color: rgba(0,0,0,.22);
+    color: #000;
+  }
+  .section--on-light .field input::placeholder,
+  .section--on-light .field textarea::placeholder { color: rgba(0,0,0,.4); opacity: 1; }
+  .section--on-light .field input:focus,
+  .section--on-light .field select:focus,
+  .section--on-light .field textarea:focus {
+    border-color: #000;
+    box-shadow: 0 0 0 3px rgba(0,0,0,.10);
+    background: #fff;
   }
 
   /* ── Botón ── */
@@ -283,11 +307,10 @@ const waActive = whatsappFallback?.enabled && waPhone;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
     padding: 13px 24px;
     border-radius: 12px;
     border: none;
-    background: var(--color-accent, #ef4444);
-    color: #fff;
     font-size: 15px;
     font-weight: 700;
     cursor: pointer;
@@ -297,12 +320,20 @@ const waActive = whatsappFallback?.enabled && waPhone;
   .form-btn:hover:not(:disabled) { opacity: .88; }
   .form-btn:disabled { opacity: .5; cursor: not-allowed; }
 
+  /* Color contrario al fondo, texto = color del fondo */
+  .section .form-btn,
+  .section--on-dark .form-btn { background: #F7E96A; color: var(--section-bg, #000); }
+  .section--on-light .form-btn { background: #000; color: var(--section-bg, #fff); }
+
+  /* Evita que el CSS global sobreescriba el color del texto del botón */
+  .form-btn .form-btn__label { color: inherit !important; }
+
   .form-btn__spinner {
     display: none;
     width: 18px;
     height: 18px;
-    border: 2px solid rgba(255,255,255,.3);
-    border-top-color: #fff;
+    border: 2px solid rgba(0,0,0,.2);
+    border-top-color: #000;
     border-radius: 50%;
     animation: spin .7s linear infinite;
     position: absolute;

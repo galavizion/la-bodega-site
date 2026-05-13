@@ -7,45 +7,97 @@ const {
   title,
   layout = "default",
   image,
+  youtubeUrl,
   imageSide = "right",
+  bgColor,
+  textAlign = "left",
   content = [],
+  cta,
   settings = {},
   sectionId
 } = Astro.props;
 
-const theme = settings?.background || "transparent";
 const resolvedId = sectionId || settings?.sectionId;
+const bg = bgColor && bgColor !== "none" ? bgColor : null;
+const bgTheme = bg === "#000000" ? "section--on-dark"
+  : (bg === "#ffffff" || bg?.toLowerCase() === "#f7e96a") ? "section--on-light"
+  : "";
 const imgUrl = image ? urlFor(image).width(1200).height(800).quality(80).auto("format").url() : null;
-const hasSplit = !!imgUrl;
+
+// Extrae el embed URL de YouTube desde URL o código iframe
+function getYoutubeEmbed(input: string | undefined): string | null {
+  if (!input) return null;
+  // Si es un iframe, extrae el src
+  const srcMatch = input.match(/src=["']([^"']+)["']/);
+  const raw = srcMatch ? srcMatch[1] : input;
+  // Ya es embed URL
+  if (raw.includes("youtube.com/embed/")) return raw;
+  // youtube.com/watch?v=ID
+  const watchMatch = raw.match(/[?&]v=([^&\s]+)/);
+  if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`;
+  // youtu.be/ID
+  const shortMatch = raw.match(/youtu\.be\/([^?&\s]+)/);
+  if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
+  return null;
+}
+
+const videoEmbedUrl = getYoutubeEmbed(youtubeUrl);
+const hasSplit = !!(videoEmbedUrl || imgUrl);
 ---
 
-<section id={resolvedId} class={`section section--${theme} content-split content-split--${layout}`}>
+<section id={resolvedId} class={`section content-split content-split--${layout} ${bgTheme}`} style={bg ? `background-color:${bg}` : undefined}>
   <div class="container">
     {!hasSplit ? (
-      <div class="content-split__single">
+      <div class="content-split__single" style={`text-align:${textAlign}`}>
         {title && <h2>{title}</h2>}
         <div class="content-split__text">
           <PortableTextRenderer value={content} />
         </div>
+        {cta?.label && cta?.url && (
+          <div class="content-split__cta">
+            <a class="btn btn--primary" href={cta.url}>{cta.label}</a>
+          </div>
+        )}
       </div>
     ) : (
       <div class="content-split__grid">
         {imageSide === "left" && (
           <div class="content-split__media">
-            <Image src={imgUrl} alt={title || ""} width={1200} height={800} loading="lazy" decoding="async" />
+            {videoEmbedUrl ? (
+              <div class="content-split__video">
+                <iframe src={videoEmbedUrl} title={title || "Video"} frameborder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerpolicy="strict-origin-when-cross-origin" allowfullscreen loading="lazy"></iframe>
+              </div>
+            ) : imgUrl ? (
+              <Image src={imgUrl} alt={title || ""} width={1200} height={800} loading="lazy" decoding="async" />
+            ) : null}
           </div>
         )}
 
-        <div class="content-split__content">
+        <div class="content-split__content" style={`text-align:${textAlign}`}>
           {title && <h2>{title}</h2>}
           <div class="content-split__text">
             <PortableTextRenderer value={content} />
           </div>
+          {cta?.label && cta?.url && (
+            <div class="content-split__cta">
+              <a class="btn btn--primary" href={cta.url}>{cta.label}</a>
+            </div>
+          )}
         </div>
 
         {imageSide === "right" && (
           <div class="content-split__media">
-            <Image src={imgUrl} alt={title || ""} width={1200} height={800} loading="lazy" decoding="async" />
+            {videoEmbedUrl ? (
+              <div class="content-split__video">
+                <iframe src={videoEmbedUrl} title={title || "Video"} frameborder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerpolicy="strict-origin-when-cross-origin" allowfullscreen loading="lazy"></iframe>
+              </div>
+            ) : imgUrl ? (
+              <Image src={imgUrl} alt={title || ""} width={1200} height={800} loading="lazy" decoding="async" />
+            ) : null}
           </div>
         )}
       </div>
@@ -80,6 +132,7 @@ const hasSplit = !!imgUrl;
   .content-split__text{
     line-height: 1.65;
   }
+  .content-split__cta { margin-top: 24px; }
 
   .content-split__media img{
     width: 100%;
@@ -89,23 +142,35 @@ const hasSplit = !!imgUrl;
     box-shadow: 0 10px 30px rgba(0,0,0,.08);
   }
 
-  .section--transparent .content-split__content h2,
-  .section--transparent .content-split__single h2{
+  /* Video responsive 16:9 */
+  .content-split__video {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,.15);
+  }
+  .content-split__video iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+
+  .section--on-dark .content-split__content h2,
+  .section--on-dark .content-split__single h2{
     color: #fff;
   }
+  .section--on-dark .content-split__text{ color: rgba(255,255,255,.88); }
 
-  .section--transparent .content-split__text{
-    color: rgba(255,255,255,.88);
+  .section--on-light .content-split__content h2,
+  .section--on-light .content-split__single h2{
+    color: #000;
   }
-
-  .section--light .content-split__content h2,
-  .section--light .content-split__single h2{
-    color: #111;
-  }
-
-  .section--light .content-split__text{
-    color: rgba(15,23,42,.85);
-  }
+  .section--on-light .content-split__text{ color: rgba(0,0,0,.85); }
 
   @media (max-width: 900px){
     .content-split__grid{

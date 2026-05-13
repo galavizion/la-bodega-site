@@ -11,7 +11,7 @@ export const sectionCards = defineType({
       name: "columns",
       title: "Columnas",
       type: "number",
-      options: { list: [{ title: "2 columnas", value: 2 }, { title: "3 columnas", value: 3 }, { title: "4 columnas", value: 4 }] },
+      options: { list: [{ title: "2 columnas", value: 2 }, { title: "3 columnas", value: 3 }, { title: "4 columnas", value: 4 }, { title: "6 columnas", value: 6 }, { title: "12 columnas", value: 12 }] },
       initialValue: 3,
     }),
     defineField({
@@ -20,14 +20,29 @@ export const sectionCards = defineType({
       type: "string",
       options: {
         list: [
-          { title: "Sombra suave",  value: "shadow" },
-          { title: "Con borde",     value: "outline" },
-          { title: "Fondo sólido",  value: "filled" },
-          { title: "Minimalista",   value: "minimal" },
+          { title: "Sombra suave",  value: "shadow"   },
+          { title: "Con borde",     value: "outline"  },
+          { title: "Fondo sólido",  value: "filled"   },
+          { title: "Minimalista",   value: "minimal"  },
+          { title: "Circular",      value: "circular" },
         ],
         layout: "radio",
       },
       initialValue: "shadow",
+    }),
+    defineField({
+      name: "textAlign",
+      title: "Alineación del texto",
+      type: "string",
+      options: {
+        list: [
+          { title: "Izquierda", value: "left"   },
+          { title: "Centro",    value: "center" },
+          { title: "Derecha",   value: "right"  },
+        ],
+        layout: "radio",
+      },
+      initialValue: "left",
     }),
     defineField({
       name: "items",
@@ -51,18 +66,24 @@ export const sectionCards = defineType({
       ],
     }),
     defineField({
+      name: "cta",
+      title: "Botón",
+      type: "object",
+      fields: [
+        { name: "label", title: "Texto del botón", type: "string" },
+        { name: "url",   title: "URL",             type: "string" },
+      ],
+    }),
+    defineField({
       name: "bgColor",
       title: "Color de fondo",
       type: "string",
       options: {
         list: [
-          { title: "Ninguno (transparente)", value: "none" },
+          { title: "Transparente (default)", value: "none"    },
+          { title: "Negro",                  value: "#000000" },
           { title: "Blanco",                 value: "#ffffff" },
-          { title: "Gris claro",             value: "#f1f5f9" },
-          { title: "Gris oscuro",            value: "#1e293b" },
-          { title: "Negro",                  value: "#0f172a" },
-          { title: "Rojo (acento)",          value: "#ef4444" },
-          { title: "Rojo oscuro",            value: "#7f1d1d" },
+          { title: "Amarillo",               value: "#F7E96A" },
         ],
         layout: "radio",
       },

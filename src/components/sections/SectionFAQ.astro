@@ -8,25 +8,36 @@ type FAQItem = {
 type Props = {
   title?: string;
   subtitle?: string;
+  bgColor?: string;
+  textAlign?: "left" | "center" | "right";
   faqs?: FAQItem[] | null;
+  cta?: { label?: string; url?: string } | null;
   settings?: { sectionId?: string };
 };
 
 const {
   title = "Preguntas frecuentes",
   subtitle,
+  bgColor,
+  textAlign = "left",
   faqs,
+  cta,
   settings,
 } = Astro.props as Props;
 
 const sectionId = settings?.sectionId;
 const safeItems: FAQItem[] = Array.isArray(faqs) ? faqs.filter(Boolean) : [];
+
+const bg = bgColor && bgColor !== "none" ? bgColor : null;
+const bgTheme = bg === "#000000" ? "section--on-dark"
+  : (bg === "#ffffff" || bg?.toLowerCase() === "#f7e96a") ? "section--on-light"
+  : "";
 ---
 
-<section id={sectionId} class="section faq-section">
+<section id={sectionId} class={`section faq-section ${bgTheme}`} style={bg ? `background-color:${bg}` : undefined}>
   <div class="container faq__container">
     {(title || subtitle) && (
-      <header class="faq__header">
+      <header class="faq__header" style={`text-align:${textAlign}`}>
         {title    && <h2 class="faq__title">{title}</h2>}
         {subtitle && <p  class="faq__subtitle">{subtitle}</p>}
       </header>
@@ -49,16 +60,23 @@ const safeItems: FAQItem[] = Array.isArray(faqs) ? faqs.filter(Boolean) : [];
         </details>
       ))}
     </div>
+
+    {cta?.label && cta?.url && (
+      <div class="faq__cta">
+        <a class="btn btn--primary" href={cta.url}>{cta.label}</a>
+      </div>
+    )}
   </div>
 </section>
 
 <style>
   .faq__container { max-width: 860px; }
 
-  .faq__header { text-align: center; margin-bottom: 48px; }
+  .faq__header { margin-bottom: 48px; }
   .faq__title  { font-size: clamp(1.5rem, 3vw, 2.2rem); margin: 0 0 12px; }
   .faq__subtitle { opacity: .65; font-size: 1.05rem; line-height: 1.6; margin: 0; }
 
+  .faq__cta { margin-top: 32px; }
   .faq__list { display: grid; gap: 12px; }
 
   .faq__item {

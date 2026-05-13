@@ -28,7 +28,7 @@ const img = (src: any) =>
 const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
 ---
 
-<BaseLayout title="Catálogo | Ranking Agencia" canonical="https://www.rankingagencia.com/catalogo/">
+<BaseLayout title="Catálogo | Ranking Agencia" canonical="https://www.rankingagencia.com/catalogo/" bodyClass="is-shop">
   <main class="container" style="padding:40px 0;">
     <h1>Catálogo</h1>
     <p style="opacity:.8; max-width:70ch;">
@@ -48,7 +48,7 @@ const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
               <div class="metax">
                 <h2 class="title">{item.title}</h2>
 
-                {item.excerpt ? <p class="description">{item.excerpt}</p> : null}
+                {item.excerpt ? <div class="description" set:html={item.excerpt} /> : null}
 
                 {item.price != null ? (
                   <p class="price">{formatMXN(item.price)}</p>
@@ -132,7 +132,13 @@ const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
       font-size:14px;
       line-height:1.5;
       color:#111827;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
+    .description p{ margin: 0; }
+    .description br{ display: none; }
 
     .price{
       margin-top:10px;
