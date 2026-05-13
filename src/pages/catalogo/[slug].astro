@@ -133,7 +133,6 @@ if (basePrice != null) {
                       data-label={vLabel}
                     >
                       <span class="variant-btn__name">{vLabel}</span>
-                      {vPrice && <span class="variant-btn__price">{vPrice}</span>}
                     </button>
                   );
                 })}
@@ -228,8 +227,10 @@ if (basePrice != null) {
       const title = btn.getAttribute("data-title") || "";
       const slug  = btn.getAttribute("data-slug")  || "";
       const url   = btn.getAttribute("data-url")   || "";
+      const image = btn.getAttribute("data-image") || "";
+      const price = Number(btn.getAttribute("data-price") || 0);
       if (!slug) return;
-      window.Cart?.addItem({ title, slug, url });
+      window.Cart?.addItem({ title, slug, url, image, price });
       btn.textContent = "Agregado ✅";
       setTimeout(() => (btn.textContent = "Agregar al carrito"), 1400);
     });
@@ -433,7 +434,6 @@ if (basePrice != null) {
       gap: 10px;
       background: #f9fafb;
       border: 1px solid #e5e7eb;
-      border-radius: 14px;
       padding: 14px;
     }
     .trust-item strong { display: block; font-size: 13px; margin-bottom: 2px; color: #111; }
@@ -457,7 +457,6 @@ if (basePrice != null) {
       color: #374151;
       font-size: 15px;
       line-height: 1.7;
-      max-width: 72ch;
     }
     .prose h2, .prose h3 { color: #111; margin: 1.4em 0 .5em; }
     .prose p  { margin: 0 0 .9em; }
@@ -465,7 +464,7 @@ if (basePrice != null) {
 
     /* Especificaciones */
     .specs-wrap { margin-top: 24px; }
-    .specs-table { width: 100%; border-collapse: collapse; font-size: 14px; max-width: 600px; }
+    .specs-table { width: 100%; border-collapse: collapse; font-size: 14px; }
     .specs-table th, .specs-table td {
       text-align: left;
       padding: 8px 12px;
@@ -482,7 +481,7 @@ if (basePrice != null) {
         gap: 20px;
       }
       .product__media { position: static; }
-      .product__img   { height: 280px; border-radius: 12px; }
+      .product__img   { height: auto; }
       .product__title { font-size: 26px; }
       .product__price { font-size: 22px; }
       .btn { width: 100%; }

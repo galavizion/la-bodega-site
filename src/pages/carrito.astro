@@ -163,6 +163,11 @@ if (sumTotal) {
           const qty = it.qty || 1;
           const url = it.url || (it.slug ? `/catalogo/${it.slug}/` : "#");
           const img = it.image || it.cover || it.coverImage || "";
+          const unitPrice = Number(it.price || 0);
+          const subtotal = unitPrice * qty;
+          const priceHtml = unitPrice
+            ? `<div class="row-price">$${unitPrice.toLocaleString("es-MX")} MXN × ${qty} = <strong>$${subtotal.toLocaleString("es-MX")} MXN</strong></div>`
+            : `<div class="row-price row-price--quote">Precio a cotizar</div>`;
 
           return `
             <article class="row-cart" data-row data-index="${i}">
@@ -176,7 +181,7 @@ if (sumTotal) {
 
               <div class="row-main">
                 <a class="row-title" href="${url}">${it.title || "Servicio"}</a>
-                <div class="row-meta">${url}</div>
+                ${priceHtml}
               </div>
 
               <div class="row-qty">
@@ -264,9 +269,8 @@ if (sumTotal) {
 
 .cart-card{
   background:#fff;
-  border-radius: 22px;
   overflow:hidden;
-  box-shadow: 0 18px 55px rgba(0,0,0,.14);
+  box-shadow: 0 4px 24px rgba(0,0,0,.10);
   color:#111827;
 }
 
@@ -283,16 +287,14 @@ if (sumTotal) {
   gap: 14px;
   align-items: center;
   padding: 14px;
-  border-radius: 18px;
   background: rgba(17,24,39,.03);
-  border: 1px solid rgba(17,24,39,.08);
+  border-bottom: 1px solid rgba(17,24,39,.08);
 }
 
 /* thumb */
 .thumb{
   width: 86px;
   height: 64px;
-  border-radius: 14px;
   overflow: hidden;
   display: block;
   flex-shrink: 0;
@@ -330,13 +332,15 @@ if (sumTotal) {
 }
 .row-title:hover{ text-decoration: underline; }
 
-.row-meta{
-  font-size: 12px;
-  opacity:.55;
-  margin-top: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.row-price{
+  font-size: 13px;
+  color: #b90404;
+  font-weight: 700;
+  margin-top: 5px;
+}
+.row-price--quote{
+  color: #6b7280;
+  font-weight: 500;
 }
 
 /* qty */
@@ -346,7 +350,6 @@ if (sumTotal) {
   gap: 10px;
   background: rgba(255,255,255,.92);
   border: 1px solid rgba(17,24,39,.10);
-  border-radius: 999px;
   padding: 6px 10px; width: fit-content;
 }
 .qty{ min-width: 18px; text-align:center; font-weight: 900; }
@@ -354,7 +357,6 @@ if (sumTotal) {
 .qty-btn{
   width: 32px;
   height: 32px;
-  border-radius: 999px;
   border: 0;
   background: rgba(17,24,39,.08);
   cursor: pointer;
@@ -365,14 +367,13 @@ if (sumTotal) {
 
 /* quitar */
 .row-remove{
-  border: 0;
+  border: 1px solid rgba(255, 5, 5, 0.1);
   background: transparent;
   color: rgba(231, 0, 0, 0.65);
   font-weight: 900;
   cursor:pointer;
   white-space: nowrap;
   padding: 6px 8px;
-  border-radius: 999px;border: 1px solid rgba(255, 5, 5, 0.1);
 }
 .row-remove:hover{ text-decoration: underline; }
 
@@ -407,7 +408,6 @@ if (sumTotal) {
   align-items:center;
   justify-content:center;
   padding: 12px 16px;
-  border-radius: 14px;
   text-decoration:none;
   font-weight: 900;
   border: 0;
