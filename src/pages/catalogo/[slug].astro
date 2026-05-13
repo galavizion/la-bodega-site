@@ -15,7 +15,9 @@ const [item, settings] = await Promise.all([
 
 const shopCurrency: string = settings?.shopCurrency ?? "USD";
 const usdRate: number = settings?.usdRate ?? 17;
-const toMXN = (n: number) => shopCurrency === "USD" ? n * usdRate : n;
+const markupPercent: number = settings?.markupPercent ?? 26.5;
+const markupFactor = 1 + markupPercent / 100;
+const toMXN = (n: number) => (shopCurrency === "USD" ? n * usdRate : n) * markupFactor;
 
 const cover = item?.coverImage?.asset
   ? urlFor(item.coverImage).width(1600).quality(85).auto("format").url()
@@ -219,7 +221,7 @@ if (basePrice != null) {
     </div>
   </main>
 
-  <script is:inline define:vars={{ usdRate, shopCurrency }}>
+  <script is:inline define:vars={{ usdRate, shopCurrency, markupPercent }}>
     // ── Carrito ──────────────────────────────────────────
     document.addEventListener("click", (e) => {
       const btn = e.target?.closest?.("[data-add]");
@@ -249,7 +251,7 @@ if (basePrice != null) {
         const compare = btn.getAttribute("data-compare");
         const idx     = btn.getAttribute("data-index");
 
-        const rate = shopCurrency === "USD" ? usdRate : 1;
+        const rate = (shopCurrency === "USD" ? usdRate : 1) * (1 + markupPercent / 100);
 
         if (priceDisplay) {
           if (price) {

@@ -55,6 +55,10 @@ const img = (item: CatalogItem): string | null => {
   return item.imageUrl ?? null;
 };
 
+const shopCurrency: string = settings?.shopCurrency ?? "USD";
+const usdRate: number = settings?.usdRate ?? 17;
+const markupFactor = 1 + (settings?.markupPercent ?? 26.5) / 100;
+const toMXN = (n: number) => (shopCurrency === "USD" ? n * usdRate : n) * markupFactor;
 const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
 
 const DEFAULT_PHONE = (settings?.organization?.whatsapp ?? "528121087053").replace(/\D/g, "");
@@ -162,7 +166,7 @@ const pgRange = paginationRange(page, totalPages);
                   }
 
                   {item.price != null ? (
-                    <p class="card__price">{formatMXN(item.price)}</p>
+                    <p class="card__price">{formatMXN(toMXN(item.price))}</p>
                   ) : item.priceLabel ? (
                     <p class="card__price">{item.priceLabel}</p>
                   ) : (
@@ -192,7 +196,7 @@ const pgRange = paginationRange(page, totalPages);
                   data-title={item.title}
                   data-slug={item.slug}
                   data-url={href}
-                  data-price={item.price ?? 0}
+                  data-price={item.price != null ? toMXN(item.price) : 0}
                   data-image={cover ?? ""}
                   aria-pressed="false"
                 >

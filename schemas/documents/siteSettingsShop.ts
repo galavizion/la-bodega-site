@@ -20,12 +20,23 @@ export const siteSettingsShop = defineType({
       description: "Ej: 17.50 = $1 USD vale $17.50 MXN. Actualiza este valor manualmente.",
       initialValue: 17,
     }),
+    defineField({
+      name: "markupPercent",
+      title: "Aumento de precio (%)",
+      type: "number",
+      description: "Porcentaje que se agrega automáticamente al precio final (envío, manejo, etc.). Ej: 26.5 = +26.5% sobre el precio base.",
+      initialValue: 26.5,
+      validation: (Rule) => Rule.min(0).max(200),
+    }),
   ],
   preview: {
-    select: { currency: "currency", rate: "usdRate" },
-    prepare: ({ currency, rate }) => ({
+    select: { currency: "currency", rate: "usdRate", markup: "markupPercent" },
+    prepare: ({ currency, rate, markup }) => ({
       title: "Tienda / Precios",
-      subtitle: currency === "USD" ? `USD → MXN × ${rate}` : "Precios en MXN",
+      subtitle: [
+        currency === "USD" ? `USD → MXN × ${rate}` : "Precios en MXN",
+        markup != null ? `+${markup}% markup` : "",
+      ].filter(Boolean).join(" · "),
     }),
   },
 });
