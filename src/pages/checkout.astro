@@ -1,0 +1,465 @@
+---
+export const prerender = false;
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { client as sanityClient } from "../lib/sanity/client";
+import { SITE_SETTINGS_QUERY } from "../lib/sanity/queries";
+
+const settings  = await sanityClient.fetch(SITE_SETTINGS_QUERY);
+const payment   = settings?.payment ?? {};
+const waPhone   = (settings?.organization?.whatsapp ?? "528121087053").replace(/\D/g, "");
+
+const payData = {
+  transferEnabled: payment.transferEnabled !== false,
+  bankName:        payment.bankName        ?? "",
+  accountHolder:   payment.accountHolder   ?? "",
+  clabe:           payment.clabe           ?? "",
+  accountNumber:   payment.accountNumber   ?? "",
+  reference:       payment.reference       ?? "",
+  instructions:    payment.instructions    ?? "Envíanos el comprobante por WhatsApp para confirmar tu pedido.",
+  proofWhatsapp:   payment.proofWhatsapp   !== false,
+};
+---
+
+<BaseLayout
+  title="Checkout | La Bodega del Instalador"
+  canonical="https://www.labodegadelinstalador.net/checkout/"
+  bodyClass="is-shop"
+>
+  <main class="co-wrap container">
+    <a class="co-back" href="/carrito/">← Volver al carrito</a>
+    <h1 class="co-title">Finalizar pedido</h1>
+
+    <div class="co-grid">
+
+      <!-- ── Formulario ── -->
+      <div class="co-left">
+        <form id="checkoutForm" novalidate>
+
+          <section class="co-section">
+            <h2 class="co-section__title">Datos de contacto</h2>
+            <div class="co-fields">
+              <label class="co-field">
+                <span>Nombre completo <em>*</em></span>
+                <input type="text" name="name" autocomplete="name" required placeholder="Tu nombre" />
+              </label>
+              <label class="co-field">
+                <span>Email <em>*</em></span>
+                <input type="email" name="email" autocomplete="email" required placeholder="correo@ejemplo.com" />
+              </label>
+              <label class="co-field">
+                <span>Teléfono / WhatsApp <em>*</em></span>
+                <input type="tel" name="phone" autocomplete="tel" required placeholder="Ej: 8121234567" />
+              </label>
+              <label class="co-field co-field--full">
+                <span>Empresa (opcional)</span>
+                <input type="text" name="company" autocomplete="organization" placeholder="Nombre de tu empresa" />
+              </label>
+            </div>
+          </section>
+
+          <section class="co-section">
+            <h2 class="co-section__title">Dirección de envío</h2>
+            <div class="co-fields">
+              <label class="co-field co-field--full">
+                <span>Calle y número</span>
+                <input type="text" name="address" autocomplete="street-address" placeholder="Ej: Av. Reforma 123, Col. Centro" />
+              </label>
+              <label class="co-field">
+                <span>Ciudad</span>
+                <input type="text" name="city" autocomplete="address-level2" placeholder="Monterrey" />
+              </label>
+              <label class="co-field">
+                <span>Estado</span>
+                <input type="text" name="state" autocomplete="address-level1" placeholder="Nuevo León" />
+              </label>
+              <label class="co-field">
+                <span>Código postal</span>
+                <input type="text" name="zip" autocomplete="postal-code" placeholder="64000" />
+              </label>
+            </div>
+          </section>
+
+          <section class="co-section">
+            <h2 class="co-section__title">Método de pago</h2>
+
+            {payData.transferEnabled && (
+              <label class="pay-option pay-option--active">
+                <input type="radio" name="paymentMethod" value="transfer" checked />
+                <div class="pay-option__body">
+                  <strong>🏦 Transferencia / Depósito bancario</strong>
+                  <span>Deposita o transfiere y envíanos el comprobante.</span>
+                </div>
+              </label>
+            )}
+
+            {payData.transferEnabled && (
+              <div class="bank-box">
+                <p class="bank-box__title">Datos bancarios</p>
+                {payData.bankName && (
+                  <div class="bank-row">
+                    <span class="bank-label">Banco</span>
+                    <span class="bank-val">{payData.bankName}</span>
+                  </div>
+                )}
+                {payData.accountHolder && (
+                  <div class="bank-row">
+                    <span class="bank-label">Titular</span>
+                    <span class="bank-val">{payData.accountHolder}</span>
+                  </div>
+                )}
+                {payData.clabe && (
+                  <div class="bank-row">
+                    <span class="bank-label">CLABE</span>
+                    <span class="bank-val bank-val--mono">{payData.clabe}</span>
+                    <button type="button" class="copy-btn" data-copy={payData.clabe}>Copiar</button>
+                  </div>
+                )}
+                {payData.accountNumber && (
+                  <div class="bank-row">
+                    <span class="bank-label">No. cuenta</span>
+                    <span class="bank-val bank-val--mono">{payData.accountNumber}</span>
+                    <button type="button" class="copy-btn" data-copy={payData.accountNumber}>Copiar</button>
+                  </div>
+                )}
+                {payData.reference && (
+                  <div class="bank-row">
+                    <span class="bank-label">Referencia</span>
+                    <span class="bank-val">{payData.reference}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!payData.transferEnabled && (
+              <p class="pay-none">Sin métodos de pago configurados. Contacta al vendedor.</p>
+            )}
+          </section>
+
+          <div id="formError" class="co-error" style="display:none"></div>
+
+          <button class="co-submit" type="submit" id="submitBtn">
+            Confirmar pedido →
+          </button>
+
+        </form>
+      </div>
+
+      <!-- ── Resumen ── -->
+      <aside class="co-right">
+        <div class="co-summary">
+          <h2 class="co-section__title">Resumen del pedido</h2>
+          <div id="summaryList" class="sum-list">
+            <p class="sum-loading">Cargando carrito…</p>
+          </div>
+          <div class="sum-totals">
+            <div class="sum-row"><span>Subtotal</span><strong id="sumSubtotal">—</strong></div>
+            <div class="sum-row sum-row--shipping"><span>Envío</span><strong>A cotizar</strong></div>
+            <div class="sum-row sum-row--total"><span>Total estimado</span><strong id="sumTotal">—</strong></div>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <script is:inline define:vars={{ waPhone }}>
+    const KEY = "ranking_cart_v1";
+    const getCart = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; } };
+
+    // ── Poblar resumen ──────────────────────────────────
+    const items = getCart();
+    const listEl = document.getElementById("summaryList");
+    const subtotalEl = document.getElementById("sumSubtotal");
+    const totalEl = document.getElementById("sumTotal");
+
+    if (!items.length) {
+      window.location.replace("/carrito/");
+    } else {
+      const total = items.reduce((a, it) => a + Number(it.price || 0) * (it.qty || 1), 0);
+      listEl.innerHTML = items.map((it) => {
+        const qty = it.qty || 1;
+        const sub = Number(it.price || 0) * qty;
+        return `
+          <div class="sum-item">
+            ${it.image ? `<img class="sum-img" src="${it.image}" alt="${it.title || ''}" loading="lazy">` : `<div class="sum-img sum-img--ph"></div>`}
+            <div class="sum-item__info">
+              <p class="sum-item__name">${it.title || "Producto"}</p>
+              <p class="sum-item__qty">Cantidad: ${qty}</p>
+            </div>
+            <p class="sum-item__price">${sub ? "$" + sub.toLocaleString("es-MX") + " MXN" : "Cotización"}</p>
+          </div>`;
+      }).join("");
+
+      const fmt = (n) => "$" + n.toLocaleString("es-MX") + " MXN";
+      if (subtotalEl) subtotalEl.textContent = total ? fmt(total) : "Ver cotización";
+      if (totalEl)    totalEl.textContent    = total ? fmt(total) : "Ver cotización";
+    }
+
+    // ── Copiar datos bancarios ──────────────────────────
+    document.querySelectorAll("[data-copy]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        navigator.clipboard.writeText(btn.getAttribute("data-copy") || "");
+        const orig = btn.textContent;
+        btn.textContent = "✓ Copiado";
+        setTimeout(() => (btn.textContent = orig), 2000);
+      });
+    });
+
+    // ── Submit form ─────────────────────────────────────
+    const form = document.getElementById("checkoutForm");
+    const errEl = document.getElementById("formError");
+    const submitBtn = document.getElementById("submitBtn");
+
+    form && form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errEl.style.display = "none";
+
+      const fd = new FormData(form);
+      const customer = {
+        name:    fd.get("name")?.toString().trim(),
+        email:   fd.get("email")?.toString().trim(),
+        phone:   fd.get("phone")?.toString().trim(),
+        company: fd.get("company")?.toString().trim(),
+        address: fd.get("address")?.toString().trim(),
+        city:    fd.get("city")?.toString().trim(),
+        state:   fd.get("state")?.toString().trim(),
+        zip:     fd.get("zip")?.toString().trim(),
+      };
+
+      if (!customer.name || !customer.email || !customer.phone) {
+        errEl.textContent = "Por favor completa nombre, email y teléfono.";
+        errEl.style.display = "block";
+        errEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+
+      const cartItems = getCart();
+      if (!cartItems.length) {
+        errEl.textContent = "Tu carrito está vacío.";
+        errEl.style.display = "block";
+        return;
+      }
+
+      const total = cartItems.reduce((a, it) => a + Number(it.price || 0) * (it.qty || 1), 0);
+      const paymentMethod = fd.get("paymentMethod")?.toString() || "transfer";
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Procesando…";
+
+      try {
+        const res = await fetch("/api/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ customer, items: cartItems, paymentMethod, total }),
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) throw new Error(data.error || "Error al procesar el pedido");
+
+        // Limpiar carrito
+        localStorage.removeItem(KEY);
+        window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: 0, totalQty: 0 } }));
+
+        window.location.href = `/confirmacion/${data.orderNumber}/`;
+      } catch (err) {
+        errEl.textContent = err?.message || "Ocurrió un error. Intenta de nuevo.";
+        errEl.style.display = "block";
+        errEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Confirmar pedido →";
+      }
+    });
+  </script>
+
+  <style>
+    .co-wrap {
+      padding-top: calc(var(--header-h, 80px) + 40px);
+      padding-bottom: 80px;
+    }
+    .co-back {
+      display: inline-block;
+      font-size: 13px;
+      opacity: .7;
+      text-decoration: none;
+      margin-bottom: 12px;
+    }
+    .co-back:hover { opacity: 1; }
+    .co-title {
+      font-size: 32px;
+      letter-spacing: -.02em;
+      margin: 0 0 32px;
+    }
+
+    .co-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 32px;
+      align-items: start;
+    }
+
+    /* ── Secciones ── */
+    .co-section { margin-bottom: 32px; }
+    .co-section__title {
+      font-size: 15px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      opacity: .5;
+      margin: 0 0 16px;
+    }
+
+    /* ── Campos ── */
+    .co-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .co-field { display: flex; flex-direction: column; gap: 5px; }
+    .co-field--full { grid-column: 1 / -1; }
+    .co-field span { font-size: 13px; font-weight: 600; }
+    .co-field em { color: #ef4444; font-style: normal; }
+    .co-field input {
+      padding: 10px 12px;
+      border: 1px solid rgba(0,0,0,.15);
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s;
+      background: #fff;
+    }
+    .co-field input:focus { border-color: #0f8604; }
+
+    /* ── Método de pago ── */
+    .pay-option {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      border: 2px solid rgba(0,0,0,.12);
+      cursor: pointer;
+      margin-bottom: 14px;
+      transition: border-color .15s;
+    }
+    .pay-option--active { border-color: #0f8604; background: rgba(15,134,4,.04); }
+    .pay-option input { accent-color: #0f8604; width: 17px; height: 17px; flex-shrink: 0; }
+    .pay-option__body { display: flex; flex-direction: column; gap: 2px; }
+    .pay-option__body strong { font-size: 14px; }
+    .pay-option__body span { font-size: 12px; opacity: .6; }
+
+    /* ── Datos bancarios ── */
+    .bank-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+    }
+    .bank-box__title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      opacity: .45;
+      margin: 0 0 12px;
+    }
+    .bank-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 0;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 13px;
+    }
+    .bank-row:last-child { border-bottom: none; }
+    .bank-label { width: 90px; font-weight: 600; opacity: .6; flex-shrink: 0; }
+    .bank-val { flex: 1; }
+    .bank-val--mono { font-family: monospace; font-size: 15px; letter-spacing: .08em; }
+    .copy-btn {
+      padding: 4px 10px;
+      border: 1px solid rgba(0,0,0,.15);
+      background: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background .15s;
+    }
+    .copy-btn:hover { background: #f0fdf4; }
+
+    .pay-none { opacity: .5; font-size: 14px; }
+
+    /* ── Error ── */
+    .co-error {
+      padding: 12px 16px;
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #b91c1c;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    /* ── Botón submit ── */
+    .co-submit {
+      width: 100%;
+      padding: 16px;
+      background: #0f8604;
+      color: #fff;
+      border: none;
+      font-size: 16px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+    }
+    .co-submit:hover:not(:disabled) { background: #03ac2d; transform: translateY(-1px); }
+    .co-submit:disabled { opacity: .6; cursor: not-allowed; }
+
+    /* ── Resumen ── */
+    .co-summary {
+      background: #fff;
+      border: 1px solid rgba(0,0,0,.1);
+      padding: 24px;
+      position: sticky;
+      top: calc(var(--header-h, 80px) + 24px);
+    }
+    .sum-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+    .sum-loading { opacity: .4; font-size: 13px; }
+    .sum-item {
+      display: grid;
+      grid-template-columns: 52px 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .sum-img {
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
+      background: #f3f4f6;
+      display: block;
+    }
+    .sum-img--ph { background: #e5e7eb; }
+    .sum-item__info { min-width: 0; }
+    .sum-item__name {
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin: 0 0 2px;
+    }
+    .sum-item__qty { font-size: 11px; opacity: .5; margin: 0; }
+    .sum-item__price { font-size: 13px; font-weight: 700; white-space: nowrap; }
+
+    .sum-totals { border-top: 1px solid rgba(0,0,0,.08); padding-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .sum-row { display: flex; justify-content: space-between; font-size: 13px; }
+    .sum-row--shipping { opacity: .55; }
+    .sum-row--total { font-size: 15px; font-weight: 800; margin-top: 4px; }
+
+    /* ── Mobile ── */
+    @media (max-width: 820px) {
+      .co-grid { grid-template-columns: 1fr; }
+      .co-right { order: -1; }
+      .co-summary { position: static; }
+      .co-fields { grid-template-columns: 1fr; }
+      .co-field--full { grid-column: auto; }
+    }
+  </style>
+</BaseLayout>

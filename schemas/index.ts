@@ -8,6 +8,7 @@ import { siteSettingsFooter } from "./documents/siteSettingsFooter";
 import { siteSettingsSeo } from "./documents/siteSettingsSeo";
 import { siteSettingsCodes } from "./documents/siteSettingsCodes";
 import { siteSettingsShop } from "./documents/siteSettingsShop";
+import { siteSettingsPayment } from "./documents/siteSettingsPayment";
 import { sharedSection } from "./documents/sharedSection";
 import { post } from "./documents/post";
 import { author } from "./documents/author";
@@ -45,6 +46,7 @@ export const schemaTypes = [
   siteSettingsSeo,
   siteSettingsCodes,
   siteSettingsShop,
+  siteSettingsPayment,
   sharedSection,
   post,
   author,

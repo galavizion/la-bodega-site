@@ -524,6 +524,13 @@ export const SITE_SETTINGS_QUERY = groq`
   "searchConsoleVerification": coalesce(*[_type == "siteSettingsCodes"][0].searchConsoleVerification, *[_type == "siteSettings"][0].searchConsoleVerification),
 
   // ── Tienda ─────────────────────────────────────────────
+  // ── Pago ──────────────────────────────────────────────
+  "payment": *[_type == "siteSettingsPayment"][0]{
+    transferEnabled, bankName, accountHolder, clabe, accountNumber,
+    reference, instructions, proofWhatsapp, notifyEmail
+  },
+
+  // ── Tienda ─────────────────────────────────────────────
   "shopCurrency":   coalesce(*[_type == "siteSettingsShop"][0].currency,      *[_type == "siteSettings"][0].shop.currency,      "USD"),
   "usdRate":        coalesce(*[_type == "siteSettingsShop"][0].usdRate,        *[_type == "siteSettings"][0].shop.usdRate,        17),
   "markupPercent":  coalesce(*[_type == "siteSettingsShop"][0].markupPercent,  *[_type == "siteSettings"][0].shop.markupPercent,  26.5),
