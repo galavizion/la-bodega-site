@@ -9,71 +9,75 @@ type PostRow = {
   excerpt?: string;
   publishedAt?: string;
   mainImage?: any;
-  categories?: { title?: string }[]; // según template blog
+  categories?: { title: string; slug: string }[];
   body?: any[];
 };
 
-const POSTS_LIST = /* groq */ `
-*[_type=="post" && defined(slug.current)]
-| order(publishedAt desc){
-  _id,
-  title,
-  "slug": slug.current,
-  excerpt,
-  publishedAt,
-  mainImage,
-  categories[]->{
-    title
-  },
-  body
-}
+type Category = { _id: string; title: string; slug: string };
+
+const cat = (Astro.url.searchParams.get("cat") ?? "").trim();
+
+const CATEGORIES_QUERY = /* groq */ `
+  *[_type=="category"] | order(title asc){ _id, title, "slug": slug.current }
 `;
 
-const posts = await sanity.fetch<PostRow[]>(POSTS_LIST);
+const POSTS_LIST = /* groq */ `
+  *[_type=="post" && defined(slug.current)
+    ${cat ? `&& count(categories[]->[slug.current == $cat]) > 0` : ""}
+  ] | order(publishedAt desc){
+    _id,
+    title,
+    "slug": slug.current,
+    excerpt,
+    publishedAt,
+    mainImage,
+    categories[]->{ title, "slug": slug.current },
+    body
+  }
+`;
+
+const [allCategories, posts] = await Promise.all([
+  sanity.fetch<Category[]>(CATEGORIES_QUERY),
+  sanity.fetch<PostRow[]>(POSTS_LIST, cat ? { cat } : {}),
+]);
+
+const categories = allCategories ?? [];
 const safePosts = posts ?? [];
 
-const SITE = "https://www.rankingagencia.com";
+const SITE = "https://www.labodegadelinstalador.net";
 const canonical = `${SITE}/blog/`;
 
 const getReadingMinutes = (body?: any[]) => {
   if (!Array.isArray(body)) return 3;
-  // cuenta texto dentro de bloques portable text
   const text = body
     .filter((b) => b?._type === "block" && Array.isArray(b.children))
     .map((b) => b.children.map((c: any) => c.text || "").join(" "))
     .join(" ");
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-  const minutes = Math.max(3, Math.round(words / 180)); // 180 wpm aprox
-  return minutes;
+  return Math.max(2, Math.round(words / 180));
 };
 
-const getTag = (p: PostRow) => p.categories?.[0]?.title || "Insights";
+const getFirstTag = (p: PostRow) => p.categories?.[0]?.title || "General";
 
 const cardImg = (p: PostRow) =>
-  p.mainImage ? urlFor(p.mainImage).width(900).height(600).fit("crop").url() : "/og.jpg";
+  p.mainImage ? urlFor(p.mainImage).width(900).height(540).fit("crop").url() : null;
 
-// ✅ helpers SEO/schema
 const postUrl = (p: PostRow) => `${SITE}/blog/${p.slug}/`;
-
 const postImage1200 = (p: PostRow) =>
   p.mainImage ? urlFor(p.mainImage).width(1200).height(630).fit("crop").url() : `${SITE}/og.jpg`;
-
 const toISO = (d?: string) => (d ? new Date(d).toISOString() : "");
 
-// ✅ JSON-LD: Blog (blogPost[])
-const blogSchema: any = {
+const catUrl = (slug: string) => `/blog/?cat=${slug}`;
+
+const blogSchema = {
   "@context": "https://schema.org",
   "@type": "Blog",
   "@id": `${canonical}#blog`,
-  name: "Ranking Insights",
+  name: "Guías y Tips | La Bodega del Instalador",
   url: canonical,
   inLanguage: "es-MX",
-  description: "Artículos para crecer con estrategia.",
-  publisher: {
-    "@type": "Organization",
-    name: "Ranking Agencia",
-    url: SITE,
-  },
+  description: "Guías técnicas y tips para instaladores profesionales.",
+  publisher: { "@type": "Organization", name: "La Bodega del Instalador", url: SITE },
   blogPost: safePosts.map((p) => ({
     "@type": "BlogPosting",
     "@id": `${postUrl(p)}#post`,
@@ -85,103 +89,282 @@ const blogSchema: any = {
     ...(p.mainImage ? { image: [postImage1200(p)] } : {}),
   })),
 };
-
-// ✅ JSON-LD: ItemList (lista clásica)
-const itemListSchema: any = {
-  "@context": "https://schema.org",
-  "@type": "ItemList",
-  "@id": `${canonical}#itemlist`,
-  itemListOrder: "https://schema.org/ItemListOrderDescending",
-  numberOfItems: safePosts.length,
-  itemListElement: safePosts.map((p, i) => ({
-    "@type": "ListItem",
-    position: i + 1,
-    url: postUrl(p),
-    name: p.title,
-  })),
-};
 ---
 
 <BaseLayout
-  schema={[blogSchema, itemListSchema]}
-  title="Blog | Ranking Agencia"
-  description="Artículos para crecer con estrategia."
+  schema={blogSchema}
+  title="Guías y Tips | La Bodega del Instalador"
+  description="Guías técnicas, tutoriales y tips para instaladores profesionales."
   canonical={canonical}
 >
+  <main class="blog-wrap">
 
-  <main>
-    <section class="library" id="biblioteca">
+    <!-- Encabezado de la sección -->
+    <div class="blog-header">
       <div class="container">
-        <header class="library__head">
-          <div class="library__title">
-            <p class="library__kicker"><span>Ranking Insights</span></p>
-            <h1 class="library__h1">Biblioteca de artículos (sin relleno)</h1>
-            <p class="library__desc">
-              SEO, Ads, ecommerce, analítica e IA. Ideas aplicables para tomar decisiones y vender más.
-            </p>
+        <p class="blog-kicker">La Bodega del Instalador</p>
+        <h1 class="blog-h1">Guías y Tips</h1>
+        <p class="blog-desc">
+          Tutoriales, guías técnicas y consejos prácticos para instaladores profesionales.
+        </p>
 
-            <div class="library__chips" role="tablist" aria-label="Filtros de artículos">
-              <a class="library-chip is-active" href="/blog/" role="tab" aria-selected="true">Todo</a>
-              <a class="library-chip" href="/categoria/seo/" role="tab">SEO</a>
-              <a class="library-chip" href="/categoria/google-ads/" role="tab">Ads</a>
-              <a class="library-chip" href="/categoria/ecommerce/" role="tab">Ecommerce</a>
-              <a class="library-chip" href="/categoria/ia/" role="tab">IA</a>
-              <a class="library-chip" href="/categoria/analitica/" role="tab">Analítica</a>
-            </div>
-          </div>
-
-          <div class="library__cta">
-            <a class="library-btn library-btn--primary" href="/contacto/">Quiero una asesoría</a>
+        <!-- Categorías dinámicas desde Sanity -->
+        {categories.length > 0 && (
+          <nav class="blog-chips" aria-label="Filtrar por categoría">
             <a
-              class="library-btn library-btn--ghost"
-              href="https://wa.me/18133796971?text=Quiero%20agendar%20un%20diagn%C3%B3stico%20estrat%C3%A9gico"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              WhatsApp
-            </a>
-          </div>
-        </header>
+              class={`blog-chip${!cat ? " is-active" : ""}`}
+              href="/blog/"
+            >Todo</a>
+            {categories.map((c) => (
+              <a
+                class={`blog-chip${cat === c.slug ? " is-active" : ""}`}
+                href={catUrl(c.slug)}
+              >{c.title}</a>
+            ))}
+          </nav>
+        )}
+      </div>
+    </div>
 
-        <div class="library__grid">
-          {safePosts.length === 0 ? (
-            <p>No hay artículos publicados todavía.</p>
-          ) : (
-            safePosts.map((p) => (
-              <article class="library-card">
-                <a class="library-card__media" href={`/blog/${p.slug}/`}>
-                  <img src={cardImg(p)} alt={p.title} loading="lazy" />
+    <!-- Grid de artículos -->
+    <div class="container blog-main">
+      {cat && (
+        <p class="blog-filter-label">
+          Mostrando: <strong>{categories.find(c => c.slug === cat)?.title ?? cat}</strong>
+          {" — "}<a href="/blog/">Ver todos</a>
+        </p>
+      )}
+
+      {safePosts.length === 0 ? (
+        <div class="blog-empty">
+          <p>No hay artículos publicados todavía.</p>
+          {cat && <a href="/blog/">Ver todos los artículos</a>}
+        </div>
+      ) : (
+        <div class="blog-grid">
+          {safePosts.map((p) => {
+            const cover = cardImg(p);
+            const href = `/blog/${p.slug}/`;
+            const mins = getReadingMinutes(p.body);
+            const tag = getFirstTag(p);
+            const date = p.publishedAt
+              ? new Date(p.publishedAt).toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric" })
+              : null;
+
+            return (
+              <article class="blog-card">
+                <a class="blog-card__img-wrap" href={href} tabindex="-1" aria-hidden="true">
+                  {cover
+                    ? <img src={cover} alt={p.title} loading="lazy" />
+                    : <div class="blog-card__img-placeholder"></div>
+                  }
                 </a>
 
-                <div class="library-card__body">
-                  <div class="library-meta">
-                    <span class="library-meta__tag">{getTag(p)}</span>
-                    <span class="library-meta__dot">•</span>
-                    <span class="library-meta__read">{getReadingMinutes(p.body)} min</span>
+                <div class="blog-card__body">
+                  <div class="blog-card__meta">
+                    <span class="blog-card__tag">{tag}</span>
+                    <span class="blog-card__dot" aria-hidden="true">·</span>
+                    <span class="blog-card__read">{mins} min</span>
+                    {date && (
+                      <>
+                        <span class="blog-card__dot" aria-hidden="true">·</span>
+                        <time>{date}</time>
+                      </>
+                    )}
                   </div>
 
-                  <h3 class="library-card__title">
-                    <a href={`/blog/${p.slug}/`}>{p.title}</a>
-                  </h3>
+                  <h2 class="blog-card__title">
+                    <a href={href}>{p.title}</a>
+                  </h2>
 
-                  {p.excerpt && <p class="library-card__text">{p.excerpt}</p>}
+                  {p.excerpt && <p class="blog-card__excerpt">{p.excerpt}</p>}
 
-                  <a class="library-link" href={`/blog/${p.slug}/`}>
-                    Leer artículo <span aria-hidden="true">→</span>
+                  <a class="blog-card__link" href={href}>
+                    Leer guía <span aria-hidden="true">→</span>
                   </a>
                 </div>
               </article>
-            ))
-          )}
+            );
+          })}
         </div>
+      )}
+    </div>
 
-        <footer class="library__foot">
-          <div class="library__note">
-            <strong>Tip:</strong> Si quieres resultados rápidos: Ads + landing + medición. Si quieres estabilidad: SEO + contenido.
-          </div>
-          <a class="library-btn library-btn--ghost" href="/contacto/">Aplicarlo en mi negocio</a>
-        </footer>
-      </div>
-    </section>
   </main>
+
+  <style>
+    /* ── Layout ── */
+    .blog-wrap {
+      background: #fff;
+      color: #111;
+      min-height: 60vh;
+    }
+
+    /* ── Header ── */
+    .blog-header {
+      background: #fff;
+      border-bottom: 1px solid rgba(0,0,0,.07);
+      padding-top: calc(var(--header-h, 72px) + 200px);
+      padding-bottom: 24px;
+    }
+    .blog-kicker {
+      margin: 0 0 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #6b7280;
+    }
+    .blog-h1 {
+      margin: 0 0 8px;
+      font-size: clamp(24px, 3vw, 36px);
+      font-weight: 900;
+      color: #111;
+      line-height: 1.1;
+    }
+    .blog-desc {
+      margin: 0 0 20px;
+      font-size: 15px;
+      color: #4b5563;
+      max-width: 56ch;
+      line-height: 1.5;
+    }
+
+    /* ── Category chips ── */
+    .blog-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .blog-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      border: 1.5px solid #e5e7eb;
+      background: #fff;
+      color: #374151;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: 0;
+      transition: border-color .15s, background .15s, color .15s;
+    }
+    .blog-chip:hover { border-color: #111; color: #111; }
+    .blog-chip.is-active {
+      background: #111827;
+      border-color: #111827;
+      color: #fff;
+    }
+
+    /* ── Main ── */
+    .blog-main { padding: 32px 0 72px; }
+    .blog-filter-label {
+      margin: 0 0 20px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+    .blog-filter-label a { color: #111; font-weight: 700; text-decoration: underline; }
+    .blog-filter-label strong { color: #111; }
+
+    /* ── Grid ── */
+    .blog-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+
+    /* ── Card ── */
+    .blog-card {
+      background: #fff;
+      border: 1px solid rgba(0,0,0,.07);
+      display: flex;
+      flex-direction: column;
+      transition: box-shadow .2s, transform .2s;
+    }
+    .blog-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 28px rgba(0,0,0,.08);
+    }
+    .blog-card__img-wrap { display: block; overflow: hidden; background: #f3f4f6; }
+    .blog-card__img-wrap img {
+      width: 100%; height: 200px; object-fit: cover; display: block;
+      transition: transform .3s ease;
+    }
+    .blog-card:hover .blog-card__img-wrap img { transform: scale(1.03); }
+    .blog-card__img-placeholder {
+      width: 100%; height: 200px;
+      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    }
+
+    .blog-card__body { padding: 18px; display: flex; flex-direction: column; flex: 1; }
+
+    .blog-card__meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .blog-card__tag {
+      font-weight: 700;
+      color: #111;
+      background: #f3f4f6;
+      padding: 2px 8px;
+      font-size: 11px;
+    }
+    .blog-card__dot { opacity: .5; }
+
+    .blog-card__title {
+      margin: 0 0 10px;
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.3;
+      color: #111;
+    }
+    .blog-card__title a {
+      text-decoration: none;
+      color: inherit;
+    }
+    .blog-card__title a:hover { text-decoration: underline; }
+
+    .blog-card__excerpt {
+      margin: 0 0 14px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4b5563;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .blog-card__link {
+      margin-top: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #111;
+      text-decoration: none;
+      border-bottom: 2px solid #111;
+      padding-bottom: 1px;
+      align-self: flex-start;
+      transition: opacity .15s;
+    }
+    .blog-card__link:hover { opacity: .65; }
+
+    /* ── Empty ── */
+    .blog-empty { text-align: center; padding: 60px 20px; color: #6b7280; }
+    .blog-empty a { display: inline-block; margin-top: 12px; color: #111; font-weight: 700; text-decoration: underline; }
+
+    /* ── Responsive ── */
+    @media (max-width: 1024px) { .blog-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) {
+      .blog-grid { grid-template-columns: 1fr; }
+      .blog-card__img-wrap img, .blog-card__img-placeholder { height: 220px; }
+    }
+  </style>
 </BaseLayout>
