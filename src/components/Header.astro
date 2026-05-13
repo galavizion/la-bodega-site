@@ -277,6 +277,15 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
 </script>
 
 <style>
+  /* ── Base header ────────────────────────────────────── */
+  .site-header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 9999;
+    background: #000;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+
   /* ── Top bar ─────────────────────────────────────── */
   .top-bar {
     background: #f1f1f1;
