@@ -140,73 +140,7 @@ p{ margin: 0 0 14px; }
 
 
 
-/* Desktop: abre con hover (limpio) */
-@media (min-width: 901px){
-  .has-submenu:hover .submenu{
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
-  .has-submenu:hover .chev{
-    opacity: 1;
-    transform: translateY(-1px) rotate(180deg);
-  }
-}
-
-/* Mobile */
-.menu-toggle{ display:none; }
-
-@media (max-width: 900px){
-  .menu-toggle{ display:inline-flex; }
-
-  .menu{
-    position: absolute;
-    top: var(--header-h);
-    left: 0; right: 0;
-    display: grid;
-    gap: 0;
-    padding: 10px;
-    background: #111;
-    border-bottom: 1px solid var(--border);
- 
-    transform: translateY(-8px);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity .18s ease, transform .18s ease;
-  }
-
-  .site-header.is-open .menu{
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
-
-  .submenu{
-    position: static;
-    min-width: auto;
-    border-radius: 12px;
-    margin-top: 6px;
-    opacity: 1;
-    transform: none;
-    pointer-events: auto;
-
-    display: none; /* control por clase */
-  }
-
-  .has-submenu.is-open .submenu{ display: block; }
-
-  .has-submenu.is-open .chev{
-    transform: translateY(-1px) rotate(180deg);
-    opacity: 1;
-  }
-}
-
-/* Focus visible (pro, accesible) */
-.menu a:focus-visible,
-.submenu-toggle:focus-visible{
-  outline: 2px solid rgba(15,23,42,.35);
-  outline-offset: 2px;
-}
+/* Header/nav styles are in Header.astro (scoped) */
 
 
 
@@ -1369,20 +1303,6 @@ width: 50%; text-align: center; margin: 0 auto;
   padding:0;margin:-1px;
   overflow:hidden;clip:rect(0,0,0,0);
   white-space:nowrap;border:0;
-}
-
-.menu{ list-style:none; margin:0; padding:0; display:flex; gap:18px; align-items:center; }
-.menu .submenu{ color: #111; display:none; position:absolute; margin-top:0px; list-style:none; padding:10px; }
-.has-submenu{ position:relative; }
-.submenu-toggle[aria-expanded="true"] + .submenu{ display:block; }
-
-.menu-toggle{ display:none; }
-
-@media (max-width: 900px){
-  .menu-toggle{ display:inline-flex; align-items:center; gap:8px; }
-  .menu{ display:none; flex-direction:column; align-items:flex-start; gap:10px; padding:14px 0; }
-  .menu.is-open{ display:flex; }
-  .menu .submenu{ position:static; padding:8px 0 0 10px; }
 }
 
 html.menu-open, html.menu-open body { overflow: hidden; }

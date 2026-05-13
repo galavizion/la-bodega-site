@@ -474,13 +474,16 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
 
   /* ── Mobile ──────────────────────────────────────── */
   @media (max-width: 900px) {
-    /* el header necesita ser el punto de anclaje del menú desplegado */
+    /* site-header es el punto de anclaje; main-nav queda estático */
     .site-header { position: relative; z-index: 100; }
+    .main-nav { position: static; }
 
     .menu-toggle { display: inline-flex; }
 
     .menu {
       display: none;
+      opacity: 1;
+      pointer-events: auto;
       position: absolute;
       top: 100%;
       left: 0;
@@ -497,7 +500,7 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
       max-height: calc(100vh - var(--header-h, 72px));
       overflow-y: auto;
     }
-    .menu.is-open { display: flex; }
+    .menu.is-open { display: flex; opacity: 1; pointer-events: auto; }
 
     .menu > li { width: 100%; }
 
