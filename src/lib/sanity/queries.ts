@@ -375,12 +375,22 @@ export const CATALOG_BY_SLUG = groq`
   title,
   "slug": slug.current,
   excerpt,
-  category,
+  "category": category->title,
   coverImage,
   imageUrl,
   body,
   price,
   priceLabel,
+  variants[]{
+    sku,
+    size,
+    label,
+    price,
+    comparePrice,
+    stock,
+    specifications[]{ label, value },
+    "variantImageUrl": variantImage.asset->url
+  },
   whatsapp{
     enabled,
     phone,
@@ -391,11 +401,7 @@ export const CATALOG_BY_SLUG = groq`
     description,
     canonical,
     noindex,
-    ogImage{
-      asset->{
-        url
-      }
-    }
+    ogImage{ asset->{ url } }
   }
 }
 `;
