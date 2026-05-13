@@ -11,6 +11,43 @@ const client = createClient({
   useCdn: false,
 });
 
+/** Descarga una imagen desde una URL y la sube al CDN de Sanity como asset.
+ *  Devuelve un objeto { _type:"image", asset:{_type:"reference",_ref:"..."} }
+ *  o null si falla la descarga o el upload. */
+async function uploadImageFromUrl(url: string, filename: string): Promise<any | null> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Referer": new URL(url).origin + "/",
+        "Accept": "image/webp,image/avif,image/apng,image/*,*/*;q=0.8",
+      },
+    });
+
+    if (!res.ok) return null;
+
+    const contentType = res.headers.get("content-type") ?? "image/jpeg";
+    if (!contentType.startsWith("image/")) return null;
+
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const ext = contentType.split("/")[1]?.split(";")[0] ?? "jpg";
+    const safeFilename = filename.replace(/[^a-z0-9\-]/gi, "-").toLowerCase() + "." + ext;
+
+    const asset = await client.assets.upload("image", buffer, {
+      filename: safeFilename,
+      contentType,
+    });
+
+    return {
+      _type: "image",
+      asset: { _type: "reference", _ref: asset._id },
+    };
+  } catch {
+    return null;
+  }
+}
+
 function slugify(text: string): string {
   return text
     .toString()
@@ -134,6 +171,9 @@ export const POST: APIRoute = async ({ request }) => {
     ? imageRaw
     : undefined;
 
+  // Intentar subir la imagen al CDN de Sanity (server-side, bypasa hotlink protection del browser)
+  const coverImageAsset = imageUrl ? await uploadImageFromUrl(imageUrl, slugify(title)) : null;
+
   const tags: string[] = tagsKey && row[tagsKey]
     ? String(row[tagsKey]).split(",").map((t: string) => fixEncoding(t.trim())).filter(Boolean)
     : [];
@@ -215,7 +255,7 @@ export const POST: APIRoute = async ({ request }) => {
         tags,
         certifications,
         published: true,
-        ...(imageUrl ? { imageUrl } : {}),
+        ...(coverImageAsset ? { coverImage: coverImageAsset } : imageUrl ? { imageUrl } : {}),
         ...(categoryRef ? { category: categoryRef } : {}),
         ...(row.whatsappPhone ? {
           whatsapp: {
@@ -241,7 +281,8 @@ export const POST: APIRoute = async ({ request }) => {
         }
       }
 
-      return new Response(JSON.stringify({ action: `actualizado${imageUrl ? " +img" : ""}`, id: existingId }), { status: 200 });
+      const imgTag = coverImageAsset ? " +img(sanity)" : imageUrl ? " +img(url)" : "";
+      return new Response(JSON.stringify({ action: `actualizado${imgTag}`, id: existingId }), { status: 200 });
 
     } else {
       // ── Crear producto nuevo ────────────────────────────────────────────────
@@ -255,7 +296,7 @@ export const POST: APIRoute = async ({ request }) => {
         tags,
         certifications,
         published: true,
-        ...(imageUrl ? { imageUrl } : {}),
+        ...(coverImageAsset ? { coverImage: coverImageAsset } : imageUrl ? { imageUrl } : {}),
         ...(categoryRef ? { category: categoryRef } : {}),
         variants: variant ? [variant] : [],
         whatsapp: {
@@ -266,7 +307,8 @@ export const POST: APIRoute = async ({ request }) => {
       };
 
       const created = await client.create(doc);
-      return new Response(JSON.stringify({ action: `creado${imageUrl ? " +img" : ""}`, id: created._id }), { status: 200 });
+      const imgTag = coverImageAsset ? " +img(sanity)" : imageUrl ? " +img(url)" : "";
+      return new Response(JSON.stringify({ action: `creado${imgTag}`, id: created._id }), { status: 200 });
     }
 
   } catch (e: any) {
