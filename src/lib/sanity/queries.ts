@@ -351,7 +351,7 @@ export const allPageSlugsQuery = groq`
 `;
 
 export const CATALOG_LIST = groq`
-*[_type == "catalogItem" && defined(slug.current)] | order(_createdAt desc) {
+*[_type == "catalogItem" && defined(slug.current) && published != false] | order(_createdAt desc) {
   _id,
   title,
   "slug": slug.current,
@@ -415,6 +415,7 @@ export const CATALOG_BY_CATEGORY = groq`
   "items": *[
     _type == "catalogItem" &&
     defined(slug.current) &&
+    published != false &&
     category->slug.current == $catSlug
     && ($q == "" || title match $q + "*" || excerpt match $q + "*")
   ] | order(_createdAt desc) [$from...$to] {
@@ -431,6 +432,7 @@ export const CATALOG_BY_CATEGORY = groq`
   "total": count(*[
     _type == "catalogItem" &&
     defined(slug.current) &&
+    published != false &&
     category->slug.current == $catSlug
     && ($q == "" || title match $q + "*" || excerpt match $q + "*")
   ])

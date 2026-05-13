@@ -23,7 +23,7 @@ const q = (Astro.url.searchParams.get("q") ?? "").trim();
 const from = (page - 1) * PAGE_SIZE;
 const to = from + PAGE_SIZE;
 
-const baseFilter = `_type == "catalogItem" && defined(slug.current)`;
+const baseFilter = `_type == "catalogItem" && defined(slug.current) && published != false`;
 const searchFilter = q ? ` && (title match $q + "*" || excerpt match $q + "*")` : "";
 
 const query = groq`{
