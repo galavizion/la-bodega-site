@@ -106,6 +106,10 @@ export default defineConfig({
                   .title("Tienda")
                   .items([
                     S.listItem()
+                      .title("💱 Precios y moneda")
+                      .child(S.document().schemaType("siteSettingsShop").documentId("siteSettingsShop")),
+
+                    S.listItem()
                       .title("📦 Productos")
                       .child(
                         S.list()
