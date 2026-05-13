@@ -1,0 +1,347 @@
+---
+export const prerender = false;
+
+const adminKey = import.meta.env.ADMIN_KEY;
+if (adminKey && Astro.url.searchParams.get("key") !== adminKey) {
+  return Astro.redirect("/");
+}
+
+const sanityProject = import.meta.env.PUBLIC_SANITY_PROJECT_ID ?? "";
+const sanityDataset = import.meta.env.PUBLIC_SANITY_DATASET ?? "production";
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eliminar productos</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      margin: 0;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; }
+    h1 { font-size: 24px; margin: 0 0 6px; }
+    .sub { opacity: .6; margin: 0 0 32px; font-size: 14px; }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .search {
+      flex: 1;
+      min-width: 200px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.06);
+      color: #e2e8f0;
+      font-size: 14px;
+    }
+    .search::placeholder { opacity: .45; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: none;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s;
+      white-space: nowrap;
+    }
+    .btn:disabled { opacity: .35; cursor: not-allowed; }
+    .btn-danger  { background: #ef4444; color: #fff; }
+    .btn-danger:hover:not(:disabled)  { opacity: .85; }
+    .btn-ghost   { background: rgba(255,255,255,.08); color: #e2e8f0; }
+    .btn-ghost:hover:not(:disabled)   { background: rgba(255,255,255,.14); }
+
+    .select-bar {
+      font-size: 13px;
+      opacity: .65;
+      margin-left: auto;
+    }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead th {
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      opacity: .45;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    thead th:first-child { width: 36px; }
+    tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,.05);
+      transition: background .12s;
+    }
+    tbody tr:hover { background: rgba(255,255,255,.04); }
+    tbody tr.is-selected { background: rgba(239,68,68,.1); }
+    td { padding: 10px 12px; vertical-align: middle; }
+    td.td-img { width: 52px; }
+    td.td-img img {
+      width: 40px; height: 40px;
+      object-fit: cover;
+      border-radius: 6px;
+      display: block;
+      background: rgba(255,255,255,.06);
+    }
+    td.td-img .no-img {
+      width: 40px; height: 40px;
+      border-radius: 6px;
+      background: rgba(255,255,255,.06);
+    }
+    .td-title { font-weight: 600; }
+    .td-sku   { opacity: .5; font-size: 12px; }
+    .td-cat   { font-size: 12px; opacity: .65; }
+    .td-del button {
+      background: none;
+      border: 1px solid rgba(239,68,68,.4);
+      color: #f87171;
+      border-radius: 7px;
+      padding: 5px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .td-del button:hover { background: rgba(239,68,68,.15); }
+
+    input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; accent-color: #ef4444; }
+
+    .empty { text-align: center; padding: 60px 20px; opacity: .5; }
+
+    #log {
+      margin-top: 20px;
+      font-size: 13px;
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .log-item { padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+    .log-ok  { color: #4ade80; }
+    .log-err { color: #f87171; }
+
+    .loading { text-align: center; padding: 60px 20px; opacity: .5; }
+    .count-badge {
+      display: inline-block;
+      background: rgba(255,255,255,.1);
+      border-radius: 99px;
+      padding: 2px 10px;
+      font-size: 12px;
+      margin-left: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🗑 Eliminar productos</h1>
+    <p class="sub">Selecciona uno o varios productos y elimínalos de Sanity.</p>
+
+    <div class="toolbar">
+      <input class="search" type="search" id="searchInput" placeholder="Buscar por nombre, SKU o categoría…" />
+      <button class="btn btn-ghost" id="selAllBtn">Seleccionar todos</button>
+      <button class="btn btn-danger" id="delSelBtn" disabled>Eliminar seleccionados (<span id="selCount">0</span>)</button>
+    </div>
+
+    <div class="table-wrap">
+      <div class="loading" id="loadingMsg">Cargando productos…</div>
+      <table id="productTable" style="display:none">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="checkAll" /></th>
+            <th></th>
+            <th>Nombre <span class="count-badge" id="totalCount">0</span></th>
+            <th>SKU</th>
+            <th>Categoría</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="emptyMsg" style="display:none">No se encontraron productos.</div>
+    </div>
+
+    <div id="log"></div>
+  </div>
+
+  <script is:inline define:vars={{ sanityProject, sanityDataset }}>
+    const PROJECT = sanityProject;
+    const DATASET = sanityDataset;
+
+    let allProducts = [];
+    let selectedIds = new Set();
+
+    async function loadProducts() {
+      const query = encodeURIComponent(
+        `*[_type=="catalogItem"] | order(title asc){ _id, title, "sku": variants[0].sku, "cat": category->title, imageUrl, "img": coverImage.asset->url }`
+      );
+      const url = `https://${PROJECT}.api.sanity.io/v2025-01-01/data/query/${DATASET}?query=${query}`;
+      const res  = await fetch(url);
+      const json = await res.json();
+      return json.result ?? [];
+    }
+
+    const tbody      = document.getElementById("tbody");
+    const table      = document.getElementById("productTable");
+    const loadingMsg = document.getElementById("loadingMsg");
+    const emptyMsg   = document.getElementById("emptyMsg");
+    const checkAll   = document.getElementById("checkAll");
+    const selAllBtn  = document.getElementById("selAllBtn");
+    const delSelBtn  = document.getElementById("delSelBtn");
+    const selCount   = document.getElementById("selCount");
+    const totalCount = document.getElementById("totalCount");
+    const searchInput= document.getElementById("searchInput");
+    const logEl      = document.getElementById("log");
+
+    function renderRows(products) {
+      tbody.innerHTML = "";
+      if (!products.length) {
+        table.style.display = "none";
+        emptyMsg.style.display = "block";
+        return;
+      }
+      table.style.display = "table";
+      emptyMsg.style.display = "none";
+
+      for (const p of products) {
+        const tr = document.createElement("tr");
+        if (selectedIds.has(p._id)) tr.classList.add("is-selected");
+        tr.dataset.id = p._id;
+
+        const imgSrc = p.img || p.imageUrl || "";
+        tr.innerHTML = `
+          <td><input type="checkbox" data-cb data-id="${p._id}" ${selectedIds.has(p._id) ? "checked" : ""} /></td>
+          <td class="td-img">${imgSrc ? `<img src="${imgSrc}" alt="" loading="lazy">` : `<div class="no-img"></div>`}</td>
+          <td class="td-title">${p.title ?? "—"}</td>
+          <td class="td-sku">${p.sku ?? ""}</td>
+          <td class="td-cat">${p.cat ?? ""}</td>
+          <td class="td-del"><button data-del="${p._id}">Eliminar</button></td>
+        `;
+        tbody.appendChild(tr);
+      }
+      updateSelCount();
+    }
+
+    function updateSelCount() {
+      const n = selectedIds.size;
+      selCount.textContent = String(n);
+      delSelBtn.disabled = n === 0;
+    }
+
+    function addLog(type, msg) {
+      logEl.style.display = "block";
+      const div = document.createElement("div");
+      div.className = `log-item log-${type}`;
+      div.textContent = msg;
+      logEl.prepend(div);
+    }
+
+    async function deleteIds(ids) {
+      const res  = await fetch("/api/delete-product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        addLog("ok", `✅ ${data.deleted} producto(s) eliminado(s)`);
+        ids.forEach(id => selectedIds.delete(id));
+        allProducts = allProducts.filter(p => !ids.includes(p._id));
+        totalCount.textContent = String(allProducts.length);
+        renderRows(filterProducts());
+      } else {
+        addLog("err", `❌ Error: ${data.error}`);
+      }
+    }
+
+    function filterProducts() {
+      const q = searchInput.value.trim().toLowerCase();
+      if (!q) return allProducts;
+      return allProducts.filter(p =>
+        (p.title ?? "").toLowerCase().includes(q) ||
+        (p.sku  ?? "").toLowerCase().includes(q)  ||
+        (p.cat  ?? "").toLowerCase().includes(q)
+      );
+    }
+
+    // Events
+    tbody.addEventListener("change", e => {
+      const cb = e.target?.closest("[data-cb]");
+      if (!cb) return;
+      const id = cb.dataset.id;
+      if (cb.checked) selectedIds.add(id);
+      else selectedIds.delete(id);
+      cb.closest("tr").classList.toggle("is-selected", cb.checked);
+      updateSelCount();
+    });
+
+    tbody.addEventListener("click", async e => {
+      const btn = e.target?.closest("[data-del]");
+      if (!btn) return;
+      const id = btn.dataset.del;
+      if (!confirm("¿Eliminar este producto?")) return;
+      btn.disabled = true;
+      btn.textContent = "…";
+      await deleteIds([id]);
+    });
+
+    checkAll.addEventListener("change", () => {
+      const checked = checkAll.checked;
+      filterProducts().forEach(p => {
+        if (checked) selectedIds.add(p._id);
+        else selectedIds.delete(p._id);
+      });
+      renderRows(filterProducts());
+    });
+
+    selAllBtn.addEventListener("click", () => {
+      filterProducts().forEach(p => selectedIds.add(p._id));
+      renderRows(filterProducts());
+    });
+
+    delSelBtn.addEventListener("click", async () => {
+      const ids = [...selectedIds];
+      if (!ids.length) return;
+      if (!confirm(`¿Eliminar ${ids.length} producto(s)? Esta acción no se puede deshacer.`)) return;
+      delSelBtn.disabled = true;
+      await deleteIds(ids);
+      delSelBtn.disabled = false;
+    });
+
+    searchInput.addEventListener("input", () => renderRows(filterProducts()));
+
+    // Init
+    (async () => {
+      try {
+        allProducts = await loadProducts();
+        totalCount.textContent = String(allProducts.length);
+        loadingMsg.style.display = "none";
+        renderRows(allProducts);
+      } catch (err) {
+        loadingMsg.textContent = "Error al cargar productos: " + err.message;
+      }
+    })();
+  </script>
+</body>
+</html>
