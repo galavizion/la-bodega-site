@@ -377,6 +377,7 @@ export const CATALOG_BY_SLUG = groq`
   excerpt,
   category,
   coverImage,
+  imageUrl,
   body,
   price,
   priceLabel,
@@ -399,6 +400,36 @@ export const CATALOG_BY_SLUG = groq`
 }
 `;
 
+
+export const CATALOG_BY_CATEGORY = groq`
+{
+  "category": *[_type == "productCategory" && slug.current == $catSlug][0]{
+    _id, title, "slug": slug.current, description
+  },
+  "items": *[
+    _type == "catalogItem" &&
+    defined(slug.current) &&
+    category->slug.current == $catSlug
+    && ($q == "" || title match $q + "*" || excerpt match $q + "*")
+  ] | order(_createdAt desc) [$from...$to] {
+    _id,
+    title,
+    "slug": slug.current,
+    excerpt,
+    coverImage,
+    imageUrl,
+    price,
+    priceLabel,
+    whatsapp{ enabled, phone, message }
+  },
+  "total": count(*[
+    _type == "catalogItem" &&
+    defined(slug.current) &&
+    category->slug.current == $catSlug
+    && ($q == "" || title match $q + "*" || excerpt match $q + "*")
+  ])
+}
+`;
 
 export const PRODUCT_CATEGORIES_QUERY = groq`
 *[_type == "productCategory" && !defined(parent)] | order(order asc) {

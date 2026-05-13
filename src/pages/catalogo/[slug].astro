@@ -13,9 +13,9 @@ export async function getStaticPaths() {
 const { slug } = Astro.params;
 const item = await sanityClient.fetch(CATALOG_BY_SLUG, { slug });
 
-const cover = item?.coverImage
+const cover = item?.coverImage?.asset
   ? urlFor(item.coverImage).width(1600).quality(85).auto("format").url()
-  : null;
+  : (item?.imageUrl ?? null);
 
 const defaultPhone = "+528121087053"; // luego lo jalas de siteSettings
 const phone = item?.whatsapp?.phone || defaultPhone;
@@ -34,31 +34,22 @@ const priceText =
 /* =========================
    SCHEMA AUTO (SIN TOCAR CSS)
 ========================= */
-const siteUrl = "https://www.rankingagencia.com";
+const siteUrl = "https://www.labodegadelinstalador.net";
 const canonical = `${siteUrl}/catalogo/${slug}/`;
 const pageTitle = item?.seo?.title || item?.title || "Catálogo";
 const pageDesc =
   item?.seo?.description ||
   item?.excerpt ||
-  "Elemento del catálogo de Ranking Agencia.";
-// Heurística: si tu category trae "producto", usa Product. Si no, Service.
-const cat = String(item?.category || "").toLowerCase();
-const isProduct = cat.includes("producto");
-const schemaType = isProduct ? "Product" : "Service";
+  "Producto del catálogo de La Bodega del Instalador.";
 
 const schema: Record<string, any> = {
   "@context": "https://schema.org",
-  "@type": schemaType,
-  name: item?.title ?? "Servicio",
-  description: item?.excerpt ?? "Servicio del catálogo de Ranking Agencia.",
+  "@type": "Product",
+  name: item?.title ?? "Producto",
+  description: item?.excerpt ?? "Producto del catálogo de La Bodega del Instalador.",
   url: canonical,
-  
   ...(cover ? { image: [cover] } : {}),
-  provider: {
-    "@type": "Organization",
-    name: "Ranking Agencia",
-    url: siteUrl,
-  },
+  brand: { "@type": "Brand", name: "La Bodega del Instalador" },
 };
 
 // Offer SOLO si hay número (para no inventar precio)
@@ -79,9 +70,9 @@ if (item?.price != null) {
 ---
 
 <BaseLayout
-  title={`${pageTitle} | Ranking Agencia`}
+  title={`${pageTitle} | La Bodega del Instalador`}
   description={pageDesc}
-  canonical={`https://www.rankingagencia.com/catalogo/${slug}/`}
+  canonical={`https://www.labodegadelinstalador.net/catalogo/${slug}/`}
   seo={item?.seo}
   schema={schema}
   bodyClass="is-shop"
@@ -109,35 +100,44 @@ if (item?.price != null) {
 
         <div class="product__price">{priceText}</div>
 
-        <div class="product__cta">
-          <a class="btn btn--primary" href={waUrl} target="_blank" rel="noopener">
-            WhatsApp: Cotizar
+        <div class=”product__cta”>
+          <a class=”btn btn--wa” href={waUrl} target=”_blank” rel=”noopener noreferrer”>
+            <svg xmlns=”http://www.w3.org/2000/svg” width=”18” height=”18” viewBox=”0 0 24 24” fill=”currentColor”>
+              <path d=”M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z”/>
+            </svg>
+            Cotizar por WhatsApp
           </a>
 
           <button
-            class="btn btn--ghost"
-            type="button"
+            class=”btn btn--cart”
+            type=”button”
             data-add
-            data-title={item?.title || ""}
-            data-slug={item?.slug || slug || ""}
+            data-title={item?.title || “”}
+            data-slug={item?.slug || slug || “”}
             data-url={`/catalogo/${slug}/`}
+            data-price={item?.price ?? 0}
+            data-image={cover ?? “”}
           >
+            <svg xmlns=”http://www.w3.org/2000/svg” width=”17” height=”17” viewBox=”0 0 24 24” fill=”none” stroke=”currentColor” stroke-width=”2.2” stroke-linecap=”round” stroke-linejoin=”round”>
+              <circle cx=”9” cy=”21” r=”1”/><circle cx=”20” cy=”21” r=”1”/>
+              <path d=”M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6”/>
+            </svg>
             Agregar al carrito
           </button>
         </div>
 
-        <div class="product__trust">
-          <div class="trust-item">
-            <strong>Respuesta rápida</strong>
-            <span>Te contestamos para aterrizar tu caso.</span>
+        <div class=”product__trust”>
+          <div class=”trust-item”>
+            <strong>Envío rápido</strong>
+            <span>Entrega a toda la república.</span>
           </div>
-          <div class="trust-item">
-            <strong>Enfoque estratégico</strong>
-            <span>No “posts bonitos”: objetivos y resultados.</span>
+          <div class=”trust-item”>
+            <strong>Asesoría técnica</strong>
+            <span>Especialistas en instalaciones profesionales.</span>
           </div>
-          <div class="trust-item">
-            <strong>Proceso claro</strong>
-            <span>Qué incluye, tiempos y entregables.</span>
+          <div class=”trust-item”>
+            <strong>Precio de instalador</strong>
+            <span>Precios directos para el profesional.</span>
           </div>
         </div>
       </div>
@@ -259,34 +259,37 @@ if (item?.price != null) {
     }
 
     .btn{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding: 14px 18px;
-      border-radius: 14px;
-      text-decoration:none;
-      font-weight: 100;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 15px 22px;
+      border-radius: 0;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 15px;
       border: 0;
       cursor: pointer;
-      transition: .2s ease;
-      user-select:none;
+      transition: background .15s, transform .15s;
+      user-select: none;
     }
 
-    .btn--primary{
-      background: rgb(54 109 29);
-      color:#fff;
+    .btn--wa {
+      background: #25d366;
+      color: #fff;
     }
-    .btn--primary:hover{
-     background: rgb(62, 131, 30);
+    .btn--wa:hover {
+      background: #1ebe5d;
       transform: translateY(-1px);
     }
 
-    .btn--ghost{
-      background: rgb(62, 131, 30,.08);
-      color:#111827;
+    .btn--cart {
+      background: #111827;
+      color: #fff;
+      border: 2px solid #111827;
     }
-    .btn--ghost:hover{
-      background: rgba(17,24,39,.12);
+    .btn--cart:hover {
+      background: #1f2937;
       transform: translateY(-1px);
     }
 

@@ -80,6 +80,14 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: "JSON inválido" }), { status: 400 });
   }
 
+  // Fetch all productCategory docs once to resolve references by title
+  const allCategories: { _id: string; title: string }[] = await client.fetch(
+    `*[_type == "productCategory"]{ _id, title }`
+  );
+  const categoryByTitle = new Map(
+    allCategories.map((c) => [c.title.toLowerCase().trim(), c._id])
+  );
+
   // ── Normalizar columnas: búsqueda case-insensitive por si hay variación en el Excel ──
   // Busca la clave que corresponde a "nombre" o "title" sin importar mayúsculas/espacios
   const rowKeys = Object.keys(row);
@@ -102,7 +110,7 @@ export const POST: APIRoute = async ({ request }) => {
   const brandKey    = findKey(["marca", "brand", "fabricante"]);
   const excerptKey  = findKey(["descripcion", "descripción", "excerpt", "description"]);
   const categoriaKey = findKey(["categoria", "categoría", "category"]);
-  const imageUrlKey = findKey(["imagen", "image", "image_url", "imageurl", "foto", "photo", "thumbnail", "img"]);
+  const imageUrlKey = findKey(["imagen", "image", "image url", "image_url", "imageurl", "foto", "photo", "thumbnail", "img"]);
   const tagsKey     = findKey(["tags", "etiquetas"]);
   const certKey     = findKey(["certifications", "certificaciones"]);
   const skuKey      = findKey(["sku", "codigo", "código", "code"]);
@@ -117,11 +125,18 @@ export const POST: APIRoute = async ({ request }) => {
   const excerpt  = fixEncoding(String(excerptKey  ? row[excerptKey]  : "").trim());
   const imageUrl = imageUrlKey && row[imageUrlKey] ? String(row[imageUrlKey]).trim() : undefined;
 
-  const tags: string[] = categoriaKey && row[categoriaKey]
-    ? [fixEncoding(String(row[categoriaKey]).trim())]
-    : tagsKey && row[tagsKey]
+  const tags: string[] = tagsKey && row[tagsKey]
     ? String(row[tagsKey]).split(",").map((t: string) => fixEncoding(t.trim())).filter(Boolean)
     : [];
+
+  // Resolve category reference: take first path segment (e.g. "CONEXIONES DE TUBERÍA / Codos" → "CONEXIONES DE TUBERÍA")
+  const rawCategory = categoriaKey && row[categoriaKey]
+    ? fixEncoding(String(row[categoriaKey]).split("/")[0].trim())
+    : "";
+  const categoryRefId = rawCategory ? categoryByTitle.get(rawCategory.toLowerCase()) : undefined;
+  const categoryRef = categoryRefId
+    ? { _type: "reference" as const, _ref: categoryRefId }
+    : undefined;
 
   const certifications: string[] = certKey && row[certKey]
     ? String(row[certKey]).split(",").map((c: string) => c.trim().toLowerCase()).filter(Boolean)
@@ -192,6 +207,7 @@ export const POST: APIRoute = async ({ request }) => {
         certifications,
         published: true,
         ...(imageUrl ? { imageUrl } : {}),
+        ...(categoryRef ? { category: categoryRef } : {}),
         ...(row.whatsappPhone ? {
           whatsapp: {
             enabled: true,
@@ -231,6 +247,7 @@ export const POST: APIRoute = async ({ request }) => {
         certifications,
         published: true,
         ...(imageUrl ? { imageUrl } : {}),
+        ...(categoryRef ? { category: categoryRef } : {}),
         variants: variant ? [variant] : [],
         whatsapp: {
           enabled: true,

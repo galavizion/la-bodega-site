@@ -126,10 +126,10 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
   {showShopBar && (
     <div class="shop-bar">
       <div class="container shop-bar__inner">
-        <nav class="shop-bar__cats" aria-label="Categorías de tienda">
-          <a href="/catalogo" class="shop-bar__all">Todos</a>
+        <nav class="shop-bar__cats" aria-label="Categorías de tienda" data-shopnav>
+          <a href="/catalogo/" class="shop-bar__all" data-shoplink>Todos</a>
           {shopCategories.map((cat) => (
-            <a href={`/catalogo?categoria=${cat.slug}`}>{cat.title}</a>
+            <a href={`/catalogo/categoria/${cat.slug}/`} data-shoplink>{cat.title}</a>
           ))}
         </nav>
         <div class="shop-bar__powered">
@@ -259,6 +259,19 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
     // sync entre pestañas
     window.addEventListener("storage", (e) => {
       if (e.key === KEY) render(getCount());
+    });
+  })();
+</script>
+
+<script is:inline>
+  (() => {
+    const path = window.location.pathname.replace(/\/$/, "") || "/";
+    document.querySelectorAll("[data-shoplink]").forEach((a) => {
+      const href = a.getAttribute("href")?.replace(/\/$/, "") || "";
+      if (href && path === href) {
+        a.setAttribute("aria-current", "page");
+        a.classList.add("is-active");
+      }
     });
   })();
 </script>
@@ -513,6 +526,10 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
     flex-shrink: 0;
   }
   .shop-bar__cats a:hover { background: rgba(0,0,0,.1); }
+  .shop-bar__cats a.is-active {
+    background: rgba(0,0,0,.13);
+    font-weight: 800 !important;
+  }
   .shop-bar__all {
     font-weight: 800 !important;
   }
