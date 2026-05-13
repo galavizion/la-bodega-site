@@ -322,6 +322,7 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
     align-items: center;
     gap: 16px;
     padding: 15px 0;
+    position: relative;
   }
 
   .logo { display: inline-flex; align-items: center; flex-shrink: 0; }
@@ -464,30 +465,59 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
 
   /* ── Mobile ──────────────────────────────────────── */
   @media (max-width: 900px) {
+    /* el header necesita ser el punto de anclaje del menú desplegado */
+    .site-header { position: relative; z-index: 100; }
+
     .menu-toggle { display: inline-flex; }
+
     .menu {
       display: none;
       position: absolute;
       top: 100%;
-      left: 0; right: 0;
+      left: 0;
+      right: 0;
+      z-index: 200;
       flex-direction: column;
-      align-items: flex-start;
+      align-items: stretch;
       gap: 2px;
-      padding: 10px;
-      background: #000;
+      padding: 8px;
+      background: #111;
       border-top: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 8px 24px rgba(0,0,0,.45);
       margin-left: 0;
+      max-height: calc(100vh - var(--header-h, 72px));
+      overflow-y: auto;
     }
     .menu.is-open { display: flex; }
-    .menu a, .submenu-toggle { width: 100%; font-size: 13px; }
+
+    .menu > li { width: 100%; }
+
+    .menu a,
+    .submenu-toggle {
+      width: 100%;
+      font-size: 14px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      justify-content: space-between;
+    }
+
+    /* Submenú en mobile: inline debajo del toggle */
     .submenu {
       position: static;
-      opacity: 1; transform: none; pointer-events: auto;
-      background: transparent; border: none;
-      display: none; padding: 0 0 0 12px;
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+      background: rgba(255,255,255,.06);
+      border: none;
+      border-radius: 8px;
+      display: none;
+      padding: 4px 4px 4px 12px;
+      margin-top: 2px;
+      min-width: unset;
     }
-    .has-submenu[data-open] .submenu,
     .submenu-toggle[aria-expanded="true"] + .submenu { display: block; }
+    .submenu a { font-size: 13px; padding: 8px 12px; }
+
     .top-bar__right { display: none; }
   }
 
