@@ -416,8 +416,9 @@ export const CATALOG_BY_CATEGORY = groq`
     _type == "catalogItem" &&
     defined(slug.current) &&
     published != false &&
-    category->slug.current == $catSlug
-    && ($q == "" || title match $q + "*" || excerpt match $q + "*")
+    category->slug.current == $catSlug &&
+    (!defined(familySlug) || isFamilyRepresentative == true) &&
+    ($q == "" || title match $q + "*" || excerpt match $q + "*")
   ] | order(_createdAt desc) [$from...$to] {
     _id,
     title,
@@ -427,14 +428,20 @@ export const CATALOG_BY_CATEGORY = groq`
     imageUrl,
     price,
     priceLabel,
+    familySlug,
+    "familyCount": select(
+      defined(familySlug) => count(*[_type=="catalogItem" && familySlug==^.familySlug && published!=false]),
+      0
+    ),
     whatsapp{ enabled, phone, message }
   },
   "total": count(*[
     _type == "catalogItem" &&
     defined(slug.current) &&
     published != false &&
-    category->slug.current == $catSlug
-    && ($q == "" || title match $q + "*" || excerpt match $q + "*")
+    category->slug.current == $catSlug &&
+    (!defined(familySlug) || isFamilyRepresentative == true) &&
+    ($q == "" || title match $q + "*" || excerpt match $q + "*")
   ])
 }
 `;

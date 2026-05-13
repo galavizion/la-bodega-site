@@ -141,6 +141,21 @@ export const catalogItem = defineType({
     defineField({ name: "featured",  title: "Producto destacado",   type: "boolean", initialValue: false, group: "shop" }),
     defineField({ name: "published", title: "Publicado en tienda",  type: "boolean", initialValue: true,  group: "shop" }),
     defineField({
+      name: "familySlug",
+      title: "Familia de producto",
+      type: "string",
+      group: "shop",
+      description: "Slug compartido con otros productos de la misma familia (ej: codo-cobre-hembra). Productos con el mismo slug se agrupan en el catálogo.",
+    }),
+    defineField({
+      name: "isFamilyRepresentative",
+      title: "Es el principal de la familia",
+      type: "boolean",
+      group: "shop",
+      initialValue: false,
+      description: "Si está activo, este producto aparece como la tarjeta representante en el catálogo. Los demás de la familia solo se ven al entrar.",
+    }),
+    defineField({
       name: "whatsapp",
       title: "Compra por WhatsApp",
       type: "object",

@@ -5,6 +5,7 @@ import { schemaTypes } from "./schemas";
 import { ImporterPanel } from "./studio-components/ImporterPanel";
 import { ProductManagerPanel } from "./studio-components/ProductManagerPanel";
 import { DuplicatePageAction } from "./studio-components/DuplicatePageAction";
+import { FamilyManagerPanel } from "./studio-components/FamilyManagerPanel";
 
 export default defineConfig({
   projectId: "a7b3q6z9",
@@ -127,6 +128,13 @@ export default defineConfig({
                                 S.component()
                                   .title("Gestionar productos")
                                   .component(ProductManagerPanel)
+                              ),
+                            S.listItem()
+                              .title("🏷 Familias de producto")
+                              .child(
+                                S.component()
+                                  .title("Familias de producto")
+                                  .component(FamilyManagerPanel)
                               ),
                           ])
                       ),

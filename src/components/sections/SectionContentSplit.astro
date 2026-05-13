@@ -19,9 +19,10 @@ const {
 
 const resolvedId = sectionId || settings?.sectionId;
 const bg = bgColor && bgColor !== "none" ? bgColor : null;
-const bgTheme = bg === "#000000" ? "section--on-dark"
-  : (bg === "#ffffff" || bg?.toLowerCase() === "#f7e96a") ? "section--on-light"
-  : "";
+const bgNorm = bg?.toLowerCase().replace(/\s/g, "");
+const isDark  = bgNorm === "#000000" || bgNorm === "#000";
+const isLight = bgNorm === "#ffffff" || bgNorm === "#fff" || bgNorm === "#f7e96a" || bgNorm === "white";
+const bgTheme = isDark ? "section--on-dark" : isLight ? "section--on-light" : "";
 const imgUrl = image ? urlFor(image).width(1200).height(800).quality(80).auto("format").url() : null;
 
 // Extrae el embed URL de YouTube desde URL o código iframe
@@ -166,6 +167,7 @@ const hasSplit = !!(videoEmbedUrl || imgUrl);
   }
   .section--on-dark .content-split__text{ color: rgba(255,255,255,.88); }
 
+  .section--on-light { color: #111; }
   .section--on-light .content-split__content h2,
   .section--on-light .content-split__single h2{
     color: #000;
