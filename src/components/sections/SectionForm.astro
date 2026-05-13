@@ -1,4 +1,11 @@
 ---
+import { client as sanityClient } from "../../lib/sanity/client";
+import groq from "groq";
+
+const globalPhone: string = await sanityClient.fetch(
+  groq`coalesce(*[_type=="siteSettingsGeneral"][0].organization.whatsapp, *[_type=="siteSettings"][0].organization.whatsapp, "")`
+);
+
 type FormField = {
   _key?: string;
   type?: "text" | "email" | "tel" | "textarea" | "select";
@@ -53,9 +60,9 @@ const safeFields: FormField[] = Array.isArray(fields) && fields.length
     ];
 
 const formId = `form-${Math.random().toString(36).slice(2, 7)}`;
-const waPhone  = whatsappFallback?.phone  ?? "";
+const waPhone  = (whatsappFallback?.phone || globalPhone).replace(/\D/g, "");
 const waLabel  = whatsappFallback?.label  ?? "O escríbenos por WhatsApp";
-const waActive = whatsappFallback?.enabled && waPhone;
+const waActive = waPhone;
 ---
 
 <section id={sectionId} class={`section form-section ${bgTheme}`} style={`${bg ? `background-color:${bg};` : ''}--section-bg:${bg ?? '#000000'}`}>

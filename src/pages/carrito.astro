@@ -1,8 +1,11 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { client as sanityClient } from "../lib/sanity/client";
+import { SITE_SETTINGS_QUERY } from "../lib/sanity/queries";
 
-const defaultPhone = "+528121087053"; // luego lo jalas de siteSettings
-const waBase = `https://wa.me/${defaultPhone.replace(/\D/g, "")}`;
+const settings = await sanityClient.fetch(SITE_SETTINGS_QUERY);
+const defaultPhone = (settings?.organization?.whatsapp ?? "528121087053").replace(/\D/g, "");
+const waBase = `https://wa.me/${defaultPhone}`;
 ---
 
 <BaseLayout title="Carrito | Ranking Agencia" canonical="https://www.rankingagencia.com/carrito/" bodyClass="is-shop">

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { client as sanityClient } from "../../lib/sanity/client";
+import { SITE_SETTINGS_QUERY } from "../../lib/sanity/queries";
 import { urlFor } from "../../lib/sanity/image";
 import groq from "groq";
 
@@ -40,10 +41,10 @@ const query = groq`{
   "total": count(*[${baseFilter}${searchFilter}])
 }`;
 
-const { items, total } = await sanityClient.fetch<{ items: CatalogItem[]; total: number }>(
-  query,
-  { q, from, to }
-);
+const [{ items, total }, settings] = await Promise.all([
+  sanityClient.fetch<{ items: CatalogItem[]; total: number }>(query, { q, from, to }),
+  sanityClient.fetch(SITE_SETTINGS_QUERY),
+]);
 
 const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -56,7 +57,7 @@ const img = (item: CatalogItem): string | null => {
 
 const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
 
-const DEFAULT_PHONE = "528121087053";
+const DEFAULT_PHONE = (settings?.organization?.whatsapp ?? "528121087053").replace(/\D/g, "");
 const waLink = (item: CatalogItem) => {
   const phone = (item.whatsapp?.phone || DEFAULT_PHONE).replace(/\D/g, "");
   const msg = item.whatsapp?.message || `Hola, me interesa: ${item.title}`;
@@ -365,11 +366,12 @@ const pgRange = paginationRange(page, totalPages);
     .card__img-wrap {
       overflow: hidden;
       background: #f3f4f6;
+      aspect-ratio: 1 / 1;
     }
     .card__img-wrap img {
       width: 100%;
-      height: 190px;
-      object-fit: cover;
+      height: 100%;
+      object-fit: contain;
       display: block;
       transition: transform .3s ease;
     }
@@ -378,7 +380,7 @@ const pgRange = paginationRange(page, totalPages);
     }
     .card__img-placeholder {
       width: 100%;
-      height: 190px;
+      height: 100%;
       background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
     }
     .card__meta { padding: 14px 14px 10px; }
@@ -539,7 +541,6 @@ const pgRange = paginationRange(page, totalPages);
     }
     @media (max-width: 480px) {
       .grid { grid-template-columns: 1fr; }
-      .card__img-wrap img, .card__img-placeholder { height: 220px; }
     }
   </style>
 
