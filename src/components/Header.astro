@@ -1,13 +1,23 @@
 ---
 import { sanityClient } from "../lib/sanity";
 import { resolveHref } from "../lib/nav";
-import { SITE_SETTINGS_QUERY } from "../lib/sanity/queries";
+import { SITE_SETTINGS_QUERY, PRODUCT_CATEGORIES_QUERY } from "../lib/sanity/queries";
 import type { NavItem } from "../lib/types";
+
+interface Props {
+  showShopBar?: boolean;
+}
+
+const { showShopBar = false } = Astro.props;
 
 const settings = await sanityClient.fetch(SITE_SETTINGS_QUERY);
 const nav: NavItem[] = settings?.navigation ?? [];
 const social = settings?.social ?? {};
 const topBar = settings?.topBar;
+
+const shopCategories: { _id: string; title: string; slug: string }[] = showShopBar
+  ? (await sanityClient.fetch(PRODUCT_CATEGORIES_QUERY)) ?? []
+  : [];
 ---
 
 <header class="site-header" data-header>
@@ -111,6 +121,26 @@ const topBar = settings?.topBar;
       </button>
     </div>
   </nav>
+
+  <!-- ── Franja de categorías (solo tienda) ── -->
+  {showShopBar && (
+    <div class="shop-bar">
+      <div class="container shop-bar__inner">
+        <nav class="shop-bar__cats" aria-label="Categorías de tienda">
+          <a href="/catalogo" class="shop-bar__all">Todos</a>
+          {shopCategories.map((cat) => (
+            <a href={`/catalogo?categoria=${cat.slug}`}>{cat.title}</a>
+          ))}
+        </nav>
+        <div class="shop-bar__powered">
+          <span>Powered by</span>
+          <a href="https://argco.mx" target="_blank" rel="noreferrer noopener" aria-label="ARGCO">
+            <img src="/argco-logo.webp" alt="ARGCO" height="18" loading="lazy" />
+          </a>
+        </div>
+      </div>
+    </div>
+  )}
 
 </header>
 
@@ -446,5 +476,71 @@ const topBar = settings?.topBar;
     .has-submenu[data-open] .submenu,
     .submenu-toggle[aria-expanded="true"] + .submenu { display: block; }
     .top-bar__right { display: none; }
+  }
+
+  /* ── Franja de categorías (tienda) ─────────────────── */
+  .shop-bar {
+    background: #F7E96A;
+    border-top: 1px solid rgba(0,0,0,.08);
+  }
+  .shop-bar__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 0;
+    height: 36px;
+    overflow: hidden;
+  }
+  .shop-bar__cats {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex: 1;
+  }
+  .shop-bar__cats::-webkit-scrollbar { display: none; }
+  .shop-bar__cats a {
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 600;
+    color: #111;
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 6px;
+    transition: background .15s;
+    flex-shrink: 0;
+  }
+  .shop-bar__cats a:hover { background: rgba(0,0,0,.1); }
+  .shop-bar__all {
+    font-weight: 800 !important;
+  }
+  .shop-bar__powered {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(0,0,0,.55);
+    white-space: nowrap;
+  }
+  .shop-bar__powered a {
+    display: inline-flex;
+    align-items: center;
+  }
+  .shop-bar__powered img {
+    height: 18px;
+    width: auto;
+    display: block;
+    opacity: .85;
+    transition: opacity .15s;
+  }
+  .shop-bar__powered a:hover img { opacity: 1; }
+
+  @media (max-width: 600px) {
+    .shop-bar__powered span { display: none; }
+    .shop-bar__powered img { height: 16px; }
   }
 </style>

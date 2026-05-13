@@ -1,14 +1,8 @@
 import { createClient } from "@sanity/client";
 
-const projectId = import.meta.env.PUBLIC_SANITY_PROJECT_ID;
-const dataset = import.meta.env.PUBLIC_SANITY_DATASET;
-
-if (!projectId) throw new Error("Missing PUBLIC_SANITY_PROJECT_ID");
-if (!dataset) throw new Error("Missing PUBLIC_SANITY_DATASET");
-
 export const client = createClient({
-  projectId,
-  dataset,
+  projectId: import.meta.env.PUBLIC_SANITY_PROJECT_ID ?? "a7b3q6z9",
+  dataset: import.meta.env.PUBLIC_SANITY_DATASET ?? "production",
   apiVersion: "2025-01-01",
   useCdn: import.meta.env.PROD
 });

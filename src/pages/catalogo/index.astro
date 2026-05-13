@@ -28,13 +28,15 @@ const img = (src: any) =>
 const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
 ---
 
-<BaseLayout title="Catálogo | Ranking Agencia" canonical="https://www.rankingagencia.com/catalogo/" bodyClass="is-shop">
-  <main class="container" style="padding:40px 0;">
-    <h1>Catálogo</h1>
-    <p style="opacity:.8; max-width:70ch;">
-      Servicios, casos y recursos. Todo en un solo lugar.
-    </p>
+<BaseLayout title="Tienda | La Bodega del Instalador" canonical="https://www.labodegadelinstalador.net/catalogo/" bodyClass="is-shop">
+  <div class="catalog-header">
+    <div class="container">
+      <h1 class="catalog-title">Tienda</h1>
+      <p class="catalog-subtitle">Materiales y suministros para instaladores profesionales.</p>
+    </div>
+  </div>
 
+  <main class="container" style="padding:32px 0 60px;">
     <div class="grid">
       {items.map((item) => {
         const cover = img(item.coverImage);
@@ -82,6 +84,22 @@ const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
   </main>
 
   <style>
+    .catalog-header {
+      background: #fff;
+      border-bottom: 1px solid rgba(0,0,0,.07);
+      padding: 28px 0 22px;
+    }
+    .catalog-title {
+      margin: 0 0 4px;
+      font-size: 26px;
+      font-weight: 900;
+      color: #111;
+    }
+    .catalog-subtitle {
+      margin: 0;
+      font-size: 13px;
+      color: #6b7280;
+    }
     .grid{
       display:grid;
       grid-template-columns: repeat(3, 1fr);
