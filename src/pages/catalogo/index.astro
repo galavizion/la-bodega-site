@@ -17,6 +17,7 @@ type CatalogItem = {
   familySlug?: string;
   familyCount?: number;
   whatsapp?: { enabled?: boolean; phone?: string; message?: string };
+  boxOption?: { enabled?: boolean; unitsPerBox?: number; boxPrice?: number; boxLabel?: string };
 };
 
 const PAGE_SIZE = 20;
@@ -43,6 +44,7 @@ const query = groq`{
       defined(familySlug) => count(*[_type=="catalogItem" && familySlug==^.familySlug && published!=false]),
       0
     ),
+    boxOption{ enabled, unitsPerBox, boxPrice, boxLabel },
     whatsapp{ enabled, phone, message }
   },
   "total": count(*[${baseFilter}${searchFilter}])
@@ -188,22 +190,35 @@ const pgRange = paginationRange(page, totalPages);
 
               <div class="card__actions">
                 {item.familySlug ? (
-                  <a class="btn-family" href={href}>
-                    Elige la medida →
-                  </a>
+                  <a class="btn-family" href={href}>Elige la medida →</a>
                 ) : (
-                  <>
-                    {/* Botón WA desactivado — solo aparece en el carrito
-                    <a
-                      class="btn-wa"
-                      href={wa}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`Cotizar ${item.title} por WhatsApp`}
-                    >
-                      Cotizar
-                    </a>
-                    */}
+                  <div class="card__buy">
+                    {/* Fila unidad */}
+                    <div class="card__buy-row">
+                      <div class="card__stepper">
+                        <button type="button" class="step-btn" data-step="-1" data-target="unit">−</button>
+                        <input class="step-qty" data-qty="unit" type="number" value="0" min="0" readonly />
+                        <button type="button" class="step-btn" data-step="1" data-target="unit">+</button>
+                      </div>
+                      <span class="card__row-price">
+                        {item.price != null ? formatMXN(toMXN(item.price)) : item.priceLabel || "Cotización"} c/u
+                      </span>
+                    </div>
+
+                    {/* Fila caja */}
+                    {item.boxOption?.enabled && item.boxOption.boxPrice != null && (
+                      <div class="card__buy-row">
+                        <div class="card__stepper">
+                          <button type="button" class="step-btn" data-step="-1" data-target="box">−</button>
+                          <input class="step-qty" data-qty="box" type="number" value="0" min="0" readonly />
+                          <button type="button" class="step-btn" data-step="1" data-target="box">+</button>
+                        </div>
+                        <div class="card__row-price">
+                          <span>{formatMXN(toMXN(item.boxOption.boxPrice))}</span>
+                          <small>{item.boxOption.boxLabel || `caja ×${item.boxOption.unitsPerBox}`}</small>
+                        </div>
+                      </div>
+                    )}
 
                     <button
                       class="btn-cart"
@@ -213,6 +228,8 @@ const pgRange = paginationRange(page, totalPages);
                       data-slug={item.slug}
                       data-url={href}
                       data-price={item.price != null ? toMXN(item.price) : 0}
+                      data-box-price={item.boxOption?.boxPrice != null ? toMXN(item.boxOption.boxPrice) : 0}
+                      data-box-label={item.boxOption?.boxLabel || `caja ×${item.boxOption?.unitsPerBox ?? ""}`}
                       data-image={cover ?? ""}
                       aria-pressed="false"
                     >
@@ -222,7 +239,7 @@ const pgRange = paginationRange(page, totalPages);
                       </svg>
                       Agregar
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
             </article>
@@ -449,6 +466,34 @@ const pgRange = paginationRange(page, totalPages);
       font-size: 13px;
     }
 
+    /* ── Card buy / steppers ── */
+    .card__buy { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+    .card__buy-row { display: flex; align-items: center; gap: 8px; }
+    .card__stepper {
+      display: flex; align-items: center;
+      border: 1px solid #d1d5db; background: #fff; flex-shrink: 0;
+    }
+    .step-btn {
+      width: 28px; height: 30px; border: none; background: none;
+      font-size: 16px; cursor: pointer; color: #374151;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-btn:hover { background: #f3f4f6; }
+    .step-qty {
+      width: 36px; height: 30px; border: none;
+      border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;
+      text-align: center; font-size: 13px; font-weight: 700;
+      -moz-appearance: textfield; background: #fff;
+    }
+    .step-qty::-webkit-outer-spin-button,
+    .step-qty::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .card__row-price {
+      font-size: 12px; color: #374151; line-height: 1.3;
+      display: flex; flex-direction: column;
+    }
+    .card__row-price span { font-weight: 700; color: #b90404; }
+    .card__row-price small { font-size: 11px; color: #6b7280; }
+
     /* ── Card actions ── */
     .card__actions {
       display: flex;
@@ -639,17 +684,47 @@ const pgRange = paginationRange(page, totalPages);
         });
       };
 
+      // Steppers
+      document.addEventListener("click", (e) => {
+        const stepBtn = e.target?.closest?.("[data-step]");
+        if (!stepBtn) return;
+        const card = stepBtn.closest("article");
+        if (!card) return;
+        const target = stepBtn.getAttribute("data-target");
+        const input = card.querySelector(`[data-qty="${target}"]`);
+        if (!input) return;
+        input.value = Math.max(0, (Number(input.value) || 0) + Number(stepBtn.getAttribute("data-step")));
+      });
+
+      // Agregar al carrito
       document.addEventListener("click", (e) => {
         const btn = e.target?.closest?.("[data-add]");
         if (!btn) return;
-        const slug = btn.getAttribute("data-slug") || "";
+        const slug  = btn.getAttribute("data-slug") || "";
         if (!slug) return;
-        if (inCart(slug)) { setBtnState(btn, true); return; }
         const title = btn.getAttribute("data-title") || "";
-        const url = btn.getAttribute("data-url") || "";
+        const url   = btn.getAttribute("data-url")   || "";
         const image = btn.getAttribute("data-image") || "";
         const price = Number(btn.getAttribute("data-price") || 0);
-        window.Cart?.addItem({ title, slug, url, image, price });
+        const boxPrice = Number(btn.getAttribute("data-box-price") || 0);
+        const boxLabel = btn.getAttribute("data-box-label") || "";
+
+        const card = btn.closest("article");
+        const qtyUnit = card ? Number(card.querySelector('[data-qty="unit"]')?.value || 0) : 1;
+        const qtyBox  = card ? Number(card.querySelector('[data-qty="box"]')?.value  || 0) : 0;
+
+        const addedSomething = qtyUnit > 0 || qtyBox > 0;
+        if (qtyUnit > 0) window.Cart?.addItem({ title, slug, url, image, price, qty: qtyUnit });
+        if (qtyBox > 0 && boxPrice > 0) window.Cart?.addItem({
+          title: `${title} — ${boxLabel}`,
+          slug: `${slug}--caja`,
+          url, image, price: boxPrice, qty: qtyBox, variantLabel: boxLabel,
+        });
+        // Si no pusieron cantidad, agrega 1 unidad por defecto
+        if (!addedSomething) window.Cart?.addItem({ title, slug, url, image, price, qty: 1 });
+
+        // Reset steppers
+        card?.querySelectorAll(".step-qty").forEach(i => (i.value = "0"));
         setBtnState(btn, true);
       });
 
