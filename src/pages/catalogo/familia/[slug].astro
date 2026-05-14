@@ -118,7 +118,23 @@ const img = (item: FamilyItem): string | null => {
                 </svg>
                 Cotizar
               </a>
-              <a class="btn-detail" href={href}>Ver detalle →</a>
+              <button
+                class="btn-cart"
+                type="button"
+                data-add
+                data-title={item.title}
+                data-slug={item.slug}
+                data-url={href}
+                data-price={item.price != null ? toMXN(item.price) : 0}
+                data-image={cover ?? ""}
+                aria-pressed="false"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                </svg>
+                Agregar
+              </button>
             </div>
           </article>
         );
@@ -195,13 +211,15 @@ const img = (item: FamilyItem): string | null => {
       transition: background .15s; flex: 1; justify-content: center;
     }
     .btn-wa:hover { background: #128c7e; }
-    .btn-detail {
-      display: inline-flex; align-items: center; justify-content: center;
-      padding: 8px 12px; background: rgba(0,0,0,.06); color: #111;
-      font-size: 12px; font-weight: 700; text-decoration: none;
-      transition: background .15s; flex: 1;
+    .btn-cart {
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+      padding: 8px 12px; background: transparent; color: #111827;
+      border: 1.5px solid #d1d5db; border-radius: 0;
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      transition: border-color .15s, background .15s; flex: 1;
     }
-    .btn-detail:hover { background: rgba(0,0,0,.12); }
+    .btn-cart:hover { background: #111827; color: #fff; border-color: #111827; }
+    .btn-cart.is-added { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
 
     .fam-back { margin-top: 40px; }
     .fam-back a { opacity: .6; font-size: 13px; text-decoration: none; }
@@ -211,4 +229,48 @@ const img = (item: FamilyItem): string | null => {
       .fam-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
     }
   </style>
+
+  <script is:inline>
+    (() => {
+      const KEY = "ranking_cart_v1";
+      const getCart = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; } };
+      const inCart = (slug) => getCart().some((x) => x?.slug === slug);
+
+      const setBtnState = (btn, added) => {
+        if (!btn) return;
+        if (added) {
+          btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Agregado`;
+          btn.classList.add("is-added");
+          btn.setAttribute("aria-pressed", "true");
+        } else {
+          btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> Agregar`;
+          btn.classList.remove("is-added");
+          btn.setAttribute("aria-pressed", "false");
+        }
+      };
+
+      const paintAll = () => {
+        document.querySelectorAll("[data-add]").forEach((b) => {
+          setBtnState(b, inCart(b.getAttribute("data-slug") || ""));
+        });
+      };
+
+      document.addEventListener("click", (e) => {
+        const btn = e.target?.closest?.("[data-add]");
+        if (!btn) return;
+        const slug = btn.getAttribute("data-slug") || "";
+        if (!slug) return;
+        if (inCart(slug)) { setBtnState(btn, true); return; }
+        const title = btn.getAttribute("data-title") || "";
+        const url = btn.getAttribute("data-url") || "";
+        const image = btn.getAttribute("data-image") || "";
+        const price = Number(btn.getAttribute("data-price") || 0);
+        window.Cart?.addItem({ title, slug, url, image, price });
+        setBtnState(btn, true);
+      });
+
+      window.addEventListener("cart:updated", paintAll);
+      paintAll();
+    })();
+  </script>
 </BaseLayout>

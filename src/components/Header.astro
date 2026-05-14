@@ -128,16 +128,24 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
       <div class="container shop-bar__inner">
         <nav class="shop-bar__cats" aria-label="Categorías de tienda" data-shopnav>
           <a href="/catalogo/" class="shop-bar__all" data-shoplink>TODOS</a>
-          {shopCategories.map((cat) => (
-            <a href={`/catalogo/categoria/${cat.slug}/`} data-shoplink>{cat.title}</a>
-          ))}
+          {shopCategories.length > 0 && (
+            <>
+              <button class="shop-cats__toggle" type="button" data-cats-toggle aria-expanded="false" aria-label="Ver categorías">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+                  <line x1="3" y1="6" x2="21" y2="6"/>
+                  <line x1="3" y1="12" x2="21" y2="12"/>
+                  <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+                Categorías
+              </button>
+              <div class="shop-cats__dropdown" data-cats-dropdown>
+                {shopCategories.map((cat) => (
+                  <a href={`/catalogo/categoria/${cat.slug}/`} data-shoplink>{cat.title}</a>
+                ))}
+              </div>
+            </>
+          )}
         </nav>
-        <div class="shop-bar__powered">
-          <span>Powered by</span>
-          <a href="https://argco.mx" target="_blank" rel="noreferrer noopener" aria-label="ARGCO">
-            <img src="/argco-logo.webp" alt="ARGCO" height="18" loading="lazy" />
-          </a>
-        </div>
       </div>
     </div>
   )}
@@ -217,6 +225,23 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
     window.matchMedia("(min-width: 901px)").addEventListener("change", () => {
       closeMenu();
     });
+
+    // --- dropdown de categorías (shop bar) ---
+    const catsToggle = header.querySelector("[data-cats-toggle]");
+    const catsDropdown = header.querySelector("[data-cats-dropdown]");
+    if (catsToggle && catsDropdown) {
+      catsToggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = catsDropdown.classList.toggle("is-open");
+        catsToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      });
+      document.addEventListener("click", (e) => {
+        if (!catsToggle.contains(e.target) && !catsDropdown.contains(e.target)) {
+          catsDropdown.classList.remove("is-open");
+          catsToggle.setAttribute("aria-expanded", "false");
+        }
+      });
+    }
   })();
 </script>
 
@@ -374,15 +399,16 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
   .has-submenu { position: relative; }
   .submenu {
     position: absolute;
-    top: 100%;          /* comienza justo al borde del <li>, sin brecha */
+    top: 100%;
     left: 0;
     min-width: 200px;
     margin: 0;
-    padding: 10px 6px 6px; /* padding-top crea el gap visual sin romper el hover */
+    padding: 6px;
     list-style: none;
-    background: #111;
-    border: 1px solid rgba(255,255,255,.1);
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.12);
     border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.12);
     opacity: 0;
     transform: translateY(6px);
     pointer-events: none;
@@ -392,10 +418,10 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
     display: block;
     padding: 8px 12px;
     border-radius: 6px;
-    color: rgba(255,255,255,.85);
+    color: #111;
     font-size: 11px;
   }
-  .submenu a:hover { background: rgba(255,255,255,.08); color: #fff; }
+  .submenu a:hover { background: rgba(0,0,0,.06); color: #111; }
 
   @media (min-width: 901px) {
     .has-submenu:hover .submenu {
@@ -519,16 +545,17 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
       opacity: 1;
       transform: none;
       pointer-events: auto;
-      background: rgba(255,255,255,.06);
+      background: #fff;
       border: none;
       border-radius: 8px;
       display: none;
       padding: 4px 4px 4px 12px;
       margin-top: 2px;
       min-width: unset;
+      box-shadow: none;
     }
     .submenu-toggle[aria-expanded="true"] + .submenu { display: block; }
-    .submenu a { font-size: 13px; padding: 8px 12px; }
+    .submenu a { font-size: 13px; padding: 8px 12px; color: #111; }
 
     .top-bar__right { display: none; }
   }
@@ -541,18 +568,15 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
   .shop-bar__inner {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 8px;
     padding: 4px 0;
-    flex-wrap: wrap;
     min-height: 36px;
   }
   .shop-bar__cats {
     display: flex;
     align-items: center;
     gap: 2px;
-    flex-wrap: wrap;
-    flex: 1;
+    position: relative;
   }
   .shop-bar__cats a {
     white-space: nowrap;
@@ -560,7 +584,7 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
     font-weight: 600;
     color: #111;
     text-decoration: none;
-    padding: 4px 10px;
+    padding: 5px 10px;
     transition: background .15s;
     flex-shrink: 0;
   }
@@ -574,31 +598,49 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
     text-transform: uppercase;
     letter-spacing: .04em;
   }
-  .shop-bar__powered {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-    font-size: 10px;
-    font-weight: 600;
-    color: rgba(0,0,0,.55);
-    white-space: nowrap;
-  }
-  .shop-bar__powered a {
+
+  /* Botón hamburguesa de categorías */
+  .shop-cats__toggle {
     display: inline-flex;
     align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: rgba(0,0,0,.1);
+    border: none;
+    font-size: 11px;
+    font-weight: 700;
+    color: #111;
+    cursor: pointer;
+    transition: background .15s;
+    white-space: nowrap;
   }
-  .shop-bar__powered img {
-    height: 18px;
-    width: auto;
-    display: block;
-    opacity: .85;
-    transition: opacity .15s;
-  }
-  .shop-bar__powered a:hover img { opacity: 1; }
+  .shop-cats__toggle:hover { background: rgba(0,0,0,.18); }
+  .shop-cats__toggle[aria-expanded="true"] { background: rgba(0,0,0,.18); }
 
-  @media (max-width: 600px) {
-    .shop-bar__powered span { display: none; }
-    .shop-bar__powered img { height: 16px; }
+  /* Dropdown de categorías */
+  .shop-cats__dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 9000;
+    min-width: 200px;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.12);
+    box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    padding: 6px;
   }
+  .shop-cats__dropdown.is-open { display: flex; }
+  .shop-cats__dropdown a {
+    padding: 9px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #111;
+    text-decoration: none;
+    transition: background .12s;
+    white-space: nowrap;
+  }
+  .shop-cats__dropdown a:hover { background: rgba(0,0,0,.06); }
+  .shop-cats__dropdown a.is-active { background: #F7E96A; font-weight: 800; }
 </style>

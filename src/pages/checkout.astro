@@ -185,9 +185,9 @@ const payData = {
             ${it.image ? `<img class="sum-img" src="${it.image}" alt="${it.title || ''}" loading="lazy">` : `<div class="sum-img sum-img--ph"></div>`}
             <div class="sum-item__info">
               <p class="sum-item__name">${it.title || "Producto"}</p>
-              <p class="sum-item__qty">Cantidad: ${qty}</p>
+              <p class="sum-item__qty">Cant: ${qty}</p>
+              <p class="sum-item__price">${sub ? "$" + sub.toLocaleString("es-MX") + " MXN" : "Cotización"}</p>
             </div>
-            <p class="sum-item__price">${sub ? "$" + sub.toLocaleString("es-MX") + " MXN" : "Cotización"}</p>
           </div>`;
       }).join("");
 
@@ -420,33 +420,38 @@ const payData = {
       position: sticky;
       top: calc(var(--header-h, 80px) + 24px);
     }
-    .sum-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+    .sum-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
     .sum-loading { opacity: .4; font-size: 13px; }
     .sum-item {
-      display: grid;
-      grid-template-columns: 52px 1fr auto;
+      display: flex;
       gap: 10px;
       align-items: center;
+      border: 1px solid #ccc;
+      padding: 8px;
     }
     .sum-img {
-      width: 52px;
-      height: 52px;
+      width: 80px;
+      height: 80px;
       object-fit: contain;
       background: #f3f4f6;
       display: block;
+      flex-shrink: 0;
     }
     .sum-img--ph { background: #e5e7eb; }
-    .sum-item__info { min-width: 0; }
+    .sum-item__info { min-width: 0; flex: 1; }
     .sum-item__name {
-      font-size: 13px;
+      font-size: 10px;
       font-weight: 700;
-      white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      margin: 0 0 2px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      margin: 0 0 4px;
+      line-height: 1.4;
     }
-    .sum-item__qty { font-size: 11px; opacity: .5; margin: 0; }
-    .sum-item__price { font-size: 13px; font-weight: 700; white-space: nowrap; }
+    .sum-item__qty { font-size: 10px; opacity: .5; margin: 0 0 3px; }
+    .sum-item__price { font-size: 10px; font-weight: 700; color: #b90404; white-space: nowrap; margin: 0; }
 
     .sum-totals { border-top: 1px solid rgba(0,0,0,.08); padding-top: 14px; display: flex; flex-direction: column; gap: 8px; }
     .sum-row { display: flex; justify-content: space-between; font-size: 13px; }
