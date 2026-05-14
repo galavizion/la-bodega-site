@@ -20,7 +20,7 @@ type FamilyItem = {
   priceLabel?: string;
   isFamilyRepresentative?: boolean;
   whatsapp?: { enabled?: boolean; phone?: string; message?: string };
-  boxOption?: { enabled?: boolean; unitsPerBox?: number; boxLabel?: string };
+  boxOption?: { enabled?: boolean; unitsPerBox?: number; boxPrice?: number; boxLabel?: string };
 };
 
 const { slug: familySlug } = Astro.params;
@@ -31,7 +31,7 @@ const [items, settings] = await Promise.all([
       _id, title, "slug": slug.current, sku, excerpt,
       coverImage, imageUrl, price, priceLabel, isFamilyRepresentative,
       "variantPrice": variants[0].price,
-      boxOption{ enabled, unitsPerBox, boxLabel },
+      boxOption{ enabled, unitsPerBox, boxPrice, boxLabel },
       whatsapp{ enabled, phone, message }
     }`,
     { familySlug }
@@ -52,13 +52,6 @@ const usdRate: number      = settings?.usdRate      ?? 17;
 const markupFactor         = 1 + (settings?.markupPercent ?? 26.5) / 100;
 const toMXN  = (n: number) => (shopCurrency === "USD" ? n * usdRate : n) * markupFactor;
 const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
-
-const DEFAULT_PHONE = (settings?.organization?.whatsapp ?? "528121087053").replace(/\D/g, "");
-const waLink = (item: FamilyItem) => {
-  const phone = (item.whatsapp?.phone || DEFAULT_PHONE).replace(/\D/g, "");
-  const msg   = item.whatsapp?.message || `Hola, me interesa: ${item.title}`;
-  return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
-};
 
 const img = (item: FamilyItem): string | null => {
   if (item.coverImage?.asset) return urlFor(item.coverImage).width(600).quality(80).auto("format").url();
@@ -90,7 +83,6 @@ const img = (item: FamilyItem): string | null => {
       {items.map((item) => {
         const cover = img(item);
         const href  = `/catalogo/${item.slug}/`;
-        const wa    = waLink(item);
 
         return (
           <article class={`fam-card${item.isFamilyRepresentative ? " fam-card--principal" : ""}`}>
