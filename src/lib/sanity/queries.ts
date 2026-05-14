@@ -466,6 +466,10 @@ export const SITE_SETTINGS_QUERY = groq`
     *[_type == "siteSettingsGeneral"][0].organization,
     *[_type == "siteSettings"][0].organization
   ){ phone, whatsapp, email, sameAs },
+  "orderNotifyEmails": coalesce(
+    *[_type == "siteSettingsGeneral"][0].orderNotifyEmails,
+    *[_type == "siteSettings"][0].orderNotifyEmails
+  ),
 
   // ── Menú ───────────────────────────────────────────────
   "navigation": coalesce(

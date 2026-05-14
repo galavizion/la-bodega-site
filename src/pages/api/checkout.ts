@@ -109,9 +109,16 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   // ── Notificación por email ───────────────────────────
-  const resendKey   = import.meta.env.RESEND_API_KEY;
-  const notifyEmail = import.meta.env.NOTIFY_EMAIL;
-  if (resendKey && notifyEmail) {
+  const resendKey = import.meta.env.RESEND_API_KEY;
+  const notifyFromSanity = await sanity
+    .fetch<string[] | null>(`*[_type == "siteSettings"][0].orderNotifyEmails`)
+    .catch(() => null);
+  const envEmail = import.meta.env.NOTIFY_EMAIL;
+  const notifyEmails: string[] = [
+    ...(notifyFromSanity?.filter(Boolean) ?? []),
+    ...(envEmail && !notifyFromSanity?.includes(envEmail) ? [envEmail] : []),
+  ];
+  if (resendKey && notifyEmails.length > 0) {
     const resend = new Resend(resendKey);
     const rows = items.map((it: any) => {
       const sub = Number(it.price ?? 0) * Number(it.qty ?? 1);
@@ -160,7 +167,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     await resend.emails.send({
       from: "La Bodega del Instalador <noreply@labodegadelinstalador.net>",
-      to: notifyEmail,
+      to: notifyEmails,
       subject: `[Pedido] #${num} — ${customer.name} · $${calcTotal.toLocaleString("es-MX")} MXN`,
       html,
       replyTo: customer.email || undefined,

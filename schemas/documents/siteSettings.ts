@@ -25,10 +25,19 @@ export const siteSettings = defineType({
       group: "general",
       fields: [
         { name: "phone", title: "Teléfono principal", type: "string" },
-        { name: "whatsapp", title: "Número WhatsApp (con código país)", type: "string" },
+        { name: "whatsapp", title: "Número WhatsApp (con código país, sin + ni espacios, ej: 528121087053)", type: "string" },
         { name: "email", title: "Email", type: "string" },
         { name: "sameAs", title: "Redes sociales (URLs)", type: "array", of: [{ type: "url" }] },
       ],
+    }),
+    defineField({
+      name: "orderNotifyEmails",
+      title: "Correos para notificaciones de pedidos",
+      description: "Cada persona en esta lista recibirá un email cada vez que se realice un pedido nuevo.",
+      type: "array",
+      group: "general",
+      of: [{ type: "string" }],
+      options: { layout: "tags" },
     }),
 
     // ── HEADER ───────────────────────────────────────────
