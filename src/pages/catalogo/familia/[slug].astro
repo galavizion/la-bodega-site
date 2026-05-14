@@ -20,6 +20,7 @@ type FamilyItem = {
   priceLabel?: string;
   isFamilyRepresentative?: boolean;
   whatsapp?: { enabled?: boolean; phone?: string; message?: string };
+  boxOption?: { enabled?: boolean; unitsPerBox?: number; boxLabel?: string };
 };
 
 const { slug: familySlug } = Astro.params;
@@ -30,6 +31,7 @@ const [items, settings] = await Promise.all([
       _id, title, "slug": slug.current, sku, excerpt,
       coverImage, imageUrl, price, priceLabel, isFamilyRepresentative,
       "variantPrice": variants[0].price,
+      boxOption{ enabled, unitsPerBox, boxLabel },
       whatsapp{ enabled, phone, message }
     }`,
     { familySlug }
@@ -110,6 +112,11 @@ const img = (item: FamilyItem): string | null => {
                     ? formatMXN(toMXN((item.price ?? item.variantPrice)!))
                     : item.priceLabel || "Cotización"}
                 </p>
+                {item.boxOption?.enabled && (
+                  <span class="fam-card__box-badge">
+                    📦 {item.boxOption.boxLabel || `caja de ${item.boxOption.unitsPerBox}`}
+                  </span>
+                )}
               </div>
             </a>
 
@@ -198,6 +205,17 @@ const img = (item: FamilyItem): string | null => {
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
     .fam-card__price { font-size: 15px; font-weight: 900; color: #b90404; margin: 8px 0 0; }
+    .fam-card__box-badge {
+      display: inline-block;
+      margin-top: 5px;
+      font-size: 11px;
+      background: #fff7ed;
+      border: 1px solid #fdba74;
+      color: #c2410c;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
 
     .fam-card__actions {
       display: flex;

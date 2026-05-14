@@ -43,6 +43,7 @@ ${faqBlock ? `## Preguntas frecuentes\n${faqBlock}` : ""}
 - Si el usuario quiere hablar con una persona usa la herramienta whatsapp_fallback.
 - Sé conciso: respuestas de máximo 3 párrafos o usa listas cuando sea útil.
 - Si te preguntan por un producto específico, usa search_products para buscarlo.
+- Si te preguntan por servicios, información de la empresa, franquicias, guías, o cualquier tema que no sea un producto directo, usa search_content para buscarlo en el sitio.
 - Cuando el usuario quiera cotizar o agregar al carrito, usa add_to_cart con los productos encontrados.`;
 }
 
@@ -92,12 +93,79 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "search_content",
+      description: "Busca en las páginas, landings, blog y contenido general del sitio. Úsalo para preguntas sobre servicios, franquicias, guías, la empresa, apoyo social, o cualquier información que no sea un producto del catálogo.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Término de búsqueda, ej: 'franquicia' o 'instalación de rociadores'" },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "whatsapp_fallback",
       description: "Proporciona el enlace de WhatsApp para que el usuario hable con un agente humano.",
       parameters: { type: "object", properties: {} },
     },
   },
 ];
+
+async function runSearchContent(query: string): Promise<string> {
+  const q = `*${query}*`;
+
+  const [pages, posts] = await Promise.all([
+    sanity.fetch<any[]>(
+      `*[_type == "page" && (
+        title match $q ||
+        pt::text(sections[].content) match $q ||
+        pt::text(sections[].body) match $q ||
+        seo.description match $q
+      )][0...5]{
+        title,
+        "slug": slug.current,
+        "pageType": pageType,
+        "excerpt": seo.description,
+        "text": pt::text(sections[0].content)
+      }`,
+      { q }
+    ).catch(() => [] as any[]),
+
+    sanity.fetch<any[]>(
+      `*[_type == "post" && (
+        title match $q ||
+        pt::text(body) match $q ||
+        excerpt match $q
+      )][0...5]{
+        title,
+        "slug": slug.current,
+        excerpt,
+        "text": pt::text(body[0..2])
+      }`,
+      { q }
+    ).catch(() => [] as any[]),
+  ]);
+
+  const results: string[] = [];
+
+  pages.forEach(p => {
+    const url = `/${p.slug ?? ""}`;
+    const snippet = (p.excerpt || p.text || "").slice(0, 200);
+    results.push(`**${p.title}** (${url})\n${snippet}`);
+  });
+
+  posts.forEach(p => {
+    const url = `/blog/${p.slug ?? ""}`;
+    const snippet = (p.excerpt || p.text || "").slice(0, 200);
+    results.push(`**${p.title}** (${url})\n${snippet}`);
+  });
+
+  if (!results.length) return "No encontré contenido relevante en el sitio para esa búsqueda.";
+  return results.join("\n\n---\n\n");
+}
 
 async function runSearchProducts(query: string, markupFactor: number): Promise<string> {
   const results = await sanity.fetch<any[]>(
@@ -193,6 +261,8 @@ export const POST: APIRoute = async ({ request }) => {
 
       if (fnName === "search_products") {
         result = await runSearchProducts(args.query, markupFactor);
+      } else if (fnName === "search_content") {
+        result = await runSearchContent(args.query);
       } else if (fnName === "add_to_cart") {
         cartActions = args.items ?? [];
         result = `Listo, voy a agregar ${cartActions.length} producto(s) al carrito.`;

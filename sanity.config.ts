@@ -177,6 +177,9 @@ export default defineConfig({
                           ])
                       ),
                     S.listItem()
+                      .title("🔥 Chatbot IA — Sparkly Fire")
+                      .child(S.document().schemaType("chatbotProfile").documentId("chatbotProfile")),
+                    S.listItem()
                       .title("📩 Envíos de formulario")
                       .child(S.documentTypeList("formSubmission").title("Envíos")),
                     S.listItem()

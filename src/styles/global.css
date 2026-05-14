@@ -54,7 +54,7 @@ html{ scroll-behavior: smooth; }
 body{
   margin: 0;
   font-family: var(--thm-font);
-  color: #eaeaea; /* importante si lo dejamos oscuro */
+  color: #777777;
   font-size: 14px;
   line-height: 1.35;
 
