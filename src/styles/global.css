@@ -75,6 +75,15 @@ a:hover{ text-decoration: none; }
 h1,h2,h3,h4,h5,h6{
   font-family: var(--heading-font);
   margin: 0 0 12px;
+  color: #cccccc;
+}
+
+body.is-shop h1,
+body.is-shop h2,
+body.is-shop h3,
+body.is-shop h4,
+body.is-shop h5,
+body.is-shop h6{
   color: #111;
 }
 
