@@ -180,13 +180,17 @@ const payData = {
       listEl.innerHTML = items.map((it) => {
         const qty = it.qty || 1;
         const sub = Number(it.price || 0) * qty;
+        const priceText = sub ? "$" + sub.toLocaleString("es-MX") + " MXN" : "Cotización";
         return `
-          <div class="sum-item">
-            ${it.image ? `<img class="sum-img" src="${it.image}" alt="${it.title || ''}" loading="lazy">` : `<div class="sum-img sum-img--ph"></div>`}
-            <div class="sum-item__info">
-              <p class="sum-item__name">${it.title || "Producto"}</p>
-              <p class="sum-item__qty">Cant: ${qty}</p>
-              <p class="sum-item__price">${sub ? "$" + sub.toLocaleString("es-MX") + " MXN" : "Cotización"}</p>
+          <div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e7eb;">
+            ${it.image
+              ? `<img src="${it.image}" alt="" loading="lazy" style="width:52px;height:52px;object-fit:contain;background:#f3f4f6;flex-shrink:0;display:block;">`
+              : `<div style="width:52px;height:52px;background:#e5e7eb;flex-shrink:0;"></div>`
+            }
+            <div style="flex:1;min-width:0;">
+              <p style="font-size:12px;font-weight:700;margin:0 0 3px;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${it.title || "Producto"}</p>
+              <p style="font-size:11px;color:#6b7280;margin:0 0 3px;">Cant: ${qty}</p>
+              <p style="font-size:12px;font-weight:800;color:#b90404;margin:0;">${priceText}</p>
             </div>
           </div>`;
       }).join("");
@@ -420,38 +424,8 @@ const payData = {
       position: sticky;
       top: calc(var(--header-h, 80px) + 24px);
     }
-    .sum-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .sum-list { margin-bottom: 20px; }
     .sum-loading { opacity: .4; font-size: 13px; }
-    .sum-item {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      border: 1px solid #ccc;
-      padding: 8px;
-    }
-    .sum-img {
-      width: 80px;
-      height: 80px;
-      object-fit: contain;
-      background: #f3f4f6;
-      display: block;
-      flex-shrink: 0;
-    }
-    .sum-img--ph { background: #e5e7eb; }
-    .sum-item__info { min-width: 0; flex: 1; }
-    .sum-item__name {
-      font-size: 10px;
-      font-weight: 700;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      margin: 0 0 4px;
-      line-height: 1.4;
-    }
-    .sum-item__qty { font-size: 10px; opacity: .5; margin: 0 0 3px; }
-    .sum-item__price { font-size: 10px; font-weight: 700; color: #b90404; white-space: nowrap; margin: 0; }
 
     .sum-totals { border-top: 1px solid rgba(0,0,0,.08); padding-top: 14px; display: flex; flex-direction: column; gap: 8px; }
     .sum-row { display: flex; justify-content: space-between; font-size: 13px; }

@@ -16,6 +16,7 @@ type FamilyItem = {
   coverImage?: any;
   imageUrl?: string;
   price?: number;
+  variantPrice?: number;
   priceLabel?: string;
   isFamilyRepresentative?: boolean;
   whatsapp?: { enabled?: boolean; phone?: string; message?: string };
@@ -28,6 +29,7 @@ const [items, settings] = await Promise.all([
     groq`*[_type=="catalogItem" && familySlug==$familySlug && published!=false] | order(isFamilyRepresentative desc, title asc) {
       _id, title, "slug": slug.current, sku, excerpt,
       coverImage, imageUrl, price, priceLabel, isFamilyRepresentative,
+      "variantPrice": variants[0].price,
       whatsapp{ enabled, phone, message }
     }`,
     { familySlug }
@@ -104,8 +106,8 @@ const img = (item: FamilyItem): string | null => {
                 {item.excerpt && <p class="fam-card__excerpt">{item.excerpt}</p>}
 
                 <p class="fam-card__price">
-                  {item.price != null
-                    ? formatMXN(toMXN(item.price))
+                  {(item.price ?? item.variantPrice) != null
+                    ? formatMXN(toMXN((item.price ?? item.variantPrice)!))
                     : item.priceLabel || "Cotización"}
                 </p>
               </div>
@@ -125,7 +127,7 @@ const img = (item: FamilyItem): string | null => {
                 data-title={item.title}
                 data-slug={item.slug}
                 data-url={href}
-                data-price={item.price != null ? toMXN(item.price) : 0}
+                data-price={(item.price ?? item.variantPrice) != null ? toMXN((item.price ?? item.variantPrice)!) : 0}
                 data-image={cover ?? ""}
                 aria-pressed="false"
               >
