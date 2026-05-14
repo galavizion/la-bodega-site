@@ -30,6 +30,32 @@ export const POST: APIRoute = async ({ request }) => {
 
   const { formType, page, ...fields } = body;
 
+  // ── Honeypot — bot llenó el campo oculto ───────────────────────────────────
+  if (fields._hp_website) {
+    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  }
+  delete fields._hp_website;
+
+  // ── Turnstile ──────────────────────────────────────────────────────────────
+  const secretKey = import.meta.env.TURNSTILE_SECRET_KEY;
+  if (secretKey) {
+    const token = String(fields["cf-turnstile-response"] ?? "");
+    delete fields["cf-turnstile-response"];
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Verifica que no eres un robot." }), { status: 400 });
+    }
+    const fd = new FormData();
+    fd.append("secret", secretKey);
+    fd.append("response", token);
+    const check = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: fd });
+    const result: any = await check.json().catch(() => ({}));
+    if (!result.success) {
+      return new Response(JSON.stringify({ error: "Verificación fallida. Intenta de nuevo." }), { status: 400 });
+    }
+  } else {
+    delete fields["cf-turnstile-response"];
+  }
+
   const name    = String(fields.nombre    ?? fields.name    ?? "").trim();
   const email   = String(fields.correo    ?? fields.email   ?? "").trim();
   const phone   = String(fields.teléfono  ?? fields.telefono ?? fields.phone ?? "").trim();

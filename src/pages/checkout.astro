@@ -8,6 +8,7 @@ import { SITE_SETTINGS_QUERY } from "../lib/sanity/queries";
 const settings  = await sanityClient.fetch(SITE_SETTINGS_QUERY);
 const payment   = settings?.payment ?? {};
 const waPhone   = (settings?.organization?.whatsapp ?? "528121087053").replace(/\D/g, "");
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 const payData = {
   transferEnabled: payment.transferEnabled !== false,
@@ -136,6 +137,16 @@ const payData = {
             )}
           </section>
 
+          {/* Honeypot */}
+          <div style="position:absolute;left:-9999px;opacity:0;pointer-events:none;height:0;overflow:hidden" aria-hidden="true">
+            <input type="text" name="_hp_website" tabindex="-1" autocomplete="off" value="" />
+          </div>
+
+          {/* Turnstile */}
+          {turnstileSiteKey && (
+            <div class="cf-turnstile" data-sitekey={turnstileSiteKey} data-theme="light"></div>
+          )}
+
           <div id="formError" class="co-error" style="display:none"></div>
 
           <button class="co-submit" type="submit" id="submitBtn">
@@ -162,6 +173,10 @@ const payData = {
 
     </div>
   </main>
+
+  {turnstileSiteKey && (
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer is:inline></script>
+  )}
 
   <script is:inline define:vars={{ waPhone }}>
     const KEY = "ranking_cart_v1";
@@ -255,7 +270,11 @@ const payData = {
         const res = await fetch("/api/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ customer, items: cartItems, paymentMethod, total }),
+          body: JSON.stringify({
+            customer, items: cartItems, paymentMethod, total,
+            _hp_website: fd.get("_hp_website") || "",
+            "cf-turnstile-response": fd.get("cf-turnstile-response") || "",
+          }),
         });
         const data = await res.json();
 
@@ -433,6 +452,9 @@ const payData = {
     .sum-row--total { font-size: 15px; font-weight: 800; margin-top: 4px; }
 
     /* ── Mobile ── */
+    @media (max-width: 900px) {
+      .co-wrap { padding-top: 32px; }
+    }
     @media (max-width: 820px) {
       .co-grid { grid-template-columns: 1fr; }
       .co-right { order: -1; }

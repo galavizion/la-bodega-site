@@ -227,8 +227,27 @@ const img = (item: FamilyItem): string | null => {
     .fam-back a { opacity: .6; font-size: 13px; text-decoration: none; }
     .fam-back a:hover { opacity: 1; }
 
+    @media (max-width: 900px) {
+      .fam-header { padding-top: 28px; }
+    }
     @media (max-width: 600px) {
-      .fam-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .fam-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+      .fam-card__info  { padding: 8px 10px; }
+      .fam-card__title { font-size: 12px; }
+      .fam-card__price { font-size: 13px; }
+
+      .fam-card__actions {
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 10px 10px;
+      }
+      .btn-wa, .btn-cart {
+        font-size: 11px;
+        padding: 7px 8px;
+        gap: 4px;
+      }
+      .btn-wa svg, .btn-cart svg { width: 12px; height: 12px; }
     }
   </style>
 

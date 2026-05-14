@@ -584,13 +584,34 @@ const pgRange = paginationRange(page, totalPages);
     @media (max-width: 1200px) {
       .grid { grid-template-columns: repeat(3, 1fr); }
     }
+    @media (max-width: 900px) {
+      /* header es relative en mobile → no necesita padding-top para esquivarlo */
+      .catalog-header { padding-top: 28px; }
+    }
     @media (max-width: 860px) {
       .grid { grid-template-columns: repeat(2, 1fr); }
       .search-form { flex-direction: column; align-items: stretch; }
       .search-wrap { width: 100%; }
     }
     @media (max-width: 480px) {
-      .grid { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+      .card__meta { padding: 8px 10px 6px; }
+      .card__title { font-size: 12px; }
+      .card__price { font-size: 13px; }
+      .card__excerpt { display: none; }
+
+      .card__actions {
+        flex-direction: column;
+        gap: 6px;
+        padding: 0 10px 10px;
+      }
+      .btn-wa, .btn-cart, .btn-family {
+        font-size: 11px;
+        padding: 7px 8px;
+        gap: 4px;
+      }
+      .btn-wa svg, .btn-cart svg { width: 12px; height: 12px; }
     }
   </style>
 

@@ -1,0 +1,326 @@
+---
+export const prerender = false;
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { getSession } from "../../../lib/auth";
+import { createClient } from "@sanity/client";
+
+const session = await getSession(Astro.request);
+if (!session) return Astro.redirect("/mi-cuenta/");
+
+const { orderNumber } = Astro.params;
+
+const sanity = createClient({
+  projectId: import.meta.env.PUBLIC_SANITY_PROJECT_ID ?? "a7b3q6z9",
+  dataset:   import.meta.env.PUBLIC_SANITY_DATASET   ?? "production",
+  apiVersion: "2025-01-01",
+  token: import.meta.env.SANITY_WRITE_TOKEN,
+  useCdn: false,
+});
+
+type OrderItem = {
+  quantity: number;
+  unitPrice: number;
+  variantLabel?: string;
+  product?: { _id: string; title?: string; imageUrl?: string; slug?: string };
+};
+type Order = {
+  _id: string;
+  orderNumber: string;
+  status: string;
+  createdAt: string;
+  subtotal: number;
+  shipping: number;
+  total: number;
+  paymentMethod?: string;
+  customer: {
+    name?: string; email?: string; phone?: string;
+    address?: string; city?: string; state?: string; zip?: string;
+  };
+  items: OrderItem[];
+};
+
+const order = await sanity.fetch<Order | null>(
+  `*[_type == "order" && orderNumber == $orderNumber && customer.email == $email][0]{
+    _id, orderNumber, status, createdAt, subtotal, shipping, total, paymentMethod,
+    customer,
+    items[]{ quantity, unitPrice, variantLabel, product->{ _id, title, "imageUrl": mainImage.asset->url, "slug": slug.current } }
+  }`,
+  { orderNumber, email: session.email }
+).catch(() => null);
+
+if (!order) return Astro.redirect("/mi-cuenta/dashboard/");
+
+const STATUS_STEPS = [
+  { key: "pending",    label: "Pendiente" },
+  { key: "confirmed",  label: "Confirmado" },
+  { key: "processing", label: "En preparación" },
+  { key: "shipped",    label: "Enviado" },
+  { key: "delivered",  label: "Entregado" },
+];
+const isCancelled = order.status === "cancelled";
+const currentStep = STATUS_STEPS.findIndex(s => s.key === order.status);
+
+const PAYMENT_LABEL: Record<string, string> = {
+  transfer: "Transferencia bancaria",
+  cash: "Efectivo",
+  card: "Tarjeta",
+  whatsapp: "WhatsApp / Manual",
+};
+
+function fmt(n?: number) {
+  return n != null ? n.toLocaleString("es-MX", { style: "currency", currency: "MXN" }) : "—";
+}
+function fmtDate(s?: string) {
+  if (!s) return "—";
+  return new Date(s).toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+// Serialize items for reorder script
+const reorderItems = order.items
+  .filter(i => i.product?._id)
+  .map(i => ({
+    id: i.product!._id,
+    title: i.product!.title ?? "Producto",
+    price: i.unitPrice ?? 0,
+    qty: i.quantity,
+    image: i.product!.imageUrl ?? "",
+    variantLabel: i.variantLabel ?? "",
+    slug: i.product!.slug ?? "",
+  }));
+---
+
+<BaseLayout title={`Pedido #${order.orderNumber} | La Bodega del Instalador`} bodyClass="is-shop">
+  <main class="ord-wrap container">
+
+    <div class="ord-top">
+      <a href="/mi-cuenta/dashboard/" class="ord-back">← Mis pedidos</a>
+      <div class="ord-heading">
+        <h1 class="ord-title">Pedido #{order.orderNumber}</h1>
+        <p class="ord-date">{fmtDate(order.createdAt)}</p>
+      </div>
+    </div>
+
+    <!-- Status tracker -->
+    {isCancelled ? (
+      <div class="ord-cancelled">❌ Este pedido fue cancelado</div>
+    ) : (
+      <div class="status-track">
+        {STATUS_STEPS.map((step, i) => (
+          <div class={`status-step ${i <= currentStep ? "is-done" : ""} ${i === currentStep ? "is-current" : ""}`}>
+            <div class="status-step__dot"></div>
+            <span class="status-step__label">{step.label}</span>
+          </div>
+        ))}
+        <div class="status-track__line">
+          <div class="status-track__fill" style={`width: ${isCancelled ? 0 : Math.max(0, (currentStep / (STATUS_STEPS.length - 1)) * 100)}%`}></div>
+        </div>
+      </div>
+    )}
+
+    <div class="ord-body">
+      <!-- Items -->
+      <section class="ord-section">
+        <h2 class="ord-section__title">Productos</h2>
+        <div class="ord-items">
+          {order.items.map(item => (
+            <div class="ord-item">
+              {item.product?.imageUrl
+                ? <img src={item.product.imageUrl} alt={item.product.title ?? ""} class="ord-item__img" width="64" height="64" />
+                : <div class="ord-item__img ord-item__img--placeholder"></div>
+              }
+              <div class="ord-item__info">
+                <span class="ord-item__name">{item.product?.title ?? "Producto"}</span>
+                {item.variantLabel && <span class="ord-item__variant">{item.variantLabel}</span>}
+                <span class="ord-item__qty">Cantidad: {item.quantity}</span>
+              </div>
+              <div class="ord-item__price">
+                <span class="ord-item__unit">{fmt(item.unitPrice)} c/u</span>
+                <span class="ord-item__sub">{fmt((item.unitPrice ?? 0) * item.quantity)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div class="ord-totals">
+          {order.subtotal != null && <div class="ord-total-row"><span>Subtotal</span><span>{fmt(order.subtotal)}</span></div>}
+          {order.shipping != null && <div class="ord-total-row"><span>Envío</span><span>{order.shipping === 0 ? "Por confirmar" : fmt(order.shipping)}</span></div>}
+          <div class="ord-total-row ord-total-row--bold"><span>Total</span><span>{fmt(order.total)}</span></div>
+          {order.paymentMethod && <div class="ord-total-row ord-total-row--pay"><span>Método de pago</span><span>{PAYMENT_LABEL[order.paymentMethod] ?? order.paymentMethod}</span></div>}
+        </div>
+      </section>
+
+      <!-- Delivery info -->
+      <section class="ord-section">
+        <h2 class="ord-section__title">Datos de entrega</h2>
+        <div class="ord-info-grid">
+          {order.customer.name    && <div><span>Nombre</span><p>{order.customer.name}</p></div>}
+          {order.customer.phone   && <div><span>Teléfono</span><p>{order.customer.phone}</p></div>}
+          {order.customer.address && <div class="ord-info--full"><span>Dirección</span><p>{order.customer.address}</p></div>}
+          {(order.customer.city || order.customer.state) && (
+            <div><span>Ciudad / Estado</span><p>{[order.customer.city, order.customer.state].filter(Boolean).join(", ")}</p></div>
+          )}
+          {order.customer.zip && <div><span>C.P.</span><p>{order.customer.zip}</p></div>}
+        </div>
+      </section>
+    </div>
+
+    <!-- Reorder button -->
+    {reorderItems.length > 0 && (
+      <button id="reorderBtn" class="ord-reorder" data-items={JSON.stringify(reorderItems)}>
+        Volver a pedir estos productos →
+      </button>
+    )}
+
+  </main>
+
+  <script is:inline>
+    const btn = document.getElementById("reorderBtn");
+    if (btn) {
+      btn.addEventListener("click", () => {
+        const items = JSON.parse(btn.dataset.items || "[]");
+        const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+
+        items.forEach(item => {
+          const key = item.variantLabel ? `${item.id}__${item.variantLabel}` : item.id;
+          const existing = cart.find(c => (c.variantLabel ? `${c.id}__${c.variantLabel}` : c.id) === key);
+          if (existing) {
+            existing.qty = (existing.qty || 1) + item.qty;
+          } else {
+            cart.push({ id: item.id, title: item.title, price: item.price, qty: item.qty, image: item.image, variantLabel: item.variantLabel, slug: item.slug });
+          }
+        });
+
+        localStorage.setItem("cart", JSON.stringify(cart));
+        window.dispatchEvent(new Event("cart-updated"));
+        window.location.href = "/carrito/";
+      });
+    }
+  </script>
+
+  <style>
+    .ord-wrap {
+      padding: 60px 16px 80px;
+      max-width: 760px;
+    }
+    @media (max-width: 900px) { .ord-wrap { padding-top: 28px; } }
+
+    .ord-top { margin-bottom: 24px; }
+    .ord-back { font-size: 13px; opacity: .6; text-decoration: none; display: inline-block; margin-bottom: 14px; }
+    .ord-back:hover { opacity: 1; }
+    .ord-title { font-size: 24px; font-weight: 900; margin: 0 0 4px; }
+    .ord-date  { font-size: 13px; color: #6b7280; margin: 0; }
+
+    /* Status tracker */
+    .status-track {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 36px;
+      padding: 0 8px;
+    }
+    .status-track__line {
+      position: absolute;
+      top: 11px;
+      left: 8px;
+      right: 8px;
+      height: 2px;
+      background: #e5e7eb;
+      z-index: 0;
+    }
+    .status-track__fill {
+      height: 100%;
+      background: #111827;
+      transition: width .4s;
+    }
+    .status-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      z-index: 1;
+    }
+    .status-step__dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      border: 2px solid #e5e7eb;
+      transition: background .3s;
+    }
+    .status-step.is-done .status-step__dot { background: #111827; border-color: #111827; }
+    .status-step.is-current .status-step__dot { background: #fff; border-color: #111827; box-shadow: 0 0 0 3px rgba(17,24,39,.15); }
+    .status-step__label { font-size: 11px; color: #6b7280; text-align: center; max-width: 70px; }
+    .status-step.is-done .status-step__label,
+    .status-step.is-current .status-step__label { color: #111827; font-weight: 600; }
+    @media (max-width: 500px) { .status-step__label { font-size: 9px; max-width: 50px; } }
+
+    .ord-cancelled {
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 28px;
+    }
+
+    .ord-body { display: flex; flex-direction: column; gap: 28px; }
+
+    .ord-section { border: 1px solid #e5e7eb; padding: 20px 24px; }
+    .ord-section__title { font-size: 15px; font-weight: 800; margin: 0 0 16px; }
+
+    /* Items */
+    .ord-items { display: flex; flex-direction: column; }
+    .ord-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .ord-item:last-child { border-bottom: none; }
+    .ord-item__img {
+      width: 64px;
+      height: 64px;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 1px solid #e5e7eb;
+    }
+    .ord-item__img--placeholder { background: #f3f4f6; }
+    .ord-item__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .ord-item__name { font-weight: 700; font-size: 14px; }
+    .ord-item__variant { font-size: 12px; color: #6b7280; }
+    .ord-item__qty { font-size: 12px; color: #9ca3af; }
+    .ord-item__price { text-align: right; flex-shrink: 0; }
+    .ord-item__unit { display: block; font-size: 11px; color: #9ca3af; }
+    .ord-item__sub  { display: block; font-weight: 700; font-size: 14px; }
+
+    /* Totals */
+    .ord-totals { border-top: 1px solid #e5e7eb; margin-top: 8px; padding-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .ord-total-row { display: flex; justify-content: space-between; font-size: 13px; color: #6b7280; }
+    .ord-total-row--bold { font-size: 15px; font-weight: 800; color: #111827; margin-top: 4px; }
+    .ord-total-row--pay { margin-top: 8px; padding-top: 8px; border-top: 1px solid #f3f4f6; }
+
+    /* Delivery info */
+    .ord-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 480px) { .ord-info-grid { grid-template-columns: 1fr; } }
+    .ord-info--full { grid-column: 1 / -1; }
+    .ord-info-grid span { font-size: 11px; text-transform: uppercase; color: #9ca3af; font-weight: 600; letter-spacing: .04em; display: block; margin-bottom: 2px; }
+    .ord-info-grid p { font-size: 14px; margin: 0; font-weight: 500; }
+
+    /* Reorder */
+    .ord-reorder {
+      margin-top: 28px;
+      width: 100%;
+      padding: 14px;
+      background: #111827;
+      color: #fff;
+      border: none;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .ord-reorder:hover { background: #374151; }
+  </style>
+</BaseLayout>

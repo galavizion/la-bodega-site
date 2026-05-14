@@ -44,6 +44,7 @@ const {
 } = Astro.props as Props;
 
 const sectionId = settings?.sectionId;
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 const bg = bgColor && bgColor !== "none" ? bgColor : null;
 const bgTheme = bg === "#000000" ? "section--on-dark"
@@ -138,6 +139,16 @@ const waActive = waPhone;
           );
         })}
 
+        {/* Honeypot — los bots lo llenan, los humanos no lo ven */}
+        <div style="position:absolute;left:-9999px;opacity:0;pointer-events:none;height:0;overflow:hidden" aria-hidden="true">
+          <input type="text" name="_hp_website" tabindex="-1" autocomplete="off" value="" />
+        </div>
+
+        {/* Turnstile widget */}
+        {turnstileSiteKey && (
+          <div class="cf-turnstile" data-sitekey={turnstileSiteKey} data-theme="auto"></div>
+        )}
+
         <div id={`${formId}-status`} class="form-status" aria-live="polite"></div>
 
         <button type="submit" class="form-btn">
@@ -149,6 +160,10 @@ const waActive = waPhone;
     </div>
   </div>
 </section>
+
+{turnstileSiteKey && (
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer is:inline></script>
+)}
 
 <script is:inline>
   document.querySelectorAll("form[data-form-type]").forEach((form) => {

@@ -1,0 +1,175 @@
+---
+export const prerender = false;
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getSession } from "../../lib/auth";
+
+const session = await getSession(Astro.request);
+if (session) return Astro.redirect("/mi-cuenta/dashboard/");
+---
+
+<BaseLayout title="Verificar código | La Bodega del Instalador" bodyClass="is-shop">
+  <main class="acc-wrap container">
+    <div class="acc-card">
+      <a class="acc-back" href="/mi-cuenta/">← Cambiar correo</a>
+      <h1 class="acc-title">Revisa tu correo</h1>
+      <p class="acc-sub" id="subText">Te enviamos un código de 6 dígitos.</p>
+
+      <form id="verifyForm" novalidate>
+        <label class="acc-field">
+          <span>Código de acceso</span>
+          <input
+            type="text"
+            name="code"
+            id="codeInput"
+            required
+            placeholder="000000"
+            maxlength="6"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            style="font-size:28px;letter-spacing:.25em;text-align:center;font-weight:900"
+          />
+        </label>
+        <div id="verifyError" class="acc-error" style="display:none"></div>
+        <button class="acc-btn" type="submit" id="verifyBtn">Entrar →</button>
+      </form>
+
+      <div class="acc-resend">
+        <span>¿No llegó?</span>
+        <button id="resendBtn" type="button" class="acc-link">Reenviar código</button>
+      </div>
+    </div>
+  </main>
+
+  <script is:inline>
+    const email = sessionStorage.getItem("acc_email") || "";
+    if (!email) { window.location.href = "/mi-cuenta/"; }
+
+    document.getElementById("subText").textContent =
+      `Te enviamos un código de 6 dígitos a ${email}.`;
+
+    const form    = document.getElementById("verifyForm");
+    const errEl   = document.getElementById("verifyError");
+    const btn     = document.getElementById("verifyBtn");
+    const resend  = document.getElementById("resendBtn");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errEl.style.display = "none";
+      const code = document.getElementById("codeInput").value.trim();
+      if (!code) return;
+
+      btn.disabled = true;
+      btn.textContent = "Verificando…";
+
+      try {
+        const res = await fetch("/api/auth/verify-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, code }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Código incorrecto");
+        sessionStorage.removeItem("acc_email");
+        window.location.href = "/mi-cuenta/dashboard/";
+      } catch (err) {
+        errEl.textContent = err?.message || "Código incorrecto. Intenta de nuevo.";
+        errEl.style.display = "block";
+        btn.disabled = false;
+        btn.textContent = "Entrar →";
+      }
+    });
+
+    resend.addEventListener("click", async () => {
+      resend.disabled = true;
+      resend.textContent = "Enviando…";
+      await fetch("/api/auth/request-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      resend.textContent = "✓ Enviado";
+      setTimeout(() => {
+        resend.disabled = false;
+        resend.textContent = "Reenviar código";
+      }, 30000);
+    });
+  </script>
+
+  <style>
+    .acc-wrap {
+      min-height: calc(100vh - 120px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 16px;
+    }
+    .acc-card {
+      background: #fff;
+      border: 1px solid rgba(0,0,0,.1);
+      padding: 40px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.07);
+    }
+    .acc-back { font-size: 13px; opacity: .6; text-decoration: none; display: inline-block; margin-bottom: 20px; }
+    .acc-back:hover { opacity: 1; }
+    .acc-title { font-size: 22px; font-weight: 900; margin: 0 0 6px; }
+    .acc-sub   { font-size: 14px; color: #6b7280; margin: 0 0 28px; }
+
+    .acc-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .acc-field span { font-size: 13px; font-weight: 600; }
+    .acc-field input {
+      padding: 11px 14px;
+      border: 1px solid rgba(0,0,0,.18);
+      outline: none;
+      transition: border-color .15s;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .acc-field input:focus { border-color: #111827; }
+
+    .acc-error {
+      padding: 10px 14px;
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #b91c1c;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+    .acc-btn {
+      width: 100%;
+      padding: 13px;
+      background: #111827;
+      color: #fff;
+      border: none;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .acc-btn:hover:not(:disabled) { background: #374151; }
+    .acc-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+    .acc-resend {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 13px;
+      color: #6b7280;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .acc-link {
+      background: none;
+      border: none;
+      color: #111827;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: 13px;
+      padding: 0;
+    }
+    .acc-link:disabled { opacity: .5; cursor: not-allowed; }
+  </style>
+</BaseLayout>

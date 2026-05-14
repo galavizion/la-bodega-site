@@ -17,6 +17,8 @@ import { catalogItem } from "./documents/catalogItem";
 import { productCategory } from "./documents/productCategory";
 import { order } from "./documents/order";
 import { formSubmission } from "./documents/formSubmission";
+import { authCode } from "./documents/authCode";
+import { customerProfile } from "./documents/customerProfile";
 
 // Objects
 import { seo } from "./objects/seo";
@@ -55,6 +57,8 @@ export const schemaTypes = [
   productCategory,
   order,
   formSubmission,
+  authCode,
+  customerProfile,
   // Objects
   seo,
   navItem,

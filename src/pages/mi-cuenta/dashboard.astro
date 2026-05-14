@@ -1,0 +1,344 @@
+---
+export const prerender = false;
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getSession } from "../../lib/auth";
+import { createClient } from "@sanity/client";
+
+const session = await getSession(Astro.request);
+if (!session) return Astro.redirect("/mi-cuenta/");
+
+const sanity = createClient({
+  projectId: import.meta.env.PUBLIC_SANITY_PROJECT_ID ?? "a7b3q6z9",
+  dataset:   import.meta.env.PUBLIC_SANITY_DATASET   ?? "production",
+  apiVersion: "2025-01-01",
+  token: import.meta.env.SANITY_WRITE_TOKEN,
+  useCdn: false,
+});
+
+type OrderItem = {
+  quantity: number;
+  unitPrice: number;
+  variantLabel?: string;
+  product?: { _id: string; title?: string; imageUrl?: string; slug?: string };
+};
+type Order = {
+  _id: string;
+  orderNumber: string;
+  status: string;
+  createdAt: string;
+  total: number;
+  items: OrderItem[];
+};
+type Profile = {
+  name?: string; phone?: string; company?: string;
+  address?: string; city?: string; state?: string; zip?: string;
+};
+
+const [orders, profile] = await Promise.all([
+  sanity.fetch<Order[]>(
+    `*[_type == "order" && customer.email == $email] | order(createdAt desc)[0...20]{
+      _id, orderNumber, status, createdAt, total,
+      items[]{ quantity, unitPrice, variantLabel, product->{ _id, title, "imageUrl": mainImage.asset->url, "slug": slug.current } }
+    }`,
+    { email: session.email }
+  ).catch(() => [] as Order[]),
+  sanity.fetch<Profile | null>(
+    `*[_type == "customerProfile" && email == $email][0]{ name, phone, company, address, city, state, zip }`,
+    { email: session.email }
+  ).catch(() => null),
+]);
+
+const STATUS_LABEL: Record<string, string> = {
+  pending:    "⏳ Pendiente",
+  confirmed:  "✅ Confirmado",
+  processing: "📦 En preparación",
+  shipped:    "🚚 Enviado",
+  delivered:  "🏠 Entregado",
+  cancelled:  "❌ Cancelado",
+};
+
+function fmt(n?: number) {
+  return n != null ? n.toLocaleString("es-MX", { style: "currency", currency: "MXN" }) : "—";
+}
+function fmtDate(s?: string) {
+  if (!s) return "—";
+  return new Date(s).toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric" });
+}
+---
+
+<BaseLayout title="Mi cuenta | La Bodega del Instalador" bodyClass="is-shop">
+  <main class="dash-wrap container">
+
+    <!-- Header -->
+    <div class="dash-header">
+      <div>
+        <h1 class="dash-title">Mi cuenta</h1>
+        <p class="dash-email">{session.email}</p>
+      </div>
+      <button id="logoutBtn" class="dash-logout">Cerrar sesión</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="dash-tabs">
+      <button class="dash-tab is-active" data-tab="orders">Mis pedidos</button>
+      <button class="dash-tab" data-tab="profile">Mi perfil</button>
+    </div>
+
+    <!-- Orders tab -->
+    <div id="tab-orders" class="dash-panel">
+      {orders.length === 0 ? (
+        <p class="dash-empty">Aún no tienes pedidos registrados con este correo.</p>
+      ) : (
+        <div class="orders-list">
+          {orders.map(order => (
+            <a href={`/mi-cuenta/pedido/${order.orderNumber}/`} class="order-card">
+              <div class="order-card__top">
+                <span class="order-num">#{order.orderNumber}</span>
+                <span class={`order-status status-${order.status}`}>{STATUS_LABEL[order.status] ?? order.status}</span>
+              </div>
+              <div class="order-card__meta">
+                <span>{fmtDate(order.createdAt)}</span>
+                <span class="order-total">{fmt(order.total)}</span>
+              </div>
+              <div class="order-card__items">
+                {order.items?.slice(0, 3).map(item => (
+                  <span class="order-item-pill">{item.product?.title ?? "Producto"}{item.variantLabel ? ` · ${item.variantLabel}` : ""} ×{item.quantity}</span>
+                ))}
+                {(order.items?.length ?? 0) > 3 && <span class="order-item-pill">+{order.items.length - 3} más</span>}
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+
+    <!-- Profile tab -->
+    <div id="tab-profile" class="dash-panel" style="display:none">
+      <form id="profileForm" novalidate>
+        <div class="prof-grid">
+          <label class="prof-field">
+            <span>Nombre completo</span>
+            <input type="text" name="name" value={profile?.name ?? ""} placeholder="Tu nombre" />
+          </label>
+          <label class="prof-field">
+            <span>Teléfono / WhatsApp</span>
+            <input type="tel" name="phone" value={profile?.phone ?? ""} placeholder="55 1234 5678" />
+          </label>
+          <label class="prof-field prof-field--full">
+            <span>Empresa (opcional)</span>
+            <input type="text" name="company" value={profile?.company ?? ""} placeholder="Nombre de tu empresa" />
+          </label>
+          <label class="prof-field prof-field--full">
+            <span>Dirección de envío</span>
+            <input type="text" name="address" value={profile?.address ?? ""} placeholder="Calle, número, colonia" />
+          </label>
+          <label class="prof-field">
+            <span>Ciudad</span>
+            <input type="text" name="city" value={profile?.city ?? ""} placeholder="Ciudad" />
+          </label>
+          <label class="prof-field">
+            <span>Estado</span>
+            <input type="text" name="state" value={profile?.state ?? ""} placeholder="Estado" />
+          </label>
+          <label class="prof-field">
+            <span>Código postal</span>
+            <input type="text" name="zip" value={profile?.zip ?? ""} placeholder="00000" inputmode="numeric" />
+          </label>
+        </div>
+        <div id="profileMsg" class="prof-msg" style="display:none"></div>
+        <button type="submit" id="profileBtn" class="dash-btn">Guardar cambios</button>
+      </form>
+    </div>
+
+  </main>
+
+  <script is:inline>
+    // Tabs
+    document.querySelectorAll(".dash-tab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".dash-tab").forEach(b => b.classList.remove("is-active"));
+        document.querySelectorAll(".dash-panel").forEach(p => (p.style.display = "none"));
+        btn.classList.add("is-active");
+        document.getElementById("tab-" + btn.dataset.tab).style.display = "block";
+      });
+    });
+
+    // Logout
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await fetch("/api/auth/logout", { method: "POST" });
+      window.location.href = "/mi-cuenta/";
+    });
+
+    // Profile form
+    const profileForm = document.getElementById("profileForm");
+    const profileMsg  = document.getElementById("profileMsg");
+    const profileBtn  = document.getElementById("profileBtn");
+
+    profileForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      profileBtn.disabled = true;
+      profileBtn.textContent = "Guardando…";
+      profileMsg.style.display = "none";
+
+      const body = {};
+      new FormData(profileForm).forEach((v, k) => { body[k] = v; });
+
+      try {
+        const res = await fetch("/api/auth/update-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error("Error al guardar");
+        profileMsg.textContent = "✓ Perfil actualizado correctamente.";
+        profileMsg.className = "prof-msg prof-msg--ok";
+      } catch {
+        profileMsg.textContent = "Ocurrió un error. Intenta de nuevo.";
+        profileMsg.className = "prof-msg prof-msg--err";
+      }
+      profileMsg.style.display = "block";
+      profileBtn.disabled = false;
+      profileBtn.textContent = "Guardar cambios";
+    });
+  </script>
+
+  <style>
+    .dash-wrap {
+      padding: 60px 16px 80px;
+      max-width: 760px;
+    }
+    @media (max-width: 900px) { .dash-wrap { padding-top: 28px; } }
+
+    .dash-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .dash-title { font-size: 24px; font-weight: 900; margin: 0 0 4px; }
+    .dash-email { font-size: 13px; color: #6b7280; margin: 0; }
+
+    .dash-logout {
+      background: none;
+      border: 1px solid rgba(0,0,0,.2);
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      color: #374151;
+      white-space: nowrap;
+    }
+    .dash-logout:hover { background: #f3f4f6; }
+
+    .dash-tabs {
+      display: flex;
+      border-bottom: 2px solid #e5e7eb;
+      margin-bottom: 28px;
+      gap: 0;
+    }
+    .dash-tab {
+      background: none;
+      border: none;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+    }
+    .dash-tab.is-active { color: #111827; border-bottom-color: #111827; }
+    .dash-tab:hover:not(.is-active) { color: #374151; }
+
+    .dash-empty { color: #6b7280; font-size: 14px; padding: 24px 0; }
+
+    /* Orders */
+    .orders-list { display: flex; flex-direction: column; gap: 12px; }
+    .order-card {
+      display: block;
+      border: 1px solid #e5e7eb;
+      padding: 16px 20px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .order-card:hover { border-color: #111827; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+
+    .order-card__top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .order-num { font-weight: 800; font-size: 15px; }
+    .order-status { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; }
+    .status-pending    { background: #fef9c3; color: #854d0e; }
+    .status-confirmed  { background: #dcfce7; color: #166534; }
+    .status-processing { background: #dbeafe; color: #1e40af; }
+    .status-shipped    { background: #ede9fe; color: #5b21b6; }
+    .status-delivered  { background: #d1fae5; color: #065f46; }
+    .status-cancelled  { background: #fee2e2; color: #991b1b; }
+
+    .order-card__meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 10px;
+    }
+    .order-total { font-weight: 700; color: #111827; }
+
+    .order-card__items { display: flex; flex-wrap: wrap; gap: 6px; }
+    .order-item-pill {
+      font-size: 11px;
+      background: #f3f4f6;
+      padding: 3px 8px;
+      border-radius: 4px;
+      color: #374151;
+    }
+
+    /* Profile */
+    .prof-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 560px) { .prof-grid { grid-template-columns: 1fr; } }
+
+    .prof-field { display: flex; flex-direction: column; gap: 5px; }
+    .prof-field--full { grid-column: 1 / -1; }
+    .prof-field span { font-size: 13px; font-weight: 600; }
+    .prof-field input {
+      padding: 10px 13px;
+      border: 1px solid rgba(0,0,0,.18);
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .prof-field input:focus { border-color: #111827; }
+
+    .prof-msg {
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+    .prof-msg--ok  { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+    .prof-msg--err { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; }
+
+    .dash-btn {
+      padding: 12px 28px;
+      background: #111827;
+      color: #fff;
+      border: none;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .dash-btn:hover:not(:disabled) { background: #374151; }
+    .dash-btn:disabled { opacity: .6; cursor: not-allowed; }
+  </style>
+</BaseLayout>

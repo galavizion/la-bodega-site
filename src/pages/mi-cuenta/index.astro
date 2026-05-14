@@ -1,0 +1,136 @@
+---
+export const prerender = false;
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getSession } from "../../lib/auth";
+import { client as sanityClient } from "../../lib/sanity/client";
+import { SITE_SETTINGS_QUERY } from "../../lib/sanity/queries";
+
+const session = await getSession(Astro.request);
+if (session) return Astro.redirect("/mi-cuenta/dashboard/");
+
+const settings = await sanityClient.fetch(SITE_SETTINGS_QUERY);
+---
+
+<BaseLayout title="Mi cuenta | La Bodega del Instalador" bodyClass="is-shop">
+  <main class="acc-wrap container">
+    <div class="acc-card">
+      <div class="acc-logo">
+        {settings?.logoUrl
+          ? <img src={settings.logoUrl} alt="La Bodega del Instalador" height="44" />
+          : <span class="acc-logo__text">La Bodega del Instalador</span>
+        }
+      </div>
+
+      <h1 class="acc-title">Accede a tu cuenta</h1>
+      <p class="acc-sub">Ingresa tu correo y te enviamos un código de acceso.</p>
+
+      <form id="loginForm" novalidate>
+        <label class="acc-field">
+          <span>Correo electrónico</span>
+          <input type="email" name="email" id="emailInput" required placeholder="correo@ejemplo.com" autocomplete="email" />
+        </label>
+        <div id="loginError" class="acc-error" style="display:none"></div>
+        <button class="acc-btn" type="submit" id="loginBtn">Enviar código →</button>
+      </form>
+
+      <p class="acc-note">¿No tienes cuenta? Se crea automáticamente con tu primer pedido.</p>
+    </div>
+  </main>
+
+  <script is:inline>
+    const form = document.getElementById("loginForm");
+    const errEl = document.getElementById("loginError");
+    const btn = document.getElementById("loginBtn");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errEl.style.display = "none";
+      const email = document.getElementById("emailInput").value.trim();
+      if (!email) return;
+
+      btn.disabled = true;
+      btn.textContent = "Enviando…";
+
+      try {
+        const res = await fetch("/api/auth/request-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Error");
+        sessionStorage.setItem("acc_email", email);
+        window.location.href = "/mi-cuenta/verificar/";
+      } catch (err) {
+        errEl.textContent = err?.message || "Ocurrió un error. Intenta de nuevo.";
+        errEl.style.display = "block";
+        btn.disabled = false;
+        btn.textContent = "Enviar código →";
+      }
+    });
+  </script>
+
+  <style>
+    .acc-wrap {
+      min-height: calc(100vh - 120px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 16px;
+    }
+    .acc-card {
+      background: #fff;
+      border: 1px solid rgba(0,0,0,.1);
+      padding: 40px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.07);
+    }
+    .acc-logo { text-align: center; margin-bottom: 28px; }
+    .acc-logo img { height: 44px; width: auto; }
+    .acc-logo__text { font-weight: 900; font-size: 18px; }
+    .acc-title { font-size: 22px; font-weight: 900; margin: 0 0 6px; text-align: center; }
+    .acc-sub   { font-size: 14px; color: #6b7280; margin: 0 0 28px; text-align: center; }
+
+    .acc-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .acc-field span { font-size: 13px; font-weight: 600; }
+    .acc-field input {
+      padding: 11px 14px;
+      border: 1px solid rgba(0,0,0,.18);
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .acc-field input:focus { border-color: #111827; }
+
+    .acc-error {
+      padding: 10px 14px;
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #b91c1c;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+    .acc-btn {
+      width: 100%;
+      padding: 13px;
+      background: #111827;
+      color: #fff;
+      border: none;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s;
+      margin-top: 4px;
+    }
+    .acc-btn:hover:not(:disabled) { background: #374151; }
+    .acc-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+    .acc-note {
+      margin: 20px 0 0;
+      font-size: 12px;
+      color: #9ca3af;
+      text-align: center;
+    }
+  </style>
+</BaseLayout>

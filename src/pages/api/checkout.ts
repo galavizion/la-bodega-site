@@ -26,7 +26,28 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "JSON inválido" }, 400);
   }
 
-  const { customer, items, paymentMethod, total } = body;
+  const { customer, items, paymentMethod, total, _hp_website, "cf-turnstile-response": tsToken } = body;
+
+  // ── Honeypot ───────────────────────────────────────────────────────────────
+  if (_hp_website) {
+    return json({ success: true, orderId: "bot", orderNumber: "BOT-0000" });
+  }
+
+  // ── Turnstile ──────────────────────────────────────────────────────────────
+  const secretKey = import.meta.env.TURNSTILE_SECRET_KEY;
+  if (secretKey) {
+    if (!tsToken) {
+      return json({ error: "Verifica que no eres un robot." }, 400);
+    }
+    const fd = new FormData();
+    fd.append("secret", secretKey);
+    fd.append("response", String(tsToken));
+    const check = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: fd });
+    const result: any = await check.json().catch(() => ({}));
+    if (!result.success) {
+      return json({ error: "Verificación fallida. Intenta de nuevo." }, 400);
+    }
+  }
 
   if (!customer?.name?.trim() || !customer?.email?.trim() || !customer?.phone?.trim()) {
     return json({ error: "Nombre, email y teléfono son obligatorios" }, 400);
