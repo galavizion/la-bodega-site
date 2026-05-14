@@ -49,6 +49,11 @@ const basePrice = basePriceRaw != null ? toMXN(basePriceRaw) : null;
 const priceText =
   basePrice != null ? formatMXN(basePrice) : item?.priceLabel || "Cotización personalizada";
 
+// Opción de caja
+const box = item?.boxOption?.enabled ? item.boxOption : null;
+const boxPriceMXN = box?.boxPrice != null ? toMXN(box.boxPrice) : null;
+const boxUnitPrice = (box?.unitsPerBox && boxPriceMXN) ? boxPriceMXN / box.unitsPerBox : null;
+
 const siteUrl = "https://www.labodegadelinstalador.net";
 const canonical = `${siteUrl}/catalogo/${slug}/`;
 const pageTitle = item?.seo?.title || item?.title || "Catálogo";
@@ -142,33 +147,83 @@ if (basePrice != null) {
             </div>
           )}
 
-          <div class="product__price" id="priceDisplay">{priceText}</div>
-          {hasVariants && variants[0]?.comparePrice != null && (
-            <div class="product__compare" id="compareDisplay">
-              Antes: <s>{formatMXN(variants[0].comparePrice)}</s>
+          {/* Precio + opciones de cantidad */}
+          {box ? (
+            <div class="product__buy-options">
+              {/* Fila unidad */}
+              <div class="buy-row" id="buyRowUnit">
+                <div class="buy-row__qty">
+                  <button class="qty-btn" type="button" data-step="-1" data-target="qtyUnit">−</button>
+                  <input class="qty-input" id="qtyUnit" type="number" value="0" min="0" max="999" readonly />
+                  <button class="qty-btn" type="button" data-step="1" data-target="qtyUnit">+</button>
+                </div>
+                <div class="buy-row__price">
+                  <span class="buy-row__main" id="priceDisplay">{priceText}</span>
+                  <span class="buy-row__label">por pieza</span>
+                </div>
+              </div>
+
+              {/* Fila caja */}
+              {boxPriceMXN != null && (
+                <div class="buy-row">
+                  <div class="buy-row__qty">
+                    <button class="qty-btn" type="button" data-step="-1" data-target="qtyBox">−</button>
+                    <input class="qty-input" id="qtyBox" type="number" value="0" min="0" max="999" readonly />
+                    <button class="qty-btn" type="button" data-step="1" data-target="qtyBox">+</button>
+                  </div>
+                  <div class="buy-row__price">
+                    <span class="buy-row__main">{formatMXN(boxPriceMXN)}</span>
+                    <span class="buy-row__label">
+                      {box.boxLabel || `caja de ${box.unitsPerBox}`}
+                      {boxUnitPrice != null && <> · {formatMXN(boxUnitPrice)} c/u</>}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {hasVariants && variants[0]?.comparePrice != null && (
+                <div class="product__compare" id="compareDisplay">
+                  Antes: <s>{formatMXN(variants[0].comparePrice)}</s>
+                </div>
+              )}
+
+              <button class="btn btn--cart" type="button" id="addToCartBtn"
+                data-title={item?.title ?? ""}
+                data-slug={item?.slug ?? slug ?? ""}
+                data-url={`/catalogo/${slug}/`}
+                data-price={basePrice ?? 0}
+                data-box-price={boxPriceMXN ?? 0}
+                data-box-units={box.unitsPerBox ?? 0}
+                data-box-label={box.boxLabel || `caja de ${box.unitsPerBox}`}
+                data-image={cover ?? ""}
+              >
+                Agregar al carrito
+              </button>
             </div>
+          ) : (
+            <>
+              <div class="product__price" id="priceDisplay">{priceText}</div>
+              {hasVariants && variants[0]?.comparePrice != null && (
+                <div class="product__compare" id="compareDisplay">
+                  Antes: <s>{formatMXN(variants[0].comparePrice)}</s>
+                </div>
+              )}
+              <div class="product__cta">
+                <button
+                  class="btn btn--cart"
+                  type="button"
+                  data-add
+                  data-title={item?.title ?? ""}
+                  data-slug={item?.slug ?? slug ?? ""}
+                  data-url={`/catalogo/${slug}/`}
+                  data-price={basePrice ?? 0}
+                  data-image={cover ?? ""}
+                >
+                  Agregar al carrito
+                </button>
+              </div>
+            </>
           )}
-
-          <div class="product__cta">
-            {/* Botón WA desactivado — solo aparece en el carrito
-            <a class="btn btn--wa" href={waUrl} target="_blank" rel="noopener noreferrer">
-              Cotizar por WhatsApp
-            </a>
-            */}
-
-            <button
-              class="btn btn--cart"
-              type="button"
-              data-add
-              data-title={item?.title ?? ""}
-              data-slug={item?.slug ?? slug ?? ""}
-              data-url={`/catalogo/${slug}/`}
-              data-price={basePrice ?? 0}
-              data-image={cover ?? ""}
-            >
-              Agregar al carrito
-            </button>
-          </div>
 
           <div class="product__trust">
             <div class="trust-item">
@@ -224,7 +279,62 @@ if (basePrice != null) {
   </main>
 
   <script is:inline define:vars={{ usdRate, shopCurrency, markupPercent }}>
-    // ── Carrito ──────────────────────────────────────────
+    // ── Steppers de cantidad ──────────────────────────────
+    document.addEventListener("click", (e) => {
+      const btn = e.target?.closest?.("[data-step]");
+      if (!btn) return;
+      const targetId = btn.getAttribute("data-target");
+      const input = document.getElementById(targetId);
+      if (!input) return;
+      const step = Number(btn.getAttribute("data-step"));
+      const val = Math.max(0, (Number(input.value) || 0) + step);
+      input.value = val;
+    });
+
+    // ── Carrito con box ───────────────────────────────────
+    const addBtn = document.getElementById("addToCartBtn");
+    if (addBtn) {
+      addBtn.addEventListener("click", () => {
+        const title    = addBtn.getAttribute("data-title") || "";
+        const slug     = addBtn.getAttribute("data-slug")  || "";
+        const url      = addBtn.getAttribute("data-url")   || "";
+        const image    = addBtn.getAttribute("data-image") || "";
+        const price    = Number(addBtn.getAttribute("data-price")    || 0);
+        const boxPrice = Number(addBtn.getAttribute("data-box-price") || 0);
+        const boxUnits = Number(addBtn.getAttribute("data-box-units") || 0);
+        const boxLabel = addBtn.getAttribute("data-box-label") || "";
+
+        const qtyUnit = Number(document.getElementById("qtyUnit")?.value || 0);
+        const qtyBox  = Number(document.getElementById("qtyBox")?.value  || 0);
+
+        if (qtyUnit === 0 && qtyBox === 0) {
+          document.getElementById("qtyUnit").focus();
+          return;
+        }
+
+        if (qtyUnit > 0) {
+          window.Cart?.addItem({ title, slug, url, image, price, qty: qtyUnit });
+        }
+        if (qtyBox > 0 && boxPrice > 0) {
+          window.Cart?.addItem({
+            title: `${title} — ${boxLabel}`,
+            slug: `${slug}--caja`,
+            url,
+            image,
+            price: boxPrice,
+            qty: qtyBox,
+            variantLabel: boxLabel,
+          });
+        }
+
+        addBtn.textContent = "Agregado ✅";
+        if (document.getElementById("qtyUnit"))  document.getElementById("qtyUnit").value  = "0";
+        if (document.getElementById("qtyBox"))   document.getElementById("qtyBox").value   = "0";
+        setTimeout(() => (addBtn.textContent = "Agregar al carrito"), 1600);
+      });
+    }
+
+    // ── Carrito simple (sin box) ──────────────────────────
     document.addEventListener("click", (e) => {
       const btn = e.target?.closest?.("[data-add]");
       if (!btn) return;
@@ -411,6 +521,72 @@ if (basePrice != null) {
       display: flex;
       gap: 12px;
       flex-wrap: wrap;
+    }
+
+    /* Buy options (con caja) */
+    .product__buy-options {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .buy-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+      border: 1px solid #e5e7eb;
+      background: #fafafa;
+    }
+    .buy-row__qty {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border: 1px solid #d1d5db;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .qty-btn {
+      width: 32px;
+      height: 36px;
+      border: none;
+      background: none;
+      font-size: 18px;
+      cursor: pointer;
+      color: #374151;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .1s;
+    }
+    .qty-btn:hover { background: #f3f4f6; }
+    .qty-input {
+      width: 44px;
+      height: 36px;
+      border: none;
+      border-left: 1px solid #e5e7eb;
+      border-right: 1px solid #e5e7eb;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 700;
+      background: #fff;
+      -moz-appearance: textfield;
+    }
+    .qty-input::-webkit-outer-spin-button,
+    .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .buy-row__price { flex: 1; }
+    .buy-row__main {
+      display: block;
+      font-size: 20px;
+      font-weight: 700;
+      color: #660202;
+      line-height: 1.2;
+    }
+    .buy-row__label {
+      display: block;
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 2px;
     }
 
     .btn {

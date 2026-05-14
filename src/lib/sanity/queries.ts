@@ -391,11 +391,8 @@ export const CATALOG_BY_SLUG = groq`
     specifications[]{ label, value },
     "variantImageUrl": variantImage.asset->url
   },
-  whatsapp{
-    enabled,
-    phone,
-    message
-  },
+  boxOption{ enabled, unitsPerBox, boxPrice, boxLabel },
+  whatsapp{ enabled, phone, message },
   seo{
     title,
     description,

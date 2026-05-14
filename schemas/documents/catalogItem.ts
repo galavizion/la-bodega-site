@@ -156,6 +156,19 @@ export const catalogItem = defineType({
       description: "Si está activo, este producto aparece como la tarjeta representante en el catálogo. Los demás de la familia solo se ven al entrar.",
     }),
     defineField({
+      name: "boxOption",
+      title: "Opción de venta por caja",
+      type: "object",
+      group: "shop",
+      description: "Activa esta opción para ofrecer el producto también por caja con precio diferente.",
+      fields: [
+        { name: "enabled",     title: "Activar venta por caja", type: "boolean", initialValue: false },
+        { name: "unitsPerBox", title: "Piezas por caja",        type: "number" },
+        { name: "boxPrice",    title: "Precio por caja",        type: "number" },
+        { name: "boxLabel",    title: "Etiqueta (ej: caja de 33)", type: "string" },
+      ],
+    }),
+    defineField({
       name: "whatsapp",
       title: "Compra por WhatsApp",
       type: "object",
