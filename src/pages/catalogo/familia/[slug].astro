@@ -106,17 +106,6 @@ const img = (item: FamilyItem): string | null => {
                 <h2 class="fam-card__title">{item.title}</h2>
                 {item.sku && <p class="fam-card__sku">SKU: {item.sku}</p>}
                 {item.excerpt && <p class="fam-card__excerpt">{item.excerpt}</p>}
-
-                <p class="fam-card__price">
-                  {(item.price ?? item.variantPrice) != null
-                    ? formatMXN(toMXN((item.price ?? item.variantPrice)!))
-                    : item.priceLabel || "Cotización"}
-                </p>
-                {item.boxOption?.enabled && (
-                  <span class="fam-card__box-badge">
-                    📦 {item.boxOption.boxLabel || `caja de ${item.boxOption.unitsPerBox}`}
-                  </span>
-                )}
               </div>
             </a>
 

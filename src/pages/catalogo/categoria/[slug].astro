@@ -172,13 +172,11 @@ const pgRange = paginationRange(page, totalPages);
                     ? <p class="card__excerpt">{item.excerpt}</p>
                     : null
                   }
-                  {item.price != null ? (
+                  {item.familySlug && (item.price != null ? (
                     <p class="card__price">{formatMXN(toMXN(item.price))}</p>
                   ) : item.priceLabel ? (
                     <p class="card__price">{item.priceLabel}</p>
-                  ) : (
-                    <p class="card__price is-muted">Cotización a medida</p>
-                  )}
+                  ) : null)}
                 </div>
               </a>
 

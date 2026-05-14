@@ -169,7 +169,7 @@ async function runSearchContent(query: string): Promise<string> {
 
 async function runSearchProducts(query: string, markupFactor: number): Promise<string> {
   const results = await sanity.fetch<any[]>(
-    `*[_type == "catalogItem" && published == true && (
+    `*[_type == "catalogItem" && published != false && (
       title match $q || excerpt match $q || pt::text(body) match $q
     )][0...6]{
       _id, title, "slug": slug.current, price, priceLabel,
