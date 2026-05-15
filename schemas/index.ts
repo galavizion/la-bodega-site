@@ -37,6 +37,7 @@ import { sectionRichText } from "./sections/sectionRichText";
 import { sectionCards } from "./sections/sectionCards";
 import { sectionForm } from "./sections/sectionForm";
 import { sectionSpace } from "./sections/sectionSpace";
+import { sectionProductsCarousel } from "./sections/sectionProductsCarousel";
 
 export const schemaTypes = [
   // Documents
@@ -76,4 +77,5 @@ export const schemaTypes = [
   sectionCards,
   sectionForm,
   sectionSpace,
+  sectionProductsCarousel,
 ];

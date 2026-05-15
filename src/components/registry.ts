@@ -8,6 +8,7 @@ import SectionRichText from "./sections/SectionRichText.astro";
 import SectionCards from "./sections/SectionCards.astro";
 import SectionForm from "./sections/SectionForm.astro";
 import SectionSpace from "./sections/SectionSpace.astro";
+import SectionProductsCarousel from "./sections/SectionProductsCarousel.astro";
 
 export const sectionRegistry = {
   sectionHero: SectionHero,
@@ -20,6 +21,7 @@ export const sectionRegistry = {
   sectionCards: SectionCards,
   sectionForm: SectionForm,
   sectionSpace: SectionSpace,
+  sectionProductsCarousel: SectionProductsCarousel,
 } as const;
 
 export type SectionType = keyof typeof sectionRegistry;

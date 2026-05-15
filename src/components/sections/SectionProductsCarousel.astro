@@ -1,0 +1,386 @@
+---
+import groq from "groq";
+import { sanityFetch } from "../../lib/sanity/client";
+import { urlFor } from "../../lib/sanity/image";
+
+type Props = {
+  title?: string;
+  subtitle?: string;
+  sourceType?: "recent" | "featured" | "categories" | "brands";
+  limit?: number;
+  categoryFilterRef?: string;
+  cta?: { label?: string; url?: string; style?: "primary" | "ghost" };
+  bgColor?: string;
+  settings?: { sectionId?: string };
+};
+
+const {
+  title,
+  subtitle,
+  sourceType = "recent",
+  limit = 10,
+  categoryFilterRef,
+  cta,
+  bgColor,
+  settings,
+} = Astro.props as Props;
+
+const sectionId  = settings?.sectionId;
+const safeLimit  = Math.min(Math.max(1, Number(limit) || 10), 10);
+const bg         = bgColor && bgColor !== "none" ? bgColor : null;
+const bgStyle    = bg ? `background-color:${bg}` : undefined;
+const bgTheme    = bg === "#000000" ? "section--on-dark"
+                 : (bg === "#ffffff" || bg?.toLowerCase() === "#f7e96a") ? "section--on-light"
+                 : "";
+
+// ── Fetch ─────────────────────────────────────────────────
+type RawItem = {
+  _id?: string;
+  title?: string;
+  slug?: string;
+  image?: any;
+  imageUrl?: string;
+  subtitle?: string;
+  brand?: string;
+  price?: number;
+};
+
+let rawItems: RawItem[] = [];
+
+if (sourceType === "categories") {
+  rawItems = await sanityFetch<RawItem[]>({
+    query: groq`*[_type == "productCategory" && !defined(parent)] | order(order asc, title asc) [0...10] {
+      "_id": _id, "title": title, "slug": slug.current, "image": image, "subtitle": description
+    }`,
+  });
+} else if (sourceType === "brands") {
+  const brandRows = await sanityFetch<{ brand: string; slug: string; image?: any; imageUrl?: string }[]>({
+    query: groq`*[_type == "catalogItem" && defined(brand) && published != false] | order(brand asc) [0...60] {
+      "brand": brand, "slug": slug.current, "image": coverImage, "imageUrl": imageUrl
+    }`,
+  });
+  const seen = new Set<string>();
+  rawItems = brandRows
+    .filter(r => r.brand && !seen.has(r.brand) && seen.add(r.brand))
+    .slice(0, 10)
+    .map(r => ({ _id: r.slug, title: r.brand, slug: r.slug, image: r.image, imageUrl: r.imageUrl }));
+} else if (sourceType === "featured") {
+  rawItems = await sanityFetch<RawItem[]>({
+    query: categoryFilterRef
+      ? groq`*[_type == "catalogItem" && featured == true && published != false && category._ref == $ref] | order(_createdAt desc) [0...10] {
+          "_id": _id, "title": title, "slug": slug.current, "image": coverImage, "imageUrl": imageUrl, "subtitle": excerpt, "brand": brand, "price": price
+        }`
+      : groq`*[_type == "catalogItem" && featured == true && published != false] | order(_createdAt desc) [0...10] {
+          "_id": _id, "title": title, "slug": slug.current, "image": coverImage, "imageUrl": imageUrl, "subtitle": excerpt, "brand": brand, "price": price
+        }`,
+    params: categoryFilterRef ? { ref: categoryFilterRef } : {},
+  });
+} else {
+  // recent (default)
+  rawItems = await sanityFetch<RawItem[]>({
+    query: categoryFilterRef
+      ? groq`*[_type == "catalogItem" && published != false && category._ref == $ref] | order(_createdAt desc) [0...10] {
+          "_id": _id, "title": title, "slug": slug.current, "image": coverImage, "imageUrl": imageUrl, "subtitle": excerpt, "brand": brand, "price": price
+        }`
+      : groq`*[_type == "catalogItem" && published != false] | order(_createdAt desc) [0...10] {
+          "_id": _id, "title": title, "slug": slug.current, "image": coverImage, "imageUrl": imageUrl, "subtitle": excerpt, "brand": brand, "price": price
+        }`,
+    params: categoryFilterRef ? { ref: categoryFilterRef } : {},
+  });
+}
+
+// ── Normalizar ────────────────────────────────────────────
+function resolveImg(item: RawItem): string | null {
+  if (item.image?.asset) {
+    return urlFor(item.image).width(480).height(480).quality(85).auto("format").url();
+  }
+  if (item.imageUrl) return item.imageUrl;
+  return null;
+}
+
+type Card = { id: string; title: string; imgUrl: string | null; badge: string | null; desc: string | null; linkUrl: string; };
+
+const cards: Card[] = rawItems.slice(0, safeLimit).map((item, i) => ({
+  id:      item._id ?? `c${i}`,
+  title:   item.title ?? "",
+  imgUrl:  resolveImg(item),
+  badge:   sourceType === "recent" || sourceType === "featured" ? (item.brand ?? null) : null,
+  desc:    sourceType === "categories" ? (item.subtitle ?? null) : null,
+  linkUrl: sourceType === "categories"
+    ? `/catalogo/${item.slug ?? ""}`
+    : sourceType === "brands"
+    ? `/catalogo/`
+    : `/catalogo/${item.slug ?? ""}`,
+}));
+
+const uid = `pc-${Math.random().toString(36).slice(2, 8)}`;
+const total = cards.length;
+---
+
+<section
+  id={sectionId}
+  class={`section pcarousel ${bgTheme}`}
+  style={bgStyle}
+>
+  <div class="container">
+    {(title || subtitle) && (
+      <header class="pcarousel__header">
+        {title    && <h2 class="pcarousel__title">{title}</h2>}
+        {subtitle && <p  class="pcarousel__subtitle">{subtitle}</p>}
+      </header>
+    )}
+
+    <div class="pcarousel__wrapper" id={uid} data-total={total}>
+      <!-- Flecha izquierda -->
+      <button class="pcarousel__btn pcarousel__prev" aria-label="Anterior" disabled>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+
+      <!-- Viewport + Track -->
+      <div class="pcarousel__viewport">
+        <div class="pcarousel__track">
+          {cards.map(card => (
+            <article class="pcarousel__card">
+              <a href={card.linkUrl} class="pcarousel__card-link">
+                <div class="pcarousel__img-wrap">
+                  {card.imgUrl
+                    ? <img src={card.imgUrl} alt={card.title} loading="lazy" decoding="async" />
+                    : (
+                      <span class="pcarousel__no-img" aria-hidden="true">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".35">
+                          <rect x="3" y="3" width="18" height="18" rx="3"/>
+                          <circle cx="8.5" cy="8.5" r="1.5"/>
+                          <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                      </span>
+                    )
+                  }
+                </div>
+                <div class="pcarousel__card-body">
+                  {card.badge && <span class="pcarousel__badge">{card.badge}</span>}
+                  <h3 class="pcarousel__name">{card.title}</h3>
+                  {card.desc && <p class="pcarousel__desc">{card.desc}</p>}
+                </div>
+              </a>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <!-- Flecha derecha -->
+      <button class="pcarousel__btn pcarousel__next" aria-label="Siguiente">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </button>
+    </div>
+
+    {cta?.label && cta?.url && (
+      <div class="pcarousel__cta">
+        <a
+          class={`btn ${cta.style === "ghost" ? "btn--ghost" : "btn--primary"}`}
+          href={cta.url}
+        >
+          {cta.label}
+        </a>
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .pcarousel { width: 100%; }
+
+  .pcarousel__header { margin-bottom: 36px; }
+  .pcarousel__title  { font-size: clamp(1.5rem, 3vw, 2.2rem); margin: 0 0 10px; font-weight: 700; }
+  .pcarousel__subtitle { opacity: .65; font-size: 1.05rem; line-height: 1.6; margin: 0; }
+
+  /* ── Layout del wrapper ─────────────────────────────── */
+  .pcarousel__wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .pcarousel__viewport {
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .pcarousel__track {
+    display: flex;
+    gap: 20px;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+
+  /* Ancho de tarjeta: JS pone --card-w en el viewport */
+  .pcarousel__card {
+    flex: 0 0 var(--card-w, 160px);
+    width: var(--card-w, 160px);
+    min-width: 0;
+  }
+
+  /* ── Botones de flecha ──────────────────────────────── */
+  .pcarousel__btn {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: .55;
+    transition: opacity 0.2s, transform 0.15s;
+    padding: 0;
+  }
+  .pcarousel__btn:hover:not(:disabled) { opacity: 1; transform: scale(1.08); }
+  .pcarousel__btn:disabled { opacity: .2; cursor: not-allowed; }
+
+  /* ── Tarjeta ────────────────────────────────────────── */
+  .pcarousel__card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .pcarousel__img-wrap {
+    aspect-ratio: 1 / 1;
+    background: rgba(128,128,128,.08);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .pcarousel__img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease;
+  }
+  .pcarousel__card-link:hover .pcarousel__img-wrap img { transform: scale(1.05); }
+
+  .pcarousel__no-img {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pcarousel__card-body { padding: 0; }
+
+  .pcarousel__badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    opacity: .5;
+    margin-bottom: 4px;
+    line-height: 1;
+  }
+  .pcarousel__name {
+    font-size: .9rem;
+    font-weight: 700;
+    margin: 0 0 4px;
+    line-height: 1.3;
+  }
+  .pcarousel__desc {
+    font-size: .8rem;
+    opacity: .6;
+    margin: 0;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ── CTA ────────────────────────────────────────────── */
+  .pcarousel__cta {
+    margin-top: 36px;
+    text-align: center;
+  }
+</style>
+
+<script>
+  // Inicializa cada carrusel en la página de forma independiente
+  document.querySelectorAll<HTMLElement>('.pcarousel__wrapper').forEach(wrapper => {
+    const viewport = wrapper.querySelector<HTMLElement>('.pcarousel__viewport');
+    const track    = wrapper.querySelector<HTMLElement>('.pcarousel__track');
+    const cards    = wrapper.querySelectorAll<HTMLElement>('.pcarousel__card');
+    const prevBtn  = wrapper.querySelector<HTMLButtonElement>('.pcarousel__prev');
+    const nextBtn  = wrapper.querySelector<HTMLButtonElement>('.pcarousel__next');
+
+    if (!viewport || !track || !cards.length || !prevBtn || !nextBtn) return;
+
+    let current = 0;
+    const total = cards.length;
+
+    function getVisible(): number {
+      const w = window.innerWidth;
+      if (w >= 1200) return 6;
+      if (w >= 992)  return 4;
+      if (w >= 640)  return 3;
+      if (w >= 400)  return 2;
+      return 1;
+    }
+
+    function getGap(): number {
+      return parseInt(getComputedStyle(track!).gap) || 20;
+    }
+
+    function setCardWidth() {
+      const visible  = getVisible();
+      const gap      = getGap();
+      const vpWidth  = viewport!.offsetWidth;
+      const cardW    = (vpWidth - gap * (visible - 1)) / visible;
+      viewport!.style.setProperty('--card-w', `${cardW}px`);
+    }
+
+    function maxIndex(): number {
+      return Math.max(0, total - getVisible());
+    }
+
+    function updateButtons() {
+      prevBtn!.disabled = current <= 0;
+      nextBtn!.disabled = current >= maxIndex();
+    }
+
+    function slide() {
+      const gap   = getGap();
+      const cardW = cards[0].offsetWidth;
+      track!.style.transform = `translateX(-${current * (cardW + gap)}px)`;
+      updateButtons();
+    }
+
+    function update() {
+      setCardWidth();
+      // Corregir si current quedó fuera de rango tras resize
+      current = Math.min(current, maxIndex());
+      slide();
+    }
+
+    prevBtn.addEventListener('click', () => {
+      if (current > 0) { current--; slide(); }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (current < maxIndex()) { current++; slide(); }
+    });
+
+    const ro = new ResizeObserver(update);
+    ro.observe(viewport);
+
+    update();
+  });
+</script>

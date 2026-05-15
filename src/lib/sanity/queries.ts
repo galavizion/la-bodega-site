@@ -164,6 +164,17 @@ export const homeQuery = groq`
       settings
     },
 
+    _type == "sectionProductsCarousel" => {
+      title,
+      subtitle,
+      sourceType,
+      limit,
+      "categoryFilterRef": categoryFilter._ref,
+      cta{ label, url, style },
+      bgColor,
+      settings
+    },
+
     _type == "sectionSharedRef" => {
       "resolvedSection": ref->section[0]
     }
@@ -332,6 +343,17 @@ export const pageBySlugQuery = groq`
         phone,
         label
       },
+      settings
+    },
+
+    _type == "sectionProductsCarousel" => {
+      title,
+      subtitle,
+      sourceType,
+      limit,
+      "categoryFilterRef": categoryFilter._ref,
+      cta{ label, url, style },
+      bgColor,
       settings
     },
 
