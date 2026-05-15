@@ -213,7 +213,7 @@ const pgRange = paginationRange(page, totalPages);
                           </div>
                           <div class="card__row-price">
                             <span>{formatMXN(boxP)}</span>
-                            <small>{bo.boxLabel || `caja ×${bo.unitsPerBox}`}</small>
+                            <small>{bo.boxLabel || `caja ×${bo.unitsPerBox}`} · {formatMXN(boxP / bo.unitsPerBox!)} c/u</small>
                           </div>
                         </div>
                       ) : null;

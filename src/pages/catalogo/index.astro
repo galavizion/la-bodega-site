@@ -210,7 +210,7 @@ const pgRange = paginationRange(page, totalPages);
                     {(() => {
                       const bo = item.boxOption;
                       const boxP = (bo?.enabled && bo.unitsPerBox && item.price != null)
-                        ? toBoxMXN(item.price, bo.unitsPerBox, bo.boxMarkupPercent ?? 0)
+                        ? toBoxMXN(item.price, bo.unitsPerBox)
                         : null;
                       return bo?.enabled && boxP != null ? (
                         <div class="card__buy-row">
@@ -221,7 +221,7 @@ const pgRange = paginationRange(page, totalPages);
                           </div>
                           <div class="card__row-price">
                             <span>{formatMXN(boxP)}</span>
-                            <small>{bo.boxLabel || `caja ×${bo.unitsPerBox}`}</small>
+                            <small>{bo.boxLabel || `caja ×${bo.unitsPerBox}`} · {formatMXN(boxP / bo.unitsPerBox!)} c/u</small>
                           </div>
                         </div>
                       ) : null;
