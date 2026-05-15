@@ -3,12 +3,24 @@ import groq from "groq";
 import { sanityFetch } from "../../lib/sanity/client";
 import { urlFor } from "../../lib/sanity/image";
 
+type RawProduct = {
+  _id?: string;
+  title?: string;
+  slug?: string;
+  image?: any;
+  imageUrl?: string;
+  subtitle?: string;
+  brand?: string;
+  price?: number;
+};
+
 type Props = {
   title?: string;
   subtitle?: string;
-  sourceType?: "recent" | "featured" | "categories" | "brands";
+  sourceType?: "manual" | "recent" | "featured" | "categories" | "brands";
   limit?: number;
   categoryFilterRef?: string;
+  manualItems?: RawProduct[];
   cta?: { label?: string; url?: string; style?: "primary" | "ghost" };
   bgColor?: string;
   settings?: { sectionId?: string };
@@ -20,13 +32,14 @@ const {
   sourceType = "recent",
   limit = 10,
   categoryFilterRef,
+  manualItems,
   cta,
   bgColor,
   settings,
 } = Astro.props as Props;
 
 const sectionId  = settings?.sectionId;
-const safeLimit  = Math.min(Math.max(1, Number(limit) || 10), 10);
+const safeLimit  = sourceType === "manual" ? 10 : Math.min(Math.max(1, Number(limit) || 10), 10);
 const bg         = bgColor && bgColor !== "none" ? bgColor : null;
 const bgStyle    = bg ? `background-color:${bg}` : undefined;
 const bgTheme    = bg === "#000000" ? "section--on-dark"
@@ -47,7 +60,10 @@ type RawItem = {
 
 let rawItems: RawItem[] = [];
 
-if (sourceType === "categories") {
+if (sourceType === "manual") {
+  // Los items vienen ya resueltos desde GROQ (referencias expandidas)
+  rawItems = Array.isArray(manualItems) ? manualItems.filter(Boolean) : [];
+} else if (sourceType === "categories") {
   rawItems = await sanityFetch<RawItem[]>({
     query: groq`*[_type == "productCategory" && !defined(parent)] | order(order asc, title asc) [0...10] {
       "_id": _id, "title": title, "slug": slug.current, "image": image, "subtitle": description
@@ -104,7 +120,7 @@ const cards: Card[] = rawItems.slice(0, safeLimit).map((item, i) => ({
   id:      item._id ?? `c${i}`,
   title:   item.title ?? "",
   imgUrl:  resolveImg(item),
-  badge:   sourceType === "recent" || sourceType === "featured" ? (item.brand ?? null) : null,
+  badge:   ["recent", "featured", "manual"].includes(sourceType) ? (item.brand ?? null) : null,
   desc:    sourceType === "categories" ? (item.subtitle ?? null) : null,
   linkUrl: sourceType === "categories"
     ? `/catalogo/${item.slug ?? ""}`

@@ -170,6 +170,16 @@ export const homeQuery = groq`
       sourceType,
       limit,
       "categoryFilterRef": categoryFilter._ref,
+      "manualItems": manualItems[]->{
+        "_id": _id,
+        "title": title,
+        "slug": slug.current,
+        "image": coverImage,
+        "imageUrl": imageUrl,
+        "subtitle": excerpt,
+        "brand": brand,
+        "price": price
+      },
       cta{ label, url, style },
       bgColor,
       settings
@@ -352,6 +362,16 @@ export const pageBySlugQuery = groq`
       sourceType,
       limit,
       "categoryFilterRef": categoryFilter._ref,
+      "manualItems": manualItems[]->{
+        "_id": _id,
+        "title": title,
+        "slug": slug.current,
+        "image": coverImage,
+        "imageUrl": imageUrl,
+        "subtitle": excerpt,
+        "brand": brand,
+        "price": price
+      },
       cta{ label, url, style },
       bgColor,
       settings
