@@ -68,8 +68,9 @@ const shopCurrency: string = settings?.shopCurrency ?? "USD";
 const usdRate: number = settings?.usdRate ?? 17;
 const markupFactor = 1 + (settings?.markupPercent ?? 26.5) / 100;
 const toMXN = (n: number) => (shopCurrency === "USD" ? n * usdRate : n) * markupFactor;
-const toBoxMXN = (unitPrice: number, units: number, markup: number) =>
-  (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + markup / 100);
+const boxMarkupPercent: number = settings?.boxMarkupPercent ?? 0;
+const toBoxMXN = (unitPrice: number, units: number) =>
+  (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + boxMarkupPercent / 100);
 const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
 
 const DEFAULT_PHONE = (settings?.organization?.whatsapp ?? "528121087053").replace(/\D/g, "");
@@ -234,12 +235,9 @@ const pgRange = paginationRange(page, totalPages);
                       data-slug={item.slug}
                       data-url={href}
                       data-price={item.price != null ? toMXN(item.price) : 0}
-                      data-box-price={(() => {
-                        const bo = item.boxOption;
-                        return (bo?.enabled && bo.unitsPerBox && item.price != null)
-                          ? toBoxMXN(item.price, bo.unitsPerBox, bo.boxMarkupPercent ?? 0)
-                          : 0;
-                      })()}
+                      data-box-price={item.boxOption?.enabled && item.boxOption.unitsPerBox && item.price != null
+                        ? toBoxMXN(item.price, item.boxOption.unitsPerBox)
+                        : 0}
                       data-box-label={item.boxOption?.boxLabel || `caja ×${item.boxOption?.unitsPerBox ?? ""}`}
                       data-image={cover ?? ""}
                       aria-pressed="false"

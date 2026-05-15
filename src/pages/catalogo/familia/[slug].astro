@@ -51,8 +51,9 @@ const shopCurrency: string = settings?.shopCurrency ?? "USD";
 const usdRate: number      = settings?.usdRate      ?? 17;
 const markupFactor         = 1 + (settings?.markupPercent ?? 26.5) / 100;
 const toMXN    = (n: number) => (shopCurrency === "USD" ? n * usdRate : n) * markupFactor;
-const toBoxMXN = (unitPrice: number, units: number, markup: number) =>
-  (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + markup / 100);
+const boxMarkupPercent: number = settings?.boxMarkupPercent ?? 0;
+const toBoxMXN = (unitPrice: number, units: number) =>
+  (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + boxMarkupPercent / 100);
 const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
 
 const img = (item: FamilyItem): string | null => {
@@ -122,7 +123,7 @@ const img = (item: FamilyItem): string | null => {
                   const bo = item.boxOption;
                   const unitP = item.price ?? item.variantPrice ?? null;
                   const boxP = (bo?.enabled && bo.unitsPerBox && unitP != null)
-                    ? toBoxMXN(unitP, bo.unitsPerBox, bo.boxMarkupPercent ?? 0)
+                    ? toBoxMXN(unitP, bo.unitsPerBox)
                     : null;
                   return bo?.enabled && boxP != null ? (
                     <div class="card__buy-row">
@@ -151,7 +152,7 @@ const img = (item: FamilyItem): string | null => {
                     const bo = item.boxOption;
                     const unitP = item.price ?? item.variantPrice ?? null;
                     return (bo?.enabled && bo.unitsPerBox && unitP != null)
-                      ? toBoxMXN(unitP, bo.unitsPerBox, bo.boxMarkupPercent ?? 0)
+                      ? toBoxMXN(unitP, bo.unitsPerBox)
                       : 0;
                   })()}
                   data-box-label={item.boxOption?.boxLabel || `caja ×${item.boxOption?.unitsPerBox ?? ""}`}

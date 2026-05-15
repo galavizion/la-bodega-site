@@ -51,11 +51,12 @@ const priceText =
 
 // Opción de caja — precio calculado del precio unitario, con margen propio (sin el global)
 const box = item?.boxOption?.enabled ? item.boxOption : null;
-const toBoxMXN = (unitPrice: number, units: number, markup: number) =>
-  (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + markup / 100);
+const boxMarkupPercent: number = settings?.boxMarkupPercent ?? 0;
+const toBoxMXN = (unitPrice: number, units: number) =>
+  (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + boxMarkupPercent / 100);
 const basePriceForBox = basePriceRaw ?? null;
 const boxPriceMXN = (box && basePriceForBox != null && box.unitsPerBox)
-  ? toBoxMXN(basePriceForBox, box.unitsPerBox, box.boxMarkupPercent ?? 0)
+  ? toBoxMXN(basePriceForBox, box.unitsPerBox)
   : null;
 const boxUnitPrice = (box?.unitsPerBox && boxPriceMXN) ? boxPriceMXN / box.unitsPerBox : null;
 

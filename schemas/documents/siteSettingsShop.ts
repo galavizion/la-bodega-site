@@ -22,20 +22,29 @@ export const siteSettingsShop = defineType({
     }),
     defineField({
       name: "markupPercent",
-      title: "Aumento de precio (%)",
+      title: "Margen precio unitario (%)",
       type: "number",
-      description: "Porcentaje que se agrega automáticamente al precio final (envío, manejo, etc.). Ej: 26.5 = +26.5% sobre el precio base.",
+      description: "Se agrega al precio de cada pieza individual. Ej: 26.5 = +26.5% sobre el precio base.",
       initialValue: 26.5,
       validation: (Rule) => Rule.min(0).max(200),
     }),
+    defineField({
+      name: "boxMarkupPercent",
+      title: "Margen precio por caja (%)",
+      type: "number",
+      description: "Se usa para calcular el precio de caja: precio unitario × piezas × (1 + este %). Independiente del margen individual.",
+      initialValue: 0,
+      validation: (Rule) => Rule.min(-100).max(200),
+    }),
   ],
   preview: {
-    select: { currency: "currency", rate: "usdRate", markup: "markupPercent" },
-    prepare: ({ currency, rate, markup }) => ({
+    select: { currency: "currency", rate: "usdRate", markup: "markupPercent", boxMarkup: "boxMarkupPercent" },
+    prepare: ({ currency, rate, markup, boxMarkup }) => ({
       title: "Tienda / Precios",
       subtitle: [
         currency === "USD" ? `USD → MXN × ${rate}` : "Precios en MXN",
-        markup != null ? `+${markup}% markup` : "",
+        markup != null ? `+${markup}% unitario` : "",
+        boxMarkup != null ? `+${boxMarkup}% caja` : "",
       ].filter(Boolean).join(" · "),
     }),
   },
