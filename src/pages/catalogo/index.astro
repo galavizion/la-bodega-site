@@ -17,7 +17,7 @@ type CatalogItem = {
   familySlug?: string;
   familyCount?: number;
   whatsapp?: { enabled?: boolean; phone?: string; message?: string };
-  boxOption?: { enabled?: boolean; unitsPerBox?: number; boxPrice?: number; boxLabel?: string };
+  boxOption?: { enabled?: boolean; unitsPerBox?: number; boxMarkupPercent?: number; boxLabel?: string };
 };
 
 const PAGE_SIZE = 20;
@@ -44,7 +44,7 @@ const query = groq`{
       defined(familySlug) => count(*[_type=="catalogItem" && familySlug==^.familySlug && published!=false]),
       0
     ),
-    boxOption{ enabled, unitsPerBox, boxPrice, boxLabel },
+    boxOption{ enabled, unitsPerBox, boxMarkupPercent, boxLabel },
     whatsapp{ enabled, phone, message }
   },
   "total": count(*[${baseFilter}${searchFilter}])
@@ -68,6 +68,8 @@ const shopCurrency: string = settings?.shopCurrency ?? "USD";
 const usdRate: number = settings?.usdRate ?? 17;
 const markupFactor = 1 + (settings?.markupPercent ?? 26.5) / 100;
 const toMXN = (n: number) => (shopCurrency === "USD" ? n * usdRate : n) * markupFactor;
+const toBoxMXN = (unitPrice: number, units: number, markup: number) =>
+  (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + markup / 100);
 const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
 
 const DEFAULT_PHONE = (settings?.organization?.whatsapp ?? "528121087053").replace(/\D/g, "");
@@ -204,19 +206,25 @@ const pgRange = paginationRange(page, totalPages);
                     </div>
 
                     {/* Fila caja */}
-                    {item.boxOption?.enabled && item.boxOption.boxPrice != null && (
-                      <div class="card__buy-row">
-                        <div class="card__stepper">
-                          <button type="button" class="step-btn" data-step="-1" data-target="box">−</button>
-                          <input class="step-qty" data-qty="box" type="number" value="0" min="0" readonly />
-                          <button type="button" class="step-btn" data-step="1" data-target="box">+</button>
+                    {(() => {
+                      const bo = item.boxOption;
+                      const boxP = (bo?.enabled && bo.unitsPerBox && item.price != null)
+                        ? toBoxMXN(item.price, bo.unitsPerBox, bo.boxMarkupPercent ?? 0)
+                        : null;
+                      return bo?.enabled && boxP != null ? (
+                        <div class="card__buy-row">
+                          <div class="card__stepper">
+                            <button type="button" class="step-btn" data-step="-1" data-target="box">−</button>
+                            <input class="step-qty" data-qty="box" type="number" value="0" min="0" readonly />
+                            <button type="button" class="step-btn" data-step="1" data-target="box">+</button>
+                          </div>
+                          <div class="card__row-price">
+                            <span>{formatMXN(boxP)}</span>
+                            <small>{bo.boxLabel || `caja ×${bo.unitsPerBox}`}</small>
+                          </div>
                         </div>
-                        <div class="card__row-price">
-                          <span>{formatMXN(toMXN(item.boxOption.boxPrice))}</span>
-                          <small>{item.boxOption.boxLabel || `caja ×${item.boxOption.unitsPerBox}`}</small>
-                        </div>
-                      </div>
-                    )}
+                      ) : null;
+                    })()}
 
                     <button
                       class="btn-cart"
@@ -226,7 +234,12 @@ const pgRange = paginationRange(page, totalPages);
                       data-slug={item.slug}
                       data-url={href}
                       data-price={item.price != null ? toMXN(item.price) : 0}
-                      data-box-price={item.boxOption?.boxPrice != null ? toMXN(item.boxOption.boxPrice) : 0}
+                      data-box-price={(() => {
+                        const bo = item.boxOption;
+                        return (bo?.enabled && bo.unitsPerBox && item.price != null)
+                          ? toBoxMXN(item.price, bo.unitsPerBox, bo.boxMarkupPercent ?? 0)
+                          : 0;
+                      })()}
                       data-box-label={item.boxOption?.boxLabel || `caja ×${item.boxOption?.unitsPerBox ?? ""}`}
                       data-image={cover ?? ""}
                       aria-pressed="false"

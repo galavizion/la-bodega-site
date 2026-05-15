@@ -20,7 +20,7 @@ type FamilyItem = {
   priceLabel?: string;
   isFamilyRepresentative?: boolean;
   whatsapp?: { enabled?: boolean; phone?: string; message?: string };
-  boxOption?: { enabled?: boolean; unitsPerBox?: number; boxPrice?: number; boxLabel?: string };
+  boxOption?: { enabled?: boolean; unitsPerBox?: number; boxMarkupPercent?: number; boxLabel?: string };
 };
 
 const { slug: familySlug } = Astro.params;
@@ -31,7 +31,7 @@ const [items, settings] = await Promise.all([
       _id, title, "slug": slug.current, sku, excerpt,
       coverImage, imageUrl, price, priceLabel, isFamilyRepresentative,
       "variantPrice": variants[0].price,
-      boxOption{ enabled, unitsPerBox, boxPrice, boxLabel },
+      boxOption{ enabled, unitsPerBox, boxMarkupPercent, boxLabel },
       whatsapp{ enabled, phone, message }
     }`,
     { familySlug }
@@ -50,7 +50,9 @@ const familyTitle = representative.title
 const shopCurrency: string = settings?.shopCurrency ?? "USD";
 const usdRate: number      = settings?.usdRate      ?? 17;
 const markupFactor         = 1 + (settings?.markupPercent ?? 26.5) / 100;
-const toMXN  = (n: number) => (shopCurrency === "USD" ? n * usdRate : n) * markupFactor;
+const toMXN    = (n: number) => (shopCurrency === "USD" ? n * usdRate : n) * markupFactor;
+const toBoxMXN = (unitPrice: number, units: number, markup: number) =>
+  (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + markup / 100);
 const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
 
 const img = (item: FamilyItem): string | null => {
@@ -116,19 +118,26 @@ const img = (item: FamilyItem): string | null => {
                   </span>
                 </div>
 
-                {item.boxOption?.enabled && item.boxOption.boxPrice != null && (
-                  <div class="card__buy-row">
-                    <div class="card__stepper">
-                      <button type="button" class="step-btn" data-step="-1" data-target="box">−</button>
-                      <input class="step-qty" data-qty="box" type="number" value="0" min="0" readonly />
-                      <button type="button" class="step-btn" data-step="1" data-target="box">+</button>
+                {(() => {
+                  const bo = item.boxOption;
+                  const unitP = item.price ?? item.variantPrice ?? null;
+                  const boxP = (bo?.enabled && bo.unitsPerBox && unitP != null)
+                    ? toBoxMXN(unitP, bo.unitsPerBox, bo.boxMarkupPercent ?? 0)
+                    : null;
+                  return bo?.enabled && boxP != null ? (
+                    <div class="card__buy-row">
+                      <div class="card__stepper">
+                        <button type="button" class="step-btn" data-step="-1" data-target="box">−</button>
+                        <input class="step-qty" data-qty="box" type="number" value="0" min="0" readonly />
+                        <button type="button" class="step-btn" data-step="1" data-target="box">+</button>
+                      </div>
+                      <div class="card__row-price">
+                        <span>{formatMXN(boxP)}</span>
+                        <small>{bo.boxLabel || `caja ×${bo.unitsPerBox}`}</small>
+                      </div>
                     </div>
-                    <div class="card__row-price">
-                      <span>{formatMXN(toMXN(item.boxOption.boxPrice))}</span>
-                      <small>{item.boxOption.boxLabel || `caja ×${item.boxOption.unitsPerBox}`}</small>
-                    </div>
-                  </div>
-                )}
+                  ) : null;
+                })()}
 
                 <button
                   class="btn-cart"
@@ -138,7 +147,13 @@ const img = (item: FamilyItem): string | null => {
                   data-slug={item.slug}
                   data-url={href}
                   data-price={(item.price ?? item.variantPrice) != null ? toMXN((item.price ?? item.variantPrice)!) : 0}
-                  data-box-price={item.boxOption?.boxPrice != null ? toMXN(item.boxOption.boxPrice) : 0}
+                  data-box-price={(() => {
+                    const bo = item.boxOption;
+                    const unitP = item.price ?? item.variantPrice ?? null;
+                    return (bo?.enabled && bo.unitsPerBox && unitP != null)
+                      ? toBoxMXN(unitP, bo.unitsPerBox, bo.boxMarkupPercent ?? 0)
+                      : 0;
+                  })()}
                   data-box-label={item.boxOption?.boxLabel || `caja ×${item.boxOption?.unitsPerBox ?? ""}`}
                   data-image={cover ?? ""}
                   aria-pressed="false"

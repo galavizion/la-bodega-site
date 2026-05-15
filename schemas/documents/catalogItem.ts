@@ -162,9 +162,15 @@ export const catalogItem = defineType({
       group: "shop",
       description: "Activa esta opción para ofrecer el producto también por caja con precio diferente.",
       fields: [
-        { name: "enabled",     title: "Activar venta por caja", type: "boolean", initialValue: false },
-        { name: "unitsPerBox", title: "Piezas por caja",        type: "number" },
-        { name: "boxPrice",    title: "Precio por caja",        type: "number" },
+        { name: "enabled",     title: "Activar venta por caja",   type: "boolean", initialValue: false },
+        { name: "unitsPerBox", title: "Piezas por caja",          type: "number" },
+        {
+          name: "boxMarkupPercent",
+          title: "Margen exclusivo de caja (%)",
+          description: "Precio de caja = precio unitario × piezas × (1 + este %). No aplica el margen global.",
+          type: "number",
+          initialValue: 0,
+        },
         { name: "boxLabel",    title: "Etiqueta (ej: caja de 33)", type: "string" },
       ],
     }),

@@ -49,9 +49,14 @@ const basePrice = basePriceRaw != null ? toMXN(basePriceRaw) : null;
 const priceText =
   basePrice != null ? formatMXN(basePrice) : item?.priceLabel || "Cotización personalizada";
 
-// Opción de caja
+// Opción de caja — precio calculado del precio unitario, con margen propio (sin el global)
 const box = item?.boxOption?.enabled ? item.boxOption : null;
-const boxPriceMXN = box?.boxPrice != null ? toMXN(box.boxPrice) : null;
+const toBoxMXN = (unitPrice: number, units: number, markup: number) =>
+  (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + markup / 100);
+const basePriceForBox = basePriceRaw ?? null;
+const boxPriceMXN = (box && basePriceForBox != null && box.unitsPerBox)
+  ? toBoxMXN(basePriceForBox, box.unitsPerBox, box.boxMarkupPercent ?? 0)
+  : null;
 const boxUnitPrice = (box?.unitsPerBox && boxPriceMXN) ? boxPriceMXN / box.unitsPerBox : null;
 
 const siteUrl = "https://www.labodegadelinstalador.net";

@@ -433,7 +433,7 @@ export const CATALOG_BY_SLUG = groq`
     specifications[]{ label, value },
     "variantImageUrl": variantImage.asset->url
   },
-  boxOption{ enabled, unitsPerBox, boxPrice, boxLabel },
+  boxOption{ enabled, unitsPerBox, boxMarkupPercent, boxLabel },
   whatsapp{ enabled, phone, message },
   seo{
     title,
@@ -472,7 +472,7 @@ export const CATALOG_BY_CATEGORY = groq`
       defined(familySlug) => count(*[_type=="catalogItem" && familySlug==^.familySlug && published!=false]),
       0
     ),
-    boxOption{ enabled, unitsPerBox, boxPrice, boxLabel },
+    boxOption{ enabled, unitsPerBox, boxMarkupPercent, boxLabel },
     whatsapp{ enabled, phone, message }
   },
   "total": count(*[
