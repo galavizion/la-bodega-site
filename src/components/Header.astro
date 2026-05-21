@@ -88,17 +88,26 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
             {hasChildren ? (
               <>
                 <button class="submenu-toggle" type="button" aria-expanded="false" data-submenu-toggle>
+                  {item.icon && <span class="nav-icon" aria-hidden="true">{item.icon}</span>}
                   {item.label}
                   <span class="chev" aria-hidden="true">▾</span>
                 </button>
                 <ul class="submenu" data-submenu>
                   {item.children!.map((child: NavItem) => (
-                    <li><a href={resolveHref(child)}>{child.label}</a></li>
+                    <li>
+                      <a href={resolveHref(child)}>
+                        {child.icon && <span class="nav-icon" aria-hidden="true">{child.icon}</span>}
+                        {child.label}
+                      </a>
+                    </li>
                   ))}
                 </ul>
               </>
             ) : (
-              <a href={resolveHref(item)}>{item.label}</a>
+              <a href={resolveHref(item)}>
+                {item.icon && <span class="nav-icon" aria-hidden="true">{item.icon}</span>}
+                {item.label}
+              </a>
             )}
           </li>
         );
@@ -403,6 +412,8 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
   }
   .menu a:hover,
   .submenu-toggle:hover { background: rgba(255,255,255,.1); }
+
+  .nav-icon { font-size: 14px; line-height: 1; flex-shrink: 0; }
 
   .chev { font-size: 10px; opacity: .7; transition: transform .18s; }
 

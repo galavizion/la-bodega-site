@@ -14,6 +14,7 @@ export const navItem = defineType({
   title: "Elemento de navegación",
   type: "object",
   fields: [
+    defineField({ name: "icon",  title: "Ícono (emoji)",  type: "string", description: "Opcional. Escribe un emoji, ej: 🏠 📦 🔧" }),
     defineField({ name: "label", title: "Etiqueta", type: "string" }),
     defineField({ name: "type",  title: "Tipo",     type: "string", options: { list: TYPE_OPTIONS } }),
     defineField({ name: "anchorId",    title: "ID de ancla",           type: "string" }),
@@ -41,6 +42,9 @@ export const navItem = defineType({
     }),
   ],
   preview: {
-    select: { title: "label", subtitle: "type" },
+    select: { title: "label", subtitle: "type", media: "icon" },
+    prepare({ title, subtitle, media }) {
+      return { title: media ? `${media} ${title}` : title, subtitle };
+    },
   },
 });
