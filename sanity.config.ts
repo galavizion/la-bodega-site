@@ -148,6 +148,10 @@ export default defineConfig({
                           .title("Pedidos")
                           .items([
                             S.listItem()
+                              .title("📋 Todos los pedidos")
+                              .child(S.documentTypeList("order").title("Todos los pedidos")),
+                            S.divider(),
+                            S.listItem()
                               .title("⏳ Pendientes")
                               .child(
                                 S.documentList()
@@ -164,6 +168,14 @@ export default defineConfig({
                                   .filter('_type == "order" && status == "confirmed"')
                               ),
                             S.listItem()
+                              .title("📦 En preparación")
+                              .child(
+                                S.documentList()
+                                  .title("En preparación")
+                                  .apiVersion("2025-01-01")
+                                  .filter('_type == "order" && status == "processing"')
+                              ),
+                            S.listItem()
                               .title("🚚 Enviados")
                               .child(
                                 S.documentList()
@@ -172,8 +184,21 @@ export default defineConfig({
                                   .filter('_type == "order" && status == "shipped"')
                               ),
                             S.listItem()
-                              .title("📋 Todos los pedidos")
-                              .child(S.documentTypeList("order").title("Todos los pedidos")),
+                              .title("🏠 Entregados")
+                              .child(
+                                S.documentList()
+                                  .title("Entregados")
+                                  .apiVersion("2025-01-01")
+                                  .filter('_type == "order" && status == "delivered"')
+                              ),
+                            S.listItem()
+                              .title("❌ Cancelados")
+                              .child(
+                                S.documentList()
+                                  .title("Cancelados")
+                                  .apiVersion("2025-01-01")
+                                  .filter('_type == "order" && status == "cancelled"')
+                              ),
                           ])
                       ),
                     S.listItem()
