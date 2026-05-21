@@ -83,6 +83,7 @@ export const POST: APIRoute = async ({ request }) => {
       paymentMethod: paymentMethod ?? "transfer",
       customer: {
         name:    String(customer.name).trim(),
+        company: String(customer.company ?? "").trim() || undefined,
         email:   String(customer.email).trim(),
         phone:   String(customer.phone).trim(),
         address: String(customer.address ?? "").trim(),

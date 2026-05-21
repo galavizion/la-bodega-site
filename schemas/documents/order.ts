@@ -43,8 +43,9 @@ export const order = defineType({
       type: "object",
       group: "customer",
       fields: [
-        { name: "name", title: "Nombre", type: "string" },
-        { name: "email", title: "Email", type: "string" },
+        { name: "name",    title: "Nombre",  type: "string" },
+        { name: "company", title: "Empresa", type: "string" },
+        { name: "email",   title: "Email",   type: "string" },
         { name: "phone", title: "Teléfono / WhatsApp", type: "string" },
         { name: "address", title: "Dirección de envío", type: "text", rows: 3 },
         { name: "city", title: "Ciudad", type: "string" },
