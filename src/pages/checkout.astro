@@ -20,6 +20,9 @@ const payData = {
   instructions:    payment.instructions    ?? "Envíanos el comprobante por WhatsApp para confirmar tu pedido.",
   proofWhatsapp:   payment.proofWhatsapp   !== false,
 };
+
+const mpPublicKey = import.meta.env.PUBLIC_MP_PUBLIC_KEY ?? "";
+const mpEnabled   = !!mpPublicKey;
 ---
 
 <BaseLayout
@@ -132,9 +135,22 @@ const payData = {
               </div>
             )}
 
-            {!payData.transferEnabled && (
+            {mpEnabled && (
+              <label class="pay-option" id="mpOption">
+                <input type="radio" name="paymentMethod" value="mercadopago" />
+                <div class="pay-option__body">
+                  <strong>💳 MercadoPago</strong>
+                  <span>Paga con tarjeta, transferencia o efectivo.</span>
+                </div>
+              </label>
+            )}
+
+            {!payData.transferEnabled && !mpEnabled && (
               <p class="pay-none">Sin métodos de pago configurados. Contacta al vendedor.</p>
             )}
+
+            {/* Contenedor del wallet brick de MercadoPago */}
+            <div id="mp-wallet-container" style="display:none; margin-top:16px;"></div>
           </section>
 
           {/* Honeypot */}
@@ -178,7 +194,11 @@ const payData = {
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer is:inline></script>
   )}
 
-  <script is:inline define:vars={{ waPhone }}>
+  {mpEnabled && (
+    <script src="https://sdk.mercadopago.com/js/v2" is:inline></script>
+  )}
+
+  <script is:inline define:vars={{ waPhone, mpPublicKey }}>
     const KEY = "ranking_cart_v1";
     const getCart = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; } };
 
@@ -225,17 +245,24 @@ const payData = {
       });
     });
 
+    // ── Mostrar/ocultar wallet brick según método de pago ──
+    const walletContainer = document.getElementById("mp-wallet-container");
+    const submitBtn = document.getElementById("submitBtn");
+    document.querySelectorAll("[name='paymentMethod']").forEach((radio) => {
+      radio.addEventListener("change", (e) => {
+        const isMp = e.target.value === "mercadopago";
+        if (walletContainer) walletContainer.style.display = isMp ? "block" : "none";
+        if (submitBtn) submitBtn.style.display = isMp ? "none" : "block";
+      });
+    });
+
     // ── Submit form ─────────────────────────────────────
     const form = document.getElementById("checkoutForm");
     const errEl = document.getElementById("formError");
-    const submitBtn = document.getElementById("submitBtn");
 
-    form && form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      errEl.style.display = "none";
-
+    const getCustomer = () => {
       const fd = new FormData(form);
-      const customer = {
+      return {
         name:    fd.get("name")?.toString().trim(),
         email:   fd.get("email")?.toString().trim(),
         phone:   fd.get("phone")?.toString().trim(),
@@ -245,52 +272,86 @@ const payData = {
         state:   fd.get("state")?.toString().trim(),
         zip:     fd.get("zip")?.toString().trim(),
       };
+    };
 
+    const validateAndCreateOrder = async (paymentMethod) => {
+      const customer = getCustomer();
       if (!customer.name || !customer.email || !customer.phone) {
-        errEl.textContent = "Por favor completa nombre, email y teléfono.";
-        errEl.style.display = "block";
-        errEl.scrollIntoView({ behavior: "smooth", block: "center" });
-        return;
+        throw new Error("Por favor completa nombre, email y teléfono.");
       }
-
       const cartItems = getCart();
-      if (!cartItems.length) {
-        errEl.textContent = "Tu carrito está vacío.";
-        errEl.style.display = "block";
+      if (!cartItems.length) throw new Error("Tu carrito está vacío.");
+
+      const fd = new FormData(form);
+      const total = cartItems.reduce((a, it) => a + Number(it.price || 0) * (it.qty || 1), 0);
+
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer, items: cartItems, paymentMethod, total,
+          _hp_website: fd.get("_hp_website") || "",
+          "cf-turnstile-response": fd.get("cf-turnstile-response") || "",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Error al procesar el pedido");
+      return { orderNumber: data.orderNumber, cartItems };
+    };
+
+    form && form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errEl.style.display = "none";
+
+      const paymentMethod = new FormData(form).get("paymentMethod")?.toString() || "transfer";
+
+      // ── Flujo MercadoPago ────────────────────────────
+      if (paymentMethod === "mercadopago" && mpPublicKey) {
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Procesando…"; }
+        try {
+          const { orderNumber, cartItems } = await validateAndCreateOrder("mercadopago");
+
+          const prefRes = await fetch("/api/mp-preference", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items: cartItems, orderNumber, siteUrl: window.location.origin }),
+          });
+          const prefData = await prefRes.json();
+          if (!prefRes.ok || !prefData.preferenceId) throw new Error(prefData.error || "Error al iniciar pago");
+
+          // Limpiar carrito antes de redirigir a MP
+          localStorage.removeItem(KEY);
+          window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: 0, totalQty: 0 } }));
+
+          // Renderizar wallet brick
+          if (walletContainer) walletContainer.style.display = "block";
+          const mp = new window.MercadoPago(mpPublicKey);
+          mp.bricks().create("wallet", "mp-wallet-container", {
+            initialization: { preferenceId: prefData.preferenceId },
+            customization: { texts: { valueProp: "smart_option" } },
+          });
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Confirmar pedido →"; }
+        } catch (err) {
+          errEl.textContent = err?.message || "Ocurrió un error. Intenta de nuevo.";
+          errEl.style.display = "block";
+          errEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Confirmar pedido →"; }
+        }
         return;
       }
 
-      const total = cartItems.reduce((a, it) => a + Number(it.price || 0) * (it.qty || 1), 0);
-      const paymentMethod = fd.get("paymentMethod")?.toString() || "transfer";
-
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Procesando…";
-
+      // ── Flujo transferencia ──────────────────────────
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Procesando…"; }
       try {
-        const res = await fetch("/api/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            customer, items: cartItems, paymentMethod, total,
-            _hp_website: fd.get("_hp_website") || "",
-            "cf-turnstile-response": fd.get("cf-turnstile-response") || "",
-          }),
-        });
-        const data = await res.json();
-
-        if (!res.ok || !data.success) throw new Error(data.error || "Error al procesar el pedido");
-
-        // Limpiar carrito
+        const { orderNumber } = await validateAndCreateOrder(paymentMethod);
         localStorage.removeItem(KEY);
         window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: 0, totalQty: 0 } }));
-
-        window.location.href = `/confirmacion/${data.orderNumber}/`;
+        window.location.href = `/confirmacion/${orderNumber}/`;
       } catch (err) {
         errEl.textContent = err?.message || "Ocurrió un error. Intenta de nuevo.";
         errEl.style.display = "block";
         errEl.scrollIntoView({ behavior: "smooth", block: "center" });
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Confirmar pedido →";
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Confirmar pedido →"; }
       }
     });
   </script>
