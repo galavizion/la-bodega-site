@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ request }) => {
           id:         it.slug ?? it.title,
           title:      String(it.title ?? "Producto"),
           quantity:   Number(it.qty ?? 1),
-          unit_price: Number(it.price ?? 0),
+          unit_price: Math.round(Number(it.price ?? 0) * 100) / 100,
           currency_id: "MXN",
         })),
         external_reference: orderNumber,
@@ -53,7 +53,8 @@ export const POST: APIRoute = async ({ request }) => {
       sandboxPoint: result.sandbox_init_point,
     });
   } catch (e: any) {
-    return json({ error: e?.message ?? "Error al crear preferencia" }, 500);
+    const msg = e?.cause?.message ?? e?.message ?? "Error al crear preferencia";
+    return json({ error: msg, detail: String(e) }, 500);
   }
 };
 
