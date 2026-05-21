@@ -33,9 +33,9 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ success: true, orderId: "bot", orderNumber: "BOT-0000" });
   }
 
-  // ── Turnstile ──────────────────────────────────────────────────────────────
+  // ── Turnstile (solo en producción) ────────────────────────────────────────
   const secretKey = import.meta.env.TURNSTILE_SECRET_KEY;
-  if (secretKey) {
+  if (secretKey && import.meta.env.PROD) {
     if (!tsToken) {
       return json({ error: "Verifica que no eres un robot." }, 400);
     }
