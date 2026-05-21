@@ -422,6 +422,7 @@ export const CATALOG_BY_SLUG = groq`
   imageUrl,
   body,
   price,
+  comparePrice,
   priceLabel,
   variants[]{
     sku,

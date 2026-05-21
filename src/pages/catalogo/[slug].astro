@@ -187,9 +187,9 @@ if (basePrice != null) {
                 </div>
               )}
 
-              {hasVariants && variants[0]?.comparePrice != null && (
+              {(hasVariants ? variants[0]?.comparePrice : item?.comparePrice) != null && (
                 <div class="product__compare" id="compareDisplay">
-                  Antes: <s>{formatMXN(variants[0].comparePrice)}</s>
+                  Antes: <s>{formatMXN(toMXN(hasVariants ? variants[0].comparePrice : item.comparePrice))}</s>
                 </div>
               )}
 
@@ -209,9 +209,9 @@ if (basePrice != null) {
           ) : (
             <>
               <div class="product__price" id="priceDisplay">{priceText}</div>
-              {hasVariants && variants[0]?.comparePrice != null && (
+              {(hasVariants ? variants[0]?.comparePrice : item?.comparePrice) != null && (
                 <div class="product__compare" id="compareDisplay">
-                  Antes: <s>{formatMXN(variants[0].comparePrice)}</s>
+                  Antes: <s>{formatMXN(toMXN(hasVariants ? variants[0].comparePrice : item.comparePrice))}</s>
                 </div>
               )}
               <div class="product__cta">

@@ -138,6 +138,20 @@ export const catalogItem = defineType({
     }),
 
     // ── TIENDA ────────────────────────────────────────────
+    defineField({
+      name: "price",
+      title: "Precio base",
+      description: "Precio del producto cuando no tiene variantes. Si tiene variantes, cada una tiene su propio precio.",
+      type: "number",
+      group: "shop",
+    }),
+    defineField({
+      name: "comparePrice",
+      title: "Precio anterior (tachado)",
+      description: "Opcional — se muestra tachado junto al precio base.",
+      type: "number",
+      group: "shop",
+    }),
     defineField({ name: "featured",  title: "Producto destacado",   type: "boolean", initialValue: false, group: "shop" }),
     defineField({ name: "published", title: "Publicado en tienda",  type: "boolean", initialValue: true,  group: "shop" }),
     defineField({
