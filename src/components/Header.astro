@@ -72,10 +72,10 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
   <nav class="main-nav container">
     <a class="logo" href="/" aria-label="Ir al inicio">
       <img
-        src={settings?.logoUrl ?? "/logo-bdi-negro.svg"}
+        src={settings?.logoUrl ?? "/logo-bdi-negro.png"}
         alt={settings?.siteName ?? "BDI"}
-        height="100"
-        width="100"
+        height="130"
+        width="130"
         loading="eager"
       />
     </a>
@@ -375,12 +375,12 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 15px 0;
+    padding: 5px 0;
     position: relative;
   }
 
   .logo { display: inline-flex; align-items: center; flex-shrink: 0; }
-  .logo img { height: 100px; width: 100px; display: block; object-fit: contain; }
+  .logo img { height: 130px; width: 130px; display: block; object-fit: contain; }
   .logo-text { font-weight: 800; font-size: 16px; color: #fff; }
 
   /* Menú */
