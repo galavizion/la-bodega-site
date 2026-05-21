@@ -245,14 +245,13 @@ const mpEnabled   = !!mpPublicKey;
       });
     });
 
-    // ── Mostrar/ocultar wallet brick según método de pago ──
+    // ── Cambiar texto del botón según método de pago ──
     const walletContainer = document.getElementById("mp-wallet-container");
     const submitBtn = document.getElementById("submitBtn");
     document.querySelectorAll("[name='paymentMethod']").forEach((radio) => {
       radio.addEventListener("change", (e) => {
         const isMp = e.target.value === "mercadopago";
-        if (walletContainer) walletContainer.style.display = isMp ? "block" : "none";
-        if (submitBtn) submitBtn.style.display = isMp ? "none" : "block";
+        if (submitBtn) submitBtn.textContent = isMp ? "Continuar con MercadoPago →" : "Confirmar pedido →";
       });
     });
 
