@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import MercadoPago, { Preference } from "mercadopago";
+import { MercadoPagoConfig, Preference } from "mercadopago";
 
 export const prerender = false;
 
@@ -24,7 +24,7 @@ export const POST: APIRoute = async ({ request }) => {
   const base = siteUrl ?? "https://www.labodegadelinstalador.net";
 
   try {
-    const client = new MercadoPago({ accessToken });
+    const client = new MercadoPagoConfig({ accessToken });
     const preference = new Preference(client);
 
     const result = await preference.create({
