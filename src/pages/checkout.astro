@@ -318,21 +318,11 @@ const mpEnabled   = !!mpPublicKey;
           localStorage.removeItem(KEY);
           window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: 0, totalQty: 0 } }));
 
-          // Cargar SDK de MP dinámicamente y renderizar wallet brick
-          await new Promise((resolve, reject) => {
-            if (window.MercadoPago) return resolve();
-            const s = document.createElement("script");
-            s.src = "https://sdk.mercadopago.com/js/v2";
-            s.onload = resolve;
-            s.onerror = reject;
-            document.head.appendChild(s);
-          });
-          if (walletContainer) walletContainer.style.display = "block";
-          const mp = new window.MercadoPago(mpPublicKey, { locale: "es-MX" });
-          mp.bricks().create("wallet", "mp-wallet-container", {
-            initialization: { preferenceId: prefData.preferenceId },
-            customization: { texts: { valueProp: "smart_option" } },
-          });
+          // Redirigir al checkout de MercadoPago
+          const isProd = import.meta.env?.PROD ?? location.hostname !== "localhost";
+          const mpUrl  = isProd ? prefData.initPoint : (prefData.sandboxPoint ?? prefData.initPoint);
+          if (!mpUrl) throw new Error("No se pudo obtener la URL de pago");
+          window.location.href = mpUrl;
           if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Confirmar pedido →"; }
         } catch (err) {
           errEl.textContent = err?.message || "Ocurrió un error. Intenta de nuevo.";

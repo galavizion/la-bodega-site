@@ -47,7 +47,11 @@ export const POST: APIRoute = async ({ request }) => {
       },
     });
 
-    return json({ preferenceId: result.id });
+    return json({
+      preferenceId: result.id,
+      initPoint:    result.init_point,
+      sandboxPoint: result.sandbox_init_point,
+    });
   } catch (e: any) {
     return json({ error: e?.message ?? "Error al crear preferencia" }, 500);
   }
