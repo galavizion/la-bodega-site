@@ -516,7 +516,7 @@ export const SITE_SETTINGS_QUERY = groq`
     *[_type == "siteSettingsMenu"][0].navigation,
     *[_type == "siteSettings"][0].navigation
   )[]{
-    icon,
+    "iconUrl": icon.asset->url,
     label,
     type,
     anchorId,
@@ -524,7 +524,7 @@ export const SITE_SETTINGS_QUERY = groq`
     internalPage->{ "slug": slug.current, title },
     productCategory->{ "slug": slug.current, title },
     children[]{
-      icon,
+      "iconUrl": icon.asset->url,
       label,
       type,
       anchorId,

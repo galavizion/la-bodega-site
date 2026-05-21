@@ -88,7 +88,7 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
             {hasChildren ? (
               <>
                 <button class="submenu-toggle" type="button" aria-expanded="false" data-submenu-toggle>
-                  {item.icon && <span class="nav-icon" aria-hidden="true">{item.icon}</span>}
+                  {item.iconUrl && <img src={item.iconUrl} class="nav-icon" aria-hidden="true" alt="" />}
                   {item.label}
                   <span class="chev" aria-hidden="true">▾</span>
                 </button>
@@ -96,7 +96,7 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
                   {item.children!.map((child: NavItem) => (
                     <li>
                       <a href={resolveHref(child)}>
-                        {child.icon && <span class="nav-icon" aria-hidden="true">{child.icon}</span>}
+                        {child.iconUrl && <img src={child.iconUrl} class="nav-icon" aria-hidden="true" alt="" />}
                         {child.label}
                       </a>
                     </li>
@@ -105,7 +105,7 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
               </>
             ) : (
               <a href={resolveHref(item)}>
-                {item.icon && <span class="nav-icon" aria-hidden="true">{item.icon}</span>}
+                {item.iconUrl && <img src={item.iconUrl} class="nav-icon" aria-hidden="true" alt="" />}
                 {item.label}
               </a>
             )}
@@ -413,7 +413,7 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
   .menu a:hover,
   .submenu-toggle:hover { background: rgba(255,255,255,.1); }
 
-  .nav-icon { font-size: 14px; line-height: 1; flex-shrink: 0; }
+  .nav-icon { width: 18px; height: 18px; object-fit: contain; flex-shrink: 0; display: block; }
 
   .chev { font-size: 10px; opacity: .7; transition: transform .18s; }
 
