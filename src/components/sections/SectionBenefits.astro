@@ -48,7 +48,7 @@ const sectionId: string | undefined = settings?.id;
 
 const bg = props.bgColor && props.bgColor !== "none" ? props.bgColor : null;
 const bgTheme = bg === "#000000" ? "section--on-dark"
-  : (bg === "#ffffff" || bg?.toLowerCase() === "#FFD700") ? "section--on-light"
+  : (bg === "#ffffff" || bg?.toLowerCase() === "#ffd700") ? "section--on-light"
   : "";
 
 const rawItems: BenefitItemInput[] = Array.isArray(props.items) ? props.items : [];
