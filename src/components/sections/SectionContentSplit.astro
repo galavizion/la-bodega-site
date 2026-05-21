@@ -21,7 +21,7 @@ const resolvedId = sectionId || settings?.sectionId;
 const bg = bgColor && bgColor !== "none" ? bgColor : null;
 const bgNorm = bg?.toLowerCase().replace(/\s/g, "");
 const isDark  = bgNorm === "#000000" || bgNorm === "#000";
-const isLight = bgNorm === "#ffffff" || bgNorm === "#fff" || bgNorm === "#f7e96a" || bgNorm === "white";
+const isLight = bgNorm === "#ffffff" || bgNorm === "#fff" || bgNorm === "#FFD700" || bgNorm === "white";
 const bgTheme = isDark ? "section--on-dark" : isLight ? "section--on-light" : "";
 const imgUrl = image ? urlFor(image).width(1200).height(800).quality(80).auto("format").url() : null;
 

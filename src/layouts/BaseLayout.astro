@@ -266,13 +266,13 @@ const schemas = [
               {/* Col 1 — Logo + Matriz */}
               <div class="footer__brand">
                 <a href="/" aria-label="Ir al inicio" class="footer__logo-wrap">
-                  {settings?.logoAltUrl ? (
-                    <img src={settings.logoAltUrl} alt={settings?.siteName ?? "Logo"} height="38" loading="lazy" />
-                  ) : settings?.logoUrl ? (
-                    <img src={settings.logoUrl} alt={settings?.siteName ?? "Logo"} height="38" loading="lazy" />
-                  ) : (
-                    <span class="footer__logo-text">{settings?.siteName ?? "Logo"}</span>
-                  )}
+                  <img
+                    src={settings?.logoAltUrl ?? settings?.logoUrl ?? "/logo-bdi-negro.svg"}
+                    alt={settings?.siteName ?? "BDI"}
+                    height="46"
+                    width="46"
+                    loading="lazy"
+                  />
                 </a>
 
                 {settings?.footerMatriz && (
@@ -460,7 +460,7 @@ const schemas = [
   }
 
   /* Col 1 — brand */
-  .footer__logo-wrap img { height: 38px; width: auto; display: block; }
+  .footer__logo-wrap img { height: 46px; width: 46px; display: block; object-fit: contain; }
   .footer__logo-text { font-size: 16px; font-weight: 800; }
 
   .footer__matriz { margin-top: 16px; display: grid; gap: 6px; }
@@ -484,7 +484,7 @@ const schemas = [
     transition: color .15s;
   }
   .footer__contact-row svg { flex-shrink: 0; margin-top: 1px; opacity: .7; }
-  a.footer__contact-row:hover { color: #F7E96A; }
+  a.footer__contact-row:hover { color: #FFD700; }
 
   /* Columnas genéricas */
   .footer__col { display: grid; gap: 0; align-content: start; }
@@ -510,7 +510,7 @@ const schemas = [
     text-decoration: none;
     transition: color .15s;
   }
-  .footer__links a:hover { color: #F7E96A; }
+  .footer__links a:hover { color: #FFD700; }
 
   /* Col 4 — social */
   .footer__social {
@@ -526,12 +526,12 @@ const schemas = [
     width: 30px;
     height: 30px;
     border-radius: 8px;
-    background: rgba(247,233,106,.10);
-    border: 1px solid rgba(247,233,106,.22);
-    color: #F7E96A;
+    background: rgba(255,215,0,.10);
+    border: 1px solid rgba(255,215,0,.22);
+    color: #FFD700;
     transition: background .15s;
   }
-  .footer__social a:hover { background: rgba(247,233,106,.22); }
+  .footer__social a:hover { background: rgba(255,215,0,.22); }
 
   .footer__cta-btn {
     display: inline-flex;
@@ -539,7 +539,7 @@ const schemas = [
     gap: 6px;
     padding: 9px 16px;
     border-radius: 8px;
-    background: #F7E96A;
+    background: #FFD700;
     color: #000;
     font-weight: 700;
     font-size: 11px;
@@ -575,8 +575,8 @@ const schemas = [
     line-height: 1.4;
     transition: color .15s;
   }
-  a.footer__branch-name:hover { color: #F7E96A; }
-  .footer__branch-name svg { flex-shrink: 0; margin-top: 1px; color: #F7E96A; }
+  a.footer__branch-name:hover { color: #FFD700; }
+  .footer__branch-name svg { flex-shrink: 0; margin-top: 1px; color: #FFD700; }
 
   .footer__branch-address {
     color: rgba(255,255,255,.5);
@@ -593,7 +593,7 @@ const schemas = [
     text-decoration: none;
     transition: color .15s;
   }
-  .footer__branch-phone:hover { color: #F7E96A; }
+  .footer__branch-phone:hover { color: #FFD700; }
   .footer__branch-phone svg { color: rgba(255,255,255,.4); }
 
   /* ── Bottom bar ── */

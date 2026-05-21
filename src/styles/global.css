@@ -5,11 +5,11 @@
   --thm-font: 'Poppins', sans-serif;
   --heading-font: 'Poppins', sans-serif;
   --bg: #00000025;
-  --thm-base: #F7E96A;
-  --thm-base-rgb: 247, 233, 106;
-  --thm-primary: #F7E96A;
-  --thm-primary-rgb: 247, 233, 106;
-  --color-accent: #F7E96A;
+  --thm-base: #FFD700;
+  --thm-base-rgb: 255, 215, 0;
+  --thm-primary: #FFD700;
+  --thm-primary-rgb: 255, 215, 0;
+  --color-accent: #FFD700;
 
   --thm-black: #1e293b;
   --thm-black-rgb: 30, 41, 59;
@@ -768,7 +768,7 @@ width: 50%; text-align: center; margin: 0 auto;
   gap: 10px;
   padding: 12px 14px;
   border-radius: 14px;
-  background: #F7E96A;
+  background: #FFD700;
   border: none;
   color: #000;
   font-weight: 700;
@@ -824,14 +824,14 @@ width: 50%; text-align: center; margin: 0 auto;
   border-radius: 14px;
   display:grid;
   place-items:center;
-  background: rgba(247,233,106,.12);
-  border: 1px solid rgba(247,233,106,.25);
-  color: #F7E96A;
+  background: rgba(255,215,0,.12);
+  border: 1px solid rgba(255,215,0,.25);
+  color: #FFD700;
   transition: transform .15s ease, background .15s ease;
 }
 .footer-social a:hover{
   transform: translateY(-1px);
-  background: rgba(247,233,106,.22);
+  background: rgba(255,215,0,.22);
 }
 .footer-social i{
   font-size: 18px;
@@ -1120,7 +1120,7 @@ width: 50%; text-align: center; margin: 0 auto;
 .section--on-light label { color: #000; }
 
 .btn--primary {
-  background: #F7E96A;
+  background: #FFD700;
   color: #000;
   border: none;
   font-weight: 700;
@@ -1139,7 +1139,7 @@ width: 50%; text-align: center; margin: 0 auto;
 /* Fondo oscuro → botón amarillo (ya es el default) */
 .section--on-dark .btn--primary,
 .section .btn--primary {
-  background: #F7E96A;
+  background: #FFD700;
   color: #000;
 }
 

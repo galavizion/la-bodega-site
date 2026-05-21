@@ -41,7 +41,7 @@ export const sectionCTA = defineType({
           { title: "Transparente (default)", value: "none"    },
           { title: "Negro",                  value: "#000000" },
           { title: "Blanco",                 value: "#ffffff" },
-          { title: "Amarillo",               value: "#F7E96A" },
+          { title: "Amarillo",               value: "#FFD700" },
         ],
         layout: "radio",
       },

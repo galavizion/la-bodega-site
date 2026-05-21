@@ -48,7 +48,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 const bg = bgColor && bgColor !== "none" ? bgColor : null;
 const bgTheme = bg === "#000000" ? "section--on-dark"
-  : (bg === "#ffffff" || bg?.toLowerCase() === "#f7e96a") ? "section--on-light"
+  : (bg === "#ffffff" || bg?.toLowerCase() === "#FFD700") ? "section--on-light"
   : "";
 
 const safeFields: FormField[] = Array.isArray(fields) && fields.length
@@ -296,7 +296,7 @@ const waActive = waPhone;
   .field select:focus,
   .field textarea:focus {
     outline: none;
-    border-color: #F7E96A;
+    border-color: #FFD700;
     box-shadow: 0 0 0 3px rgba(247,233,106,.20);
     background: rgba(255,255,255,.10);
   }
@@ -344,7 +344,7 @@ const waActive = waPhone;
 
   /* Color contrario al fondo, texto = color del fondo */
   .section .form-btn,
-  .section--on-dark .form-btn { background: #F7E96A; color: var(--section-bg, #000); }
+  .section--on-dark .form-btn { background: #FFD700; color: var(--section-bg, #000); }
   .section--on-light .form-btn { background: #000; color: var(--section-bg, #fff); }
 
   /* Evita que el CSS global sobreescriba el color del texto del botón */

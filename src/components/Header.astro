@@ -71,11 +71,13 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
   <!-- ── Nav principal: logo / menu / acciones ── -->
   <nav class="main-nav container">
     <a class="logo" href="/" aria-label="Ir al inicio">
-      {settings?.logoUrl ? (
-        <img src={settings.logoUrl} alt={settings?.siteName ?? "Logo"} height="40" loading="eager" />
-      ) : (
-        <span class="logo-text">{settings?.siteName ?? "Logo"}</span>
-      )}
+      <img
+        src={settings?.logoUrl ?? "/logo-bdi-negro.svg"}
+        alt={settings?.siteName ?? "BDI"}
+        height="46"
+        width="46"
+        loading="eager"
+      />
     </a>
 
     <ul class="menu" id="mainMenu" data-menu>
@@ -369,7 +371,7 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
   }
 
   .logo { display: inline-flex; align-items: center; flex-shrink: 0; }
-  .logo img { height: 40px; width: auto; display: block; }
+  .logo img { height: 46px; width: 46px; display: block; object-fit: contain; }
   .logo-text { font-weight: 800; font-size: 16px; color: #fff; }
 
   /* Menú */
@@ -454,7 +456,7 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
     align-items: center;
     padding: 8px 16px;
     border-radius: 8px;
-    background: #F7E96A;
+    background: #FFD700;
     color: #000;
     font-weight: 700;
     font-size: 12px;
@@ -496,7 +498,7 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
     min-width: 16px; height: 16px;
     padding: 0 4px;
     border-radius: 999px;
-    background: #F7E96A;
+    background: #FFD700;
     color: #000;
     font-size: 10px;
     font-weight: 800;
@@ -586,7 +588,7 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
 
   /* ── Franja de categorías (tienda) ─────────────────── */
   .shop-bar {
-    background: #F7E96A;
+    background: #FFD700;
     border-top: 1px solid rgba(0,0,0,.08);
   }
   .shop-bar__inner {
@@ -681,7 +683,7 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
       font-size: 12px;
       border-radius: 0;
     }
-    .shop-cats__list a.is-active { background: #F7E96A; }
+    .shop-cats__list a.is-active { background: #FFD700; }
 
     .shop-cats__toggle {
       display: inline-flex;
