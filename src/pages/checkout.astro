@@ -319,8 +319,7 @@ const mpEnabled   = !!mpPublicKey;
           window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: 0, totalQty: 0 } }));
 
           // Redirigir al checkout de MercadoPago
-          const isProd = import.meta.env?.PROD ?? location.hostname !== "localhost";
-          const mpUrl  = isProd ? prefData.initPoint : (prefData.sandboxPoint ?? prefData.initPoint);
+          const mpUrl = prefData.initPoint ?? prefData.sandboxPoint;
           if (!mpUrl) throw new Error("No se pudo obtener la URL de pago");
           window.location.href = mpUrl;
           if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Confirmar pedido →"; }
