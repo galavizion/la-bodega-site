@@ -194,10 +194,6 @@ const mpEnabled   = !!mpPublicKey;
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer is:inline></script>
   )}
 
-  {mpEnabled && (
-    <script src="https://sdk.mercadopago.com/js/v2" is:inline></script>
-  )}
-
   <script is:inline define:vars={{ waPhone, mpPublicKey }}>
     const KEY = "ranking_cart_v1";
     const getCart = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; } };
@@ -322,9 +318,17 @@ const mpEnabled   = !!mpPublicKey;
           localStorage.removeItem(KEY);
           window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: 0, totalQty: 0 } }));
 
-          // Renderizar wallet brick
+          // Cargar SDK de MP dinámicamente y renderizar wallet brick
+          await new Promise((resolve, reject) => {
+            if (window.MercadoPago) return resolve();
+            const s = document.createElement("script");
+            s.src = "https://sdk.mercadopago.com/js/v2";
+            s.onload = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+          });
           if (walletContainer) walletContainer.style.display = "block";
-          const mp = new window.MercadoPago(mpPublicKey);
+          const mp = new window.MercadoPago(mpPublicKey, { locale: "es-MX" });
           mp.bricks().create("wallet", "mp-wallet-container", {
             initialization: { preferenceId: prefData.preferenceId },
             customization: { texts: { valueProp: "smart_option" } },
