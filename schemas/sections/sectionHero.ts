@@ -141,6 +141,25 @@ export const sectionHero = defineType({
       ],
     }),
 
+    // ── Altura ───────────────────────────────────────────────────
+    defineField({
+      name: "minHeight",
+      title: "Altura mínima",
+      type: "string",
+      description: "Controla qué tan alto se ve el hero.",
+      options: {
+        list: [
+          { title: "Auto (solo contenido)",  value: "auto"  },
+          { title: "Compacto  — 30vh",       value: "30vh"  },
+          { title: "Mediano   — 50vh",       value: "50vh"  },
+          { title: "Grande    — 70vh",       value: "70vh"  },
+          { title: "Pantalla  — 100vh",      value: "100vh" },
+        ],
+        layout: "radio",
+      },
+      initialValue: "auto",
+    }),
+
     // ── Configuración ────────────────────────────────────────────
     defineField({
       name: "settings",
