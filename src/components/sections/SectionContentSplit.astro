@@ -23,7 +23,7 @@ const bgNorm = bg?.toLowerCase().replace(/\s/g, "");
 const isDark  = bgNorm === "#000000" || bgNorm === "#000";
 const isLight = bgNorm === "#ffffff" || bgNorm === "#fff" || bgNorm === "#ffd700" || bgNorm === "white";
 const bgTheme = isDark ? "section--on-dark" : isLight ? "section--on-light" : "";
-const imgUrl = image ? urlFor(image).width(1200).height(800).quality(80).auto("format").url() : null;
+const imgUrl = image ? urlFor(image).width(1200).quality(80).auto("format").url() : null;
 
 // Extrae el embed URL de YouTube desde URL o código iframe
 function getYoutubeEmbed(input: string | undefined): string | null {
@@ -71,7 +71,7 @@ const hasSplit = !!(videoEmbedUrl || imgUrl);
                   referrerpolicy="strict-origin-when-cross-origin" allowfullscreen loading="lazy"></iframe>
               </div>
             ) : imgUrl ? (
-              <Image src={imgUrl} alt={title || ""} width={1200} height={800} loading="lazy" decoding="async" />
+              <img src={imgUrl} alt={title || ""} width={1200} loading="lazy" decoding="async" style="width:100%;height:auto;display:block;" />
             ) : null}
           </div>
         )}
@@ -97,7 +97,7 @@ const hasSplit = !!(videoEmbedUrl || imgUrl);
                   referrerpolicy="strict-origin-when-cross-origin" allowfullscreen loading="lazy"></iframe>
               </div>
             ) : imgUrl ? (
-              <Image src={imgUrl} alt={title || ""} width={1200} height={800} loading="lazy" decoding="async" />
+              <img src={imgUrl} alt={title || ""} width={1200} loading="lazy" decoding="async" style="width:100%;height:auto;display:block;" />
             ) : null}
           </div>
         )}
