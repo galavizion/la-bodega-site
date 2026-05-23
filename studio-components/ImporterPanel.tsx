@@ -44,6 +44,21 @@ export function ImporterPanel() {
       React.createElement(
         "a",
         {
+          href: "/api/export-products",
+          target: "_blank",
+          rel: "noopener noreferrer",
+          style: {
+            display: "inline-flex", alignItems: "center", gap: "8px",
+            padding: "12px 24px", borderRadius: "8px",
+            background: "#16a34a",
+            color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: "15px",
+          },
+        },
+        "📤 Exportar CSV"
+      ),
+      React.createElement(
+        "a",
+        {
           href: "/admin/productos",
           target: "_blank",
           rel: "noopener noreferrer",
