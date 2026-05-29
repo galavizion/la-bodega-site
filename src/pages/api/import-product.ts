@@ -323,18 +323,28 @@ export const POST: APIRoute = async ({ request }) => {
         } : {}),
       }).commit();
 
-      // ── Agregar variante si no existe ya por SKU ────────────────────────────
+      // ── Agregar o actualizar variante por SKU ──────────────────────────────
       if (variant) {
-        const existingSkus: string[] = (await client.fetch<string[]>(
-          `*[_type=="catalogItem" && _id==$id][0].variants[].sku`,
+        const existingVariants: { _key: string; sku: string }[] = (await client.fetch(
+          `*[_type=="catalogItem" && _id==$id][0].variants[]{ _key, sku }`,
           { id: existingId }
         )) ?? [];
 
-        if (!existingSkus.includes(variant.sku)) {
+        const matchingKey = existingVariants.find((v) => v.sku === variant.sku)?._key;
+
+        if (!matchingKey) {
           await client.patch(existingId).append("variants", [variant]).commit();
           return new Response(JSON.stringify({ action: "variante agregada", id: existingId }), { status: 200 });
         } else {
-          return new Response(JSON.stringify({ action: "variante ya existe (omitida)", id: existingId }), { status: 200 });
+          // Actualizar campos de la variante existente por su _key
+          const patch: Record<string, any> = {};
+          if (variant.price        !== undefined) patch[`variants[_key=="${matchingKey}"].price`]        = variant.price;
+          if (variant.comparePrice !== undefined) patch[`variants[_key=="${matchingKey}"].comparePrice`] = variant.comparePrice;
+          if (variant.stock        !== undefined) patch[`variants[_key=="${matchingKey}"].stock`]        = variant.stock;
+          if (variant.size)                       patch[`variants[_key=="${matchingKey}"].size`]         = variant.size;
+          if (variant.label)                      patch[`variants[_key=="${matchingKey}"].label`]        = variant.label;
+          if (Object.keys(patch).length) await client.patch(existingId).set(patch).commit();
+          return new Response(JSON.stringify({ action: "variante actualizada", id: existingId }), { status: 200 });
         }
       }
 
