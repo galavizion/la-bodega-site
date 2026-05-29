@@ -155,8 +155,11 @@ export const POST: APIRoute = async ({ request }) => {
     "image link", "image_link", "variant image", "variant_image", "media",
     "url", "src",
   ]);
-  const tagsKey     = findKey(["tags", "etiquetas"]);
-  const certKey     = findKey(["certifications", "certificaciones"]);
+  const tagsKey       = findKey(["tags", "etiquetas"]);
+  const certKey       = findKey(["certifications", "certificaciones"]);
+  const boxEnabledKey = findKey(["boxenabled", "box_enabled", "caja_activa", "venta_caja"]);
+  const boxUnitsKey   = findKey(["boxunitsperbox", "box_units", "unitsperbox", "piezas_caja", "piezas por caja"]);
+  const boxLabelKey   = findKey(["boxlabel", "box_label", "etiqueta_caja"]);
   const skuKey      = findKey(["sku", "codigo", "código", "code"]);
   const precioKey   = findKey(["precio", "price", "variant_price"]);
   const ofertaKey   = findKey(["precio_oferta", "compare_price", "variant_comparePrice", "precio_anterior"]);
@@ -276,6 +279,20 @@ export const POST: APIRoute = async ({ request }) => {
       }
     : null;
 
+  // ── Opción de caja ─────────────────────────────────────────────────────────
+  const boxEnabledRaw = boxEnabledKey ? row[boxEnabledKey] : undefined;
+  const boxUnitsRaw   = boxUnitsKey   ? row[boxUnitsKey]   : undefined;
+  const boxLabelRaw   = boxLabelKey   ? row[boxLabelKey]   : undefined;
+  const hasBoxData    = boxEnabledRaw !== undefined || boxUnitsRaw !== undefined || boxLabelRaw !== undefined;
+
+  const boxOption = hasBoxData ? {
+    enabled:     boxEnabledRaw !== undefined
+                   ? String(boxEnabledRaw).toLowerCase() === "true" || boxEnabledRaw === true || String(boxEnabledRaw) === "1"
+                   : false,
+    unitsPerBox: boxUnitsRaw !== undefined && boxUnitsRaw !== "" ? Number(boxUnitsRaw) : undefined,
+    boxLabel:    boxLabelRaw ? String(boxLabelRaw).trim() : undefined,
+  } : undefined;
+
   // ── Buscar producto existente por slug o título ─────────────────────────────
   const existingId: string | null = await client.fetch(
     `*[_type=="catalogItem" && (slug.current==$slug || title==$title)][0]._id`,
@@ -296,6 +313,7 @@ export const POST: APIRoute = async ({ request }) => {
         published: true,
         ...(coverImageAsset ? { coverImage: coverImageAsset } : imageUrl ? { imageUrl } : {}),
         ...(categoryRef ? { category: categoryRef } : {}),
+        ...(boxOption ? { boxOption } : {}),
         ...(row.whatsappPhone ? {
           whatsapp: {
             enabled: true,
@@ -340,6 +358,7 @@ export const POST: APIRoute = async ({ request }) => {
         ...(categoryRef ? { category: categoryRef } : {}),
         ...(body ? { body } : {}),
         variants: variant ? [variant] : [],
+        ...(boxOption ? { boxOption } : {}),
         whatsapp: {
           enabled: true,
           phone: String(row.whatsappPhone || ""),
