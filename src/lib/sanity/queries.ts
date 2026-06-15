@@ -524,6 +524,7 @@ export const SITE_SETTINGS_QUERY = groq`
     type,
     anchorId,
     externalUrl,
+    "pdfUrl": pdfFile.asset->url,
     internalPage->{ "slug": slug.current, title },
     productCategory->{ "slug": slug.current, title },
     children[]{
@@ -532,6 +533,7 @@ export const SITE_SETTINGS_QUERY = groq`
       type,
       anchorId,
       externalUrl,
+      "pdfUrl": pdfFile.asset->url,
       internalPage->{ "slug": slug.current, title },
       productCategory->{ "slug": slug.current, title }
     }

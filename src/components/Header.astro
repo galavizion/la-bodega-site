@@ -95,7 +95,10 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
                 <ul class="submenu" data-submenu>
                   {item.children!.map((child: NavItem) => (
                     <li>
-                      <a href={resolveHref(child)}>
+                      <a
+                        href={resolveHref(child)}
+                        {...(child.type === "pdf" ? { download: true, target: "_blank", rel: "noopener" } : {})}
+                      >
                         {child.iconUrl && <img src={child.iconUrl} class="nav-icon" aria-hidden="true" alt="" />}
                         {child.label}
                       </a>
@@ -104,7 +107,10 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
                 </ul>
               </>
             ) : (
-              <a href={resolveHref(item)}>
+              <a
+                href={resolveHref(item)}
+                {...(item.type === "pdf" ? { download: true, target: "_blank", rel: "noopener" } : {})}
+              >
                 {item.iconUrl && <img src={item.iconUrl} class="nav-icon" aria-hidden="true" alt="" />}
                 {item.label}
               </a>

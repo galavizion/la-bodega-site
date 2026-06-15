@@ -3,6 +3,7 @@ import { defineField, defineType } from "sanity";
 const TYPE_OPTIONS = [
   { title: "Página interna",        value: "internal"  },
   { title: "URL externa",            value: "external"  },
+  { title: "Catálogo PDF (descarga)", value: "pdf"     },
   { title: "Ancla (#)",              value: "anchor"    },
   { title: "Tienda (catálogo)",      value: "shop"      },
   { title: "Categoría de producto", value: "category"  },
@@ -25,6 +26,13 @@ export const navItem = defineType({
     defineField({ name: "type",  title: "Tipo",     type: "string", options: { list: TYPE_OPTIONS } }),
     defineField({ name: "anchorId",    title: "ID de ancla",           type: "string" }),
     defineField({ name: "externalUrl", title: "URL externa",           type: "url"    }),
+    defineField({
+      name: "pdfFile",
+      title: "Archivo PDF",
+      type: "file",
+      description: "Sube el catálogo en PDF. Se añadirá botón de descarga.",
+      options: { accept: "application/pdf" },
+    }),
     defineField({ name: "internalPage",    title: "Página interna",          type: "reference", to: [{ type: "page" }]            }),
     defineField({ name: "productCategory", title: "Categoría de producto",   type: "reference", to: [{ type: "productCategory" }] }),
     defineField({
@@ -45,6 +53,7 @@ export const navItem = defineType({
             defineField({ name: "type",  title: "Tipo",     type: "string", options: { list: TYPE_OPTIONS } }),
             defineField({ name: "anchorId",    title: "ID de ancla",         type: "string" }),
             defineField({ name: "externalUrl", title: "URL externa",         type: "url"    }),
+            defineField({ name: "pdfFile", title: "Archivo PDF", type: "file", options: { accept: "application/pdf" } }),
             defineField({ name: "internalPage",    title: "Página interna",        type: "reference", to: [{ type: "page" }]            }),
             defineField({ name: "productCategory", title: "Categoría de producto", type: "reference", to: [{ type: "productCategory" }] }),
           ],
