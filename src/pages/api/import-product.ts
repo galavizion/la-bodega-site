@@ -160,8 +160,9 @@ export const POST: APIRoute = async ({ request }) => {
   const boxEnabledKey = findKey(["boxenabled", "box_enabled", "caja_activa", "venta_caja"]);
   const boxUnitsKey   = findKey(["boxunitsperbox", "box_units", "unitsperbox", "piezas_caja", "piezas por caja"]);
   const boxLabelKey   = findKey(["boxlabel", "box_label", "etiqueta_caja"]);
-  const skuKey      = findKey(["sku", "codigo", "código", "code"]);
-  const precioKey   = findKey(["precio", "price", "variant_price"]);
+  const skuKey        = findKey(["sku", "codigo", "código", "code"]);
+  const basePriceKey  = findKey(["precio", "price"]);
+  const precioKey     = findKey(["precio", "price", "variant_price"]);
   const ofertaKey   = findKey(["precio_oferta", "compare_price", "variant_comparePrice", "precio_anterior"]);
   const dispKey     = findKey(["disponible", "stock", "variant_stock", "disponibilidad"]);
   const v1Key       = findKey(["variante_1", "variant_1", "variante1"]);
@@ -259,6 +260,7 @@ export const POST: APIRoute = async ({ request }) => {
     : v1;
 
   // ── Construir objeto variante ───────────────────────────────────────────────
+  const basePriceValue = basePriceKey && row[basePriceKey] !== "" && row[basePriceKey] != null ? Number(row[basePriceKey]) : undefined;
   const variantSku   = String(skuKey  ? row[skuKey]  : row.variant_sku  || "").trim();
   const variantPrice = precioKey ? row[precioKey] : row.variant_price;
   const variantCompare = ofertaKey ? row[ofertaKey] : row.variant_comparePrice;
@@ -311,6 +313,7 @@ export const POST: APIRoute = async ({ request }) => {
         tags,
         certifications,
         published: true,
+        ...(basePriceValue != null && !isNaN(basePriceValue) ? { price: basePriceValue } : {}),
         ...(coverImageAsset ? { coverImage: coverImageAsset } : imageUrl ? { imageUrl } : {}),
         ...(categoryRef ? { category: categoryRef } : {}),
         ...(boxOption ? { boxOption } : {}),
@@ -364,6 +367,7 @@ export const POST: APIRoute = async ({ request }) => {
         tags,
         certifications,
         published: true,
+        ...(basePriceValue != null && !isNaN(basePriceValue) ? { price: basePriceValue } : {}),
         ...(coverImageAsset ? { coverImage: coverImageAsset } : imageUrl ? { imageUrl } : {}),
         ...(categoryRef ? { category: categoryRef } : {}),
         ...(body ? { body } : {}),

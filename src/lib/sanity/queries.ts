@@ -403,7 +403,7 @@ export const CATALOG_LIST = groq`
   category,
   coverImage,
   imageUrl,
-  price,
+  "price": coalesce(price, variants[0].price),
   priceLabel,
   whatsapp{
     enabled,
@@ -468,7 +468,7 @@ export const CATALOG_BY_CATEGORY = groq`
     excerpt,
     coverImage,
     imageUrl,
-    price,
+    "price": coalesce(price, variants[0].price),
     priceLabel,
     familySlug,
     "familyCount": select(
