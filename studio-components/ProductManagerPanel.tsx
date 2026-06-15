@@ -21,6 +21,7 @@ export function ProductManagerPanel() {
   const [confirm, setConfirm]     = useState<"delete" | null>(null);
   const [tagFilter, setTagFilter]       = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "published" | "hidden">("all");
+  const [searchQuery, setSearchQuery]   = useState("");
   const [toast, setToast]         = useState<{ msg: string; ok: boolean } | null>(null);
 
   const load = useCallback(() => {
@@ -42,8 +43,12 @@ export function ProductManagerPanel() {
   const allTags = [...new Set(products.flatMap((p) => p.tags ?? []))].sort();
 
   const filteredProducts = products.filter((p) => {
-    if (statusFilter === "published") return p.published !== false;
-    if (statusFilter === "hidden")    return p.published === false;
+    if (statusFilter === "published" && p.published === false) return false;
+    if (statusFilter === "hidden"    && p.published !== false) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return (p.title ?? "").toLowerCase().includes(q) || (p.brand ?? "").toLowerCase().includes(q);
+    }
     return true;
   });
 
@@ -171,6 +176,14 @@ export function ProductManagerPanel() {
         }),
         "Todos"
       ),
+
+      React.createElement("input", {
+        type: "search",
+        placeholder: "Buscar por nombre o marca…",
+        value: searchQuery,
+        onChange: (e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value),
+        style: { padding: "7px 10px", borderRadius: "6px", border: "1px solid #ddd", fontSize: "13px", minWidth: "200px", flex: 1 },
+      }),
 
       React.createElement(
         "select",
