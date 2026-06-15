@@ -312,7 +312,6 @@ export const POST: APIRoute = async ({ request }) => {
         ...(body ? { body } : {}),
         tags,
         certifications,
-        published: true,
         ...(basePriceValue != null && !isNaN(basePriceValue) ? { price: basePriceValue } : {}),
         ...(coverImageAsset ? { coverImage: coverImageAsset } : imageUrl ? { imageUrl } : {}),
         ...(categoryRef ? { category: categoryRef } : {}),
