@@ -36,6 +36,22 @@ export const siteSettingsShop = defineType({
       initialValue: 0,
       validation: (Rule) => Rule.min(-100).max(200),
     }),
+    defineField({
+      name: "shippingCost",
+      title: "Costo de envío (MXN)",
+      type: "number",
+      description: "Costo de envío para pedidos que no alcanzan el umbral de envío gratis.",
+      initialValue: 0,
+      validation: (Rule) => Rule.min(0),
+    }),
+    defineField({
+      name: "freeShippingThreshold",
+      title: "Envío gratis a partir de (MXN)",
+      type: "number",
+      description: "Si el subtotal del pedido es igual o mayor a este monto, el envío es gratis. Déjalo vacío o en 0 para desactivar.",
+      initialValue: 0,
+      validation: (Rule) => Rule.min(0),
+    }),
   ],
   preview: {
     select: { currency: "currency", rate: "usdRate", markup: "markupPercent", boxMarkup: "boxMarkupPercent" },

@@ -72,6 +72,17 @@ export const POST: APIRoute = async ({ request }) => {
   const calcTotal = Number(total ?? 0) ||
     items.reduce((acc: number, it: any) => acc + Number(it.price ?? 0) * Number(it.qty ?? 1), 0);
 
+  const shopSettings = await sanity
+    .fetch<{ shippingCost: number; freeShippingThreshold: number }>(
+      `{ "shippingCost": coalesce(*[_type=="siteSettingsShop"][0].shippingCost, 0), "freeShippingThreshold": coalesce(*[_type=="siteSettingsShop"][0].freeShippingThreshold, 0) }`
+    )
+    .catch(() => ({ shippingCost: 0, freeShippingThreshold: 0 }));
+  const shippingAmount =
+    shopSettings.freeShippingThreshold > 0 && calcTotal >= shopSettings.freeShippingThreshold
+      ? 0
+      : shopSettings.shippingCost;
+  const grandTotal = calcTotal + shippingAmount;
+
   // ── Crear pedido en Sanity ───────────────────────────
   let created: { _id: string };
   try {
@@ -102,8 +113,8 @@ export const POST: APIRoute = async ({ request }) => {
         };
       }),
       subtotal: calcTotal,
-      shipping: 0,
-      total:    calcTotal,
+      shipping: shippingAmount,
+      total:    grandTotal,
     });
   } catch (e: any) {
     return json({ error: e?.message ?? "Error al guardar el pedido" }, 500);
@@ -154,9 +165,13 @@ export const POST: APIRoute = async ({ request }) => {
             </thead>
             <tbody>${rows}</tbody>
             <tfoot>
+              <tr>
+                <td colspan="2" style="padding:6px 12px">Envío</td>
+                <td style="padding:6px 12px;text-align:right">${shippingAmount === 0 ? "Gratis" : `$${shippingAmount.toLocaleString("es-MX")} MXN`}</td>
+              </tr>
               <tr style="background:#f8fafc">
                 <td colspan="2" style="padding:10px 12px;font-weight:700">TOTAL</td>
-                <td style="padding:10px 12px;font-weight:700;text-align:right">$${calcTotal.toLocaleString("es-MX")} MXN</td>
+                <td style="padding:10px 12px;font-weight:700;text-align:right">$${grandTotal.toLocaleString("es-MX")} MXN</td>
               </tr>
             </tfoot>
           </table>
@@ -169,13 +184,13 @@ export const POST: APIRoute = async ({ request }) => {
     await resend.emails.send({
       from: "La Bodega del Instalador <noreply@labodegadelinstalador.net>",
       to: notifyEmails,
-      subject: `[Pedido] #${num} — ${customer.name} · $${calcTotal.toLocaleString("es-MX")} MXN`,
+      subject: `[Pedido] #${num} — ${customer.name} · $${grandTotal.toLocaleString("es-MX")} MXN`,
       html,
       replyTo: customer.email || undefined,
     }).catch(() => {});
   }
 
-  return json({ success: true, orderId: created._id, orderNumber: num });
+  return json({ success: true, orderId: created._id, orderNumber: num, shipping: shippingAmount, total: grandTotal });
 };
 
 function json(data: unknown, status = 200) {

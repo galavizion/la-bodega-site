@@ -23,6 +23,9 @@ const payData = {
 
 const mpPublicKey = import.meta.env.PUBLIC_MP_PUBLIC_KEY ?? "";
 const mpEnabled   = !!mpPublicKey;
+
+const shippingCost: number = settings?.shippingCost ?? 0;
+const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
 ---
 
 <BaseLayout
@@ -181,7 +184,7 @@ const mpEnabled   = !!mpPublicKey;
           </div>
           <div class="sum-totals">
             <div class="sum-row"><span>Subtotal</span><strong id="sumSubtotal">—</strong></div>
-            <div class="sum-row sum-row--shipping"><span>Envío</span><strong>A cotizar</strong></div>
+            <div class="sum-row sum-row--shipping"><span>Envío</span><strong id="sumShipping">—</strong></div>
             <div class="sum-row sum-row--total"><span>Total estimado</span><strong id="sumTotal">—</strong></div>
           </div>
         </div>
@@ -194,14 +197,18 @@ const mpEnabled   = !!mpPublicKey;
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer is:inline></script>
   )}
 
-  <script is:inline define:vars={{ waPhone, mpPublicKey }}>
+  <script is:inline define:vars={{ waPhone, mpPublicKey, shippingCost, freeShippingThreshold }}>
     const KEY = "ranking_cart_v1";
     const getCart = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; } };
+
+    const calcShipping = (subtotal) =>
+      freeShippingThreshold > 0 && subtotal >= freeShippingThreshold ? 0 : shippingCost;
 
     // ── Poblar resumen ──────────────────────────────────
     const items = getCart();
     const listEl = document.getElementById("summaryList");
     const subtotalEl = document.getElementById("sumSubtotal");
+    const shippingEl = document.getElementById("sumShipping");
     const totalEl = document.getElementById("sumTotal");
 
     if (!items.length) {
@@ -227,8 +234,10 @@ const mpEnabled   = !!mpPublicKey;
       }).join("");
 
       const fmt = (n) => "$" + n.toLocaleString("es-MX") + " MXN";
+      const shipping = total ? calcShipping(total) : 0;
       if (subtotalEl) subtotalEl.textContent = total ? fmt(total) : "Ver cotización";
-      if (totalEl)    totalEl.textContent    = total ? fmt(total) : "Ver cotización";
+      if (shippingEl) shippingEl.textContent = !total ? "Ver cotización" : shipping === 0 ? "Gratis" : fmt(shipping);
+      if (totalEl)    totalEl.textContent    = total ? fmt(total + shipping) : "Ver cotización";
     }
 
     // ── Copiar datos bancarios ──────────────────────────
@@ -291,7 +300,7 @@ const mpEnabled   = !!mpPublicKey;
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Error al procesar el pedido");
-      return { orderNumber: data.orderNumber, cartItems };
+      return { orderNumber: data.orderNumber, cartItems, shipping: data.shipping || 0 };
     };
 
     form && form.addEventListener("submit", async (e) => {
@@ -304,12 +313,12 @@ const mpEnabled   = !!mpPublicKey;
       if (paymentMethod === "mercadopago" && mpPublicKey) {
         if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Procesando…"; }
         try {
-          const { orderNumber, cartItems } = await validateAndCreateOrder("mercadopago");
+          const { orderNumber, cartItems, shipping } = await validateAndCreateOrder("mercadopago");
 
           const prefRes = await fetch("/api/mp-preference", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ items: cartItems, orderNumber, siteUrl: window.location.origin }),
+            body: JSON.stringify({ items: cartItems, orderNumber, shipping, siteUrl: window.location.origin }),
           });
           const prefData = await prefRes.json();
           if (!prefRes.ok || !prefData.preferenceId) throw new Error(prefData.error || "Error al iniciar pago");

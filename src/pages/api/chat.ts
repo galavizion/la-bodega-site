@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import OpenAI from "openai";
 import { createClient } from "@sanity/client";
+import { resolveMarkup } from "../../lib/pricing";
 
 export const prerender = false;
 
@@ -167,14 +168,39 @@ async function runSearchContent(query: string): Promise<string> {
   return results.join("\n\n---\n\n");
 }
 
-async function runSearchProducts(query: string, markupFactor: number): Promise<string> {
+type ShopSettings = {
+  shopCurrency: string;
+  usdRate: number;
+  markupPercent: number;
+  boxMarkupPercent: number;
+};
+
+async function fetchShopSettings(): Promise<ShopSettings> {
+  return sanity.fetch(
+    `{
+      "shopCurrency": coalesce(*[_type=="siteSettingsShop"][0].currency, "USD"),
+      "usdRate": coalesce(*[_type=="siteSettingsShop"][0].usdRate, 17),
+      "markupPercent": coalesce(*[_type=="siteSettingsShop"][0].markupPercent, 26.5),
+      "boxMarkupPercent": coalesce(*[_type=="siteSettingsShop"][0].boxMarkupPercent, 0)
+    }`
+  ).catch(() => ({ shopCurrency: "USD", usdRate: 17, markupPercent: 26.5, boxMarkupPercent: 0 }));
+}
+
+async function runSearchProducts(query: string, settings: ShopSettings): Promise<string> {
   const results = await sanity.fetch<any[]>(
     `*[_type == "catalogItem" && published != false && (
       title match $q || excerpt match $q || pt::text(body) match $q
     )][0...6]{
       _id, title, "slug": slug.current, price, priceLabel,
       "imageUrl": coalesce(mainImage.asset->url, imageUrl),
-      "variantPrice": variants[0].price
+      "variantPrice": variants[0].price,
+      boxOption{ enabled, unitsPerBox, boxLabel },
+      "categoryPricing": category->{
+        markupPercent,
+        boxMarkupPercent,
+        "parentMarkupPercent": parent->markupPercent,
+        "parentBoxMarkupPercent": parent->boxMarkupPercent
+      }
     }`,
     { q: `*${query}*` }
   ).catch(() => [] as any[]);
@@ -183,10 +209,20 @@ async function runSearchProducts(query: string, markupFactor: number): Promise<s
 
   return results.map(p => {
     const raw = p.price ?? p.variantPrice;
+    const { unit, box } = resolveMarkup(p.categoryPricing, settings);
+    const toMXN = (n: number) => (settings.shopCurrency === "USD" ? n * settings.usdRate : n) * (1 + unit / 100);
+
     const priceStr = raw != null
-      ? `$${(raw * markupFactor).toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN`
+      ? `$${toMXN(raw).toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN`
       : p.priceLabel || "Cotización";
-    return `- **${p.title}** | Precio: ${priceStr} | slug: ${p.slug} | id: ${p._id}`;
+
+    let boxStr = "";
+    if (raw != null && p.boxOption?.enabled && p.boxOption.unitsPerBox) {
+      const boxPrice = (settings.shopCurrency === "USD" ? raw * settings.usdRate : raw) * p.boxOption.unitsPerBox * (1 + box / 100);
+      boxStr = ` | ${p.boxOption.boxLabel || `Caja x${p.boxOption.unitsPerBox}`}: $${boxPrice.toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN`;
+    }
+
+    return `- **${p.title}** | Precio: ${priceStr}${boxStr} | slug: ${p.slug} | id: ${p._id}`;
   }).join("\n");
 }
 
@@ -196,11 +232,11 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: "OPENAI_API_KEY no configurada" }), { status: 500 });
   }
 
-  let body: { messages?: any[]; markupFactor?: number };
+  let body: { messages?: any[] };
   try { body = await request.json(); } catch { return new Response("Bad request", { status: 400 }); }
 
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = body.messages ?? [];
-  const markupFactor = body.markupFactor ?? 1.265;
+  const shopSettings = await fetchShopSettings();
 
   // Cargar perfil del bot
   const profile = await sanity.fetch(`*[_type == "chatbotProfile"][0]`).catch(() => null);
@@ -260,7 +296,7 @@ export const POST: APIRoute = async ({ request }) => {
       const args = JSON.parse(tc.function.arguments || "{}");
 
       if (fnName === "search_products") {
-        result = await runSearchProducts(args.query, markupFactor);
+        result = await runSearchProducts(args.query, shopSettings);
       } else if (fnName === "search_content") {
         result = await runSearchContent(args.query);
       } else if (fnName === "add_to_cart") {

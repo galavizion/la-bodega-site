@@ -1,12 +1,10 @@
 ---
 interface Props {
-  markupFactor?: number;
   greeting?: string;
   botName?: string;
   avatarEmoji?: string;
 }
 const {
-  markupFactor = 1.265,
   greeting = "¡Hola! Soy Sparkly Fire, asistente de La Bodega del Instalador. ¿En qué puedo ayudarte?",
   botName = "Sparkly Fire",
   avatarEmoji = "🔥",
@@ -53,7 +51,7 @@ const {
   </div>
 </div>
 
-<script is:inline define:vars={{ markupFactor, greeting, botName, avatarEmoji }}>
+<script is:inline define:vars={{ greeting, botName, avatarEmoji }}>
 (function () {
   const bubble   = document.getElementById("chatBubble");
   const panel    = document.getElementById("chatPanel");
@@ -113,7 +111,7 @@ const {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history, markupFactor }),
+        body: JSON.stringify({ messages: history }),
       });
 
       typing.remove();

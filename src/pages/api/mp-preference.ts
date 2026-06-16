@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "JSON inválido" }, 400);
   }
 
-  const { items, orderNumber, siteUrl } = body;
+  const { items, orderNumber, siteUrl, shipping } = body;
   if (!Array.isArray(items) || !items.length || !orderNumber) {
     return json({ error: "Datos incompletos" }, 400);
   }
@@ -29,13 +29,22 @@ export const POST: APIRoute = async ({ request }) => {
 
     const result = await preference.create({
       body: {
-        items: items.map((it: any) => ({
-          id:         it.slug ?? it.title,
-          title:      String(it.title ?? "Producto"),
-          quantity:   Number(it.qty ?? 1),
-          unit_price: Math.round(Number(it.price ?? 0) * 100) / 100,
-          currency_id: "MXN",
-        })),
+        items: [
+          ...items.map((it: any) => ({
+            id:         it.slug ?? it.title,
+            title:      String(it.title ?? "Producto"),
+            quantity:   Number(it.qty ?? 1),
+            unit_price: Math.round(Number(it.price ?? 0) * 100) / 100,
+            currency_id: "MXN",
+          })),
+          ...(Number(shipping) > 0 ? [{
+            id: "envio",
+            title: "Envío",
+            quantity: 1,
+            unit_price: Math.round(Number(shipping) * 100) / 100,
+            currency_id: "MXN",
+          }] : []),
+        ],
         external_reference: orderNumber,
         back_urls: {
           success: `${base}/confirmacion/${orderNumber}/`,
