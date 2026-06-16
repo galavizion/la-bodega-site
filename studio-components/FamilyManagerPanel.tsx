@@ -24,6 +24,7 @@ export function FamilyManagerPanel() {
   const [filterMode, setFilterMode]   = useState<"all" | "grouped" | "ungrouped">("all");
   const [collapsed, setCollapsed]     = useState<Set<string>>(new Set());
   const [toast, setToast]             = useState<{ msg: string; ok: boolean } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -142,6 +143,33 @@ export function FamilyManagerPanel() {
   const toggleCollapse = (slug: string) =>
     setCollapsed((prev) => { const n = new Set(prev); n.has(slug) ? n.delete(slug) : n.add(slug); return n; });
 
+  const toggleFamilySelection = (fProds: Product[]) => {
+    const allSelected = fProds.every((p) => selected.has(p._id));
+    setSelected((prev) => {
+      const n = new Set(prev);
+      fProds.forEach((p) => allSelected ? n.delete(p._id) : n.add(p._id));
+      return n;
+    });
+  };
+
+  const deleteSelected = async () => {
+    if (none) return;
+    setWorking(true);
+    setConfirmDelete(false);
+    try {
+      const tx = client.transaction();
+      [...selected].forEach((id) => tx.delete(id));
+      await tx.commit();
+      const count = selected.size;
+      setProducts((prev) => prev.filter((p) => !selected.has(p._id)));
+      setSelected(new Set());
+      showToast(`✅ ${count} producto${count !== 1 ? "s" : ""} eliminado${count !== 1 ? "s" : ""}`, true);
+    } catch (e: any) {
+      showToast(`❌ ${e?.message ?? "Error desconocido"}`, false);
+    }
+    setWorking(false);
+  };
+
   // ── Styles ───────────────────────────────────────────
   const wrap: React.CSSProperties    = { padding: "24px", fontFamily: "system-ui, sans-serif", height: "100%", overflowY: "auto" };
   const toolbar: React.CSSProperties = { display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center", marginBottom: "16px" };
@@ -201,6 +229,7 @@ export function FamilyManagerPanel() {
       React.createElement("button", { onClick: assignFamily, disabled: none || !familyInput.trim(), style: btn("#4275ff", "#fff", none || !familyInput.trim()) }, "🏷 Asignar"),
       React.createElement("button", { onClick: markPrincipal, disabled: !canMarkPrincipal || working, style: btn("#16a34a", "#fff", !canMarkPrincipal || working) }, "⭐ Principal"),
       React.createElement("button", { onClick: removeFromFamily, disabled: none, style: btn("rgba(0,0,0,.08)", "#333", none) }, "✕ Quitar"),
+      React.createElement("button", { onClick: () => setConfirmDelete(true), disabled: none, style: btn("#ef4444", "#fff", none) }, "🗑 Eliminar"),
       React.createElement("button", { onClick: load, style: btn("rgba(0,0,0,.07)", "#333") }, "↻"),
     ),
 
@@ -230,12 +259,21 @@ export function FamilyManagerPanel() {
               ...sortedFamilies.flatMap(([fSlug, fProds]) => {
                 const isCol = collapsed.has(fSlug);
                 const hasPrincipal = fProds.some((p) => p.isFamilyRepresentative);
+                const allFamSelected = fProds.every((p) => selected.has(p._id));
                 const rows: React.ReactElement[] = [
                   React.createElement("tr", { key: `hdr-${fSlug}` },
                     React.createElement("td", { colSpan: 6, style: { padding: 0 } },
-                      React.createElement("div", { style: fhdr, onClick: () => toggleCollapse(fSlug) },
-                        React.createElement("span", { style: { fontSize: "11px", opacity: 0.6 } }, isCol ? "▶" : "▼"),
-                        React.createElement("strong", { style: { fontSize: "13px" } }, `📦 ${fSlug}`),
+                      React.createElement("div", { style: fhdr },
+                        React.createElement("input", {
+                          type: "checkbox",
+                          checked: allFamSelected,
+                          onChange: (e: React.ChangeEvent) => { e.stopPropagation(); toggleFamilySelection(fProds); },
+                          onClick: (e: React.MouseEvent) => e.stopPropagation(),
+                          style: { width: "14px", height: "14px", accentColor: "#4275ff", cursor: "pointer" },
+                          title: "Seleccionar toda la familia",
+                        }),
+                        React.createElement("span", { style: { fontSize: "11px", opacity: 0.6, cursor: "pointer" }, onClick: () => toggleCollapse(fSlug) }, isCol ? "▶" : "▼"),
+                        React.createElement("strong", { style: { fontSize: "13px", cursor: "pointer" }, onClick: () => toggleCollapse(fSlug) }, `📦 ${fSlug}`),
                         React.createElement("span", { style: { background: "#4275ff", color: "#fff", borderRadius: "99px", padding: "1px 8px", fontSize: "11px", fontWeight: 700 } }, `${fProds.length}`),
                         !hasPrincipal && React.createElement("span", { style: { background: "#f59e0b", color: "#fff", borderRadius: "4px", padding: "1px 6px", fontSize: "10px", fontWeight: 700 } }, "⚠ sin principal"),
                       )
@@ -292,6 +330,25 @@ export function FamilyManagerPanel() {
             )
           )
         ),
+
+    confirmDelete && React.createElement(
+      "div",
+      { style: { position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }, onClick: () => setConfirmDelete(false) },
+      React.createElement(
+        "div",
+        { style: { background: "#fff", borderRadius: "10px", padding: "28px", maxWidth: "380px", width: "90%" }, onClick: (e: React.MouseEvent) => e.stopPropagation() },
+        React.createElement("h3", { style: { margin: "0 0 10px", fontSize: "18px" } }, "¿Eliminar productos?"),
+        React.createElement("p", { style: { margin: "0 0 24px", opacity: 0.6, lineHeight: 1.6, fontSize: "14px" } },
+          `Se eliminarán ${selected.size} producto${selected.size !== 1 ? "s" : ""} de forma permanente.`
+        ),
+        React.createElement(
+          "div",
+          { style: { display: "flex", gap: "10px", justifyContent: "flex-end" } },
+          React.createElement("button", { onClick: () => setConfirmDelete(false), style: btn("rgba(0,0,0,.08)", "#333") }, "Cancelar"),
+          React.createElement("button", { onClick: deleteSelected, style: btn("#ef4444") }, "Sí, eliminar")
+        )
+      )
+    ),
 
     toast && React.createElement("div", { style: toastSt(toast.ok) }, toast.msg)
   );
