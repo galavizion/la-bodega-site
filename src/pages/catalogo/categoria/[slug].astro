@@ -3,6 +3,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { client as sanityClient } from "../../../lib/sanity/client";
 import { CATALOG_BY_CATEGORY, SITE_SETTINGS_QUERY } from "../../../lib/sanity/queries";
 import { urlFor } from "../../../lib/sanity/image";
+import { resolveMarkup } from "../../../lib/pricing";
 
 type CatalogItem = {
   _id: string;
@@ -20,7 +21,11 @@ type CatalogItem = {
 };
 
 type CategoryData = {
-  category: { _id: string; title: string; slug: string; description?: string } | null;
+  category: {
+    _id: string; title: string; slug: string; description?: string;
+    markupPercent?: number; boxMarkupPercent?: number;
+    parentMarkupPercent?: number; parentBoxMarkupPercent?: number;
+  } | null;
   items: CatalogItem[];
   total: number;
 };
@@ -53,9 +58,9 @@ const img = (item: CatalogItem): string | null => {
 
 const shopCurrency: string = settings?.shopCurrency ?? "USD";
 const usdRate: number = settings?.usdRate ?? 17;
-const markupFactor = 1 + (settings?.markupPercent ?? 26.5) / 100;
+const { unit: markupPercent, box: boxMarkupPercent } = resolveMarkup(category, settings);
+const markupFactor = 1 + markupPercent / 100;
 const toMXN = (n: number) => (shopCurrency === "USD" ? n * usdRate : n) * markupFactor;
-const boxMarkupPercent: number = settings?.boxMarkupPercent ?? 0;
 const toBoxMXN = (unitPrice: number, units: number) =>
   (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + boxMarkupPercent / 100);
 const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;

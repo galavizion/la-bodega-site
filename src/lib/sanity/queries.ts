@@ -401,6 +401,12 @@ export const CATALOG_LIST = groq`
   "slug": slug.current,
   excerpt,
   category,
+  "categoryPricing": category->{
+    markupPercent,
+    boxMarkupPercent,
+    "parentMarkupPercent": parent->markupPercent,
+    "parentBoxMarkupPercent": parent->boxMarkupPercent
+  },
   coverImage,
   imageUrl,
   "price": coalesce(price, variants[0].price),
@@ -420,6 +426,12 @@ export const CATALOG_BY_SLUG = groq`
   "slug": slug.current,
   excerpt,
   "category": category->title,
+  "categoryPricing": category->{
+    markupPercent,
+    boxMarkupPercent,
+    "parentMarkupPercent": parent->markupPercent,
+    "parentBoxMarkupPercent": parent->boxMarkupPercent
+  },
   coverImage,
   imageUrl,
   body,
@@ -452,7 +464,11 @@ export const CATALOG_BY_SLUG = groq`
 export const CATALOG_BY_CATEGORY = groq`
 {
   "category": *[_type == "productCategory" && slug.current == $catSlug][0]{
-    _id, title, "slug": slug.current, description
+    _id, title, "slug": slug.current, description,
+    markupPercent,
+    boxMarkupPercent,
+    "parentMarkupPercent": parent->markupPercent,
+    "parentBoxMarkupPercent": parent->boxMarkupPercent
   },
   "items": *[
     _type == "catalogItem" &&

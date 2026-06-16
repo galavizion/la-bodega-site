@@ -3,6 +3,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import { client as sanityClient } from "../../lib/sanity/client";
 import { SITE_SETTINGS_QUERY } from "../../lib/sanity/queries";
 import { urlFor } from "../../lib/sanity/image";
+import { resolveMarkup } from "../../lib/pricing";
 import groq from "groq";
 
 type CatalogItem = {
@@ -18,6 +19,7 @@ type CatalogItem = {
   familyCount?: number;
   whatsapp?: { enabled?: boolean; phone?: string; message?: string };
   boxOption?: { enabled?: boolean; unitsPerBox?: number; boxMarkupPercent?: number; boxLabel?: string };
+  categoryPricing?: { markupPercent?: number; boxMarkupPercent?: number; parentMarkupPercent?: number; parentBoxMarkupPercent?: number };
 };
 
 const PAGE_SIZE = 20;
@@ -44,6 +46,12 @@ const query = groq`{
       defined(familySlug) => count(*[_type=="catalogItem" && familySlug==^.familySlug && published!=false]),
       0
     ),
+    "categoryPricing": category->{
+      markupPercent,
+      boxMarkupPercent,
+      "parentMarkupPercent": parent->markupPercent,
+      "parentBoxMarkupPercent": parent->boxMarkupPercent
+    },
     boxOption{ enabled, unitsPerBox, boxMarkupPercent, boxLabel },
     whatsapp{ enabled, phone, message }
   },
@@ -66,11 +74,14 @@ const img = (item: CatalogItem): string | null => {
 
 const shopCurrency: string = settings?.shopCurrency ?? "USD";
 const usdRate: number = settings?.usdRate ?? 17;
-const markupFactor = 1 + (settings?.markupPercent ?? 26.5) / 100;
-const toMXN = (n: number) => (shopCurrency === "USD" ? n * usdRate : n) * markupFactor;
-const boxMarkupPercent: number = settings?.boxMarkupPercent ?? 0;
-const toBoxMXN = (unitPrice: number, units: number) =>
-  (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + boxMarkupPercent / 100);
+const toMXN = (n: number, item: CatalogItem) => {
+  const { unit } = resolveMarkup(item.categoryPricing, settings);
+  return (shopCurrency === "USD" ? n * usdRate : n) * (1 + unit / 100);
+};
+const toBoxMXN = (unitPrice: number, units: number, item: CatalogItem) => {
+  const { box } = resolveMarkup(item.categoryPricing, settings);
+  return (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + box / 100);
+};
 const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
 
 const DEFAULT_PHONE = (settings?.organization?.whatsapp ?? "528121087053").replace(/\D/g, "");
@@ -182,7 +193,7 @@ const pgRange = paginationRange(page, totalPages);
                   }
 
                   {item.familySlug && (item.price != null ? (
-                    <p class="card__price">{formatMXN(toMXN(item.price))}</p>
+                    <p class="card__price">{formatMXN(toMXN(item.price, item))}</p>
                   ) : item.priceLabel ? (
                     <p class="card__price">{item.priceLabel}</p>
                   ) : null)}
@@ -202,7 +213,7 @@ const pgRange = paginationRange(page, totalPages);
                         <button type="button" class="step-btn" data-step="1" data-target="unit">+</button>
                       </div>
                       <span class="card__row-price">
-                        {item.price != null ? formatMXN(toMXN(item.price)) : item.priceLabel || "Cotización"} c/u
+                        {item.price != null ? formatMXN(toMXN(item.price, item)) : item.priceLabel || "Cotización"} c/u
                       </span>
                     </div>
 
@@ -210,7 +221,7 @@ const pgRange = paginationRange(page, totalPages);
                     {(() => {
                       const bo = item.boxOption;
                       const boxP = (bo?.enabled && bo.unitsPerBox && item.price != null)
-                        ? toBoxMXN(item.price, bo.unitsPerBox)
+                        ? toBoxMXN(item.price, bo.unitsPerBox, item)
                         : null;
                       return bo?.enabled && boxP != null ? (
                         <div class="card__buy-row">
@@ -234,9 +245,9 @@ const pgRange = paginationRange(page, totalPages);
                       data-title={item.title}
                       data-slug={item.slug}
                       data-url={href}
-                      data-price={item.price != null ? toMXN(item.price) : 0}
+                      data-price={item.price != null ? toMXN(item.price, item) : 0}
                       data-box-price={item.boxOption?.enabled && item.boxOption.unitsPerBox && item.price != null
-                        ? toBoxMXN(item.price, item.boxOption.unitsPerBox)
+                        ? toBoxMXN(item.price, item.boxOption.unitsPerBox, item)
                         : 0}
                       data-box-label={item.boxOption?.boxLabel || `caja ×${item.boxOption?.unitsPerBox ?? ""}`}
                       data-image={cover ?? ""}

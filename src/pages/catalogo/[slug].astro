@@ -4,6 +4,7 @@ import { client as sanityClient } from "../../lib/sanity/client";
 import { CATALOG_BY_SLUG, SITE_SETTINGS_QUERY } from "../../lib/sanity/queries";
 import PortableTextRenderer from "../../components/PortableTextRenderer.astro";
 import { urlFor } from "../../lib/sanity/image";
+import { resolveMarkup } from "../../lib/pricing";
 
 export const prerender = false;
 
@@ -15,7 +16,7 @@ const [item, settings] = await Promise.all([
 
 const shopCurrency: string = settings?.shopCurrency ?? "USD";
 const usdRate: number = settings?.usdRate ?? 17;
-const markupPercent: number = settings?.markupPercent ?? 26.5;
+const { unit: markupPercent, box: boxMarkupPercent } = resolveMarkup(item?.categoryPricing, settings);
 const markupFactor = 1 + markupPercent / 100;
 const toMXN = (n: number) => (shopCurrency === "USD" ? n * usdRate : n) * markupFactor;
 
@@ -49,9 +50,8 @@ const basePrice = basePriceRaw != null ? toMXN(basePriceRaw) : null;
 const priceText =
   basePrice != null ? formatMXN(basePrice) : item?.priceLabel || "Cotización personalizada";
 
-// Opción de caja — precio calculado del precio unitario, con margen propio (sin el global)
+// Opción de caja — precio calculado del precio unitario, con margen resuelto por categoría
 const box = item?.boxOption?.enabled ? item.boxOption : null;
-const boxMarkupPercent: number = settings?.boxMarkupPercent ?? 0;
 const toBoxMXN = (unitPrice: number, units: number) =>
   (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + boxMarkupPercent / 100);
 const basePriceForBox = basePriceRaw ?? null;
