@@ -168,6 +168,7 @@ export const POST: APIRoute = async ({ request }) => {
   const v1Key       = findKey(["variante_1", "variant_1", "variante1"]);
   const v2Key       = findKey(["variante_2", "variant_2", "variante2"]);
   const v3Key       = findKey(["variante_3", "variant_3", "variante3"]);
+  const familySlugKey = findKey(["familyslug", "family_slug", "familia", "familia_slug"]);
 
   const brand   = fixEncoding(String(brandKey ? row[brandKey] : "").trim());
   const excerpt = fixEncoding(String(excerptKey ? row[excerptKey] : "").trim());
@@ -261,6 +262,8 @@ export const POST: APIRoute = async ({ request }) => {
 
   // ── Construir objeto variante ───────────────────────────────────────────────
   const basePriceValue = basePriceKey && row[basePriceKey] !== "" && row[basePriceKey] != null ? Number(row[basePriceKey]) : undefined;
+  const familySlugRaw = familySlugKey ? String(row[familySlugKey] || "").trim() : "";
+  const familySlug = familySlugRaw ? slugify(familySlugRaw) : undefined;
   const variantSku   = String(skuKey  ? row[skuKey]  : row.variant_sku  || "").trim();
   const variantPrice = precioKey ? row[precioKey] : row.variant_price;
   const variantCompare = ofertaKey ? row[ofertaKey] : row.variant_comparePrice;
@@ -301,6 +304,16 @@ export const POST: APIRoute = async ({ request }) => {
     { slug: productSlug, title }
   );
 
+  // Si se asigna una familia, hay que asegurar que tenga un "principal" para que se muestre en el catálogo
+  let isFamilyRepresentative: boolean | undefined;
+  if (familySlug) {
+    const hasPrincipal: boolean = await client.fetch(
+      `count(*[_type=="catalogItem" && familySlug==$familySlug && isFamilyRepresentative==true && _id!=$excludeId]) > 0`,
+      { familySlug, excludeId: existingId ?? "" }
+    );
+    if (!hasPrincipal) isFamilyRepresentative = true;
+  }
+
   try {
     if (existingId) {
       // ── Actualizar campos base ──────────────────────────────────────────────
@@ -313,6 +326,8 @@ export const POST: APIRoute = async ({ request }) => {
         tags,
         certifications,
         ...(basePriceValue != null && !isNaN(basePriceValue) ? { price: basePriceValue } : {}),
+        ...(familySlug ? { familySlug } : {}),
+        ...(isFamilyRepresentative ? { isFamilyRepresentative } : {}),
         ...(coverImageAsset ? { coverImage: coverImageAsset } : imageUrl ? { imageUrl } : {}),
         ...(categoryRef ? { category: categoryRef } : {}),
         ...(boxOption ? { boxOption } : {}),
@@ -367,6 +382,8 @@ export const POST: APIRoute = async ({ request }) => {
         certifications,
         published: true,
         ...(basePriceValue != null && !isNaN(basePriceValue) ? { price: basePriceValue } : {}),
+        ...(familySlug ? { familySlug } : {}),
+        ...(isFamilyRepresentative ? { isFamilyRepresentative } : {}),
         ...(coverImageAsset ? { coverImage: coverImageAsset } : imageUrl ? { imageUrl } : {}),
         ...(categoryRef ? { category: categoryRef } : {}),
         ...(body ? { body } : {}),
