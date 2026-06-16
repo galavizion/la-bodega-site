@@ -67,6 +67,7 @@ export const order = defineType({
               title: "Producto",
               type: "reference",
               to: [{ type: "catalogItem" }],
+              weak: true,
             },
             { name: "quantity", title: "Cantidad", type: "number", initialValue: 1 },
             { name: "unitPrice", title: "Precio unitario", type: "number" },

@@ -32,6 +32,7 @@ export const sectionProductsCarousel = defineType({
         {
           type: "reference",
           to: [{ type: "catalogItem" }],
+          weak: true,
           options: {
             disableNew: true,
             filter: "published != false",
