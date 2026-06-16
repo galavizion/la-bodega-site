@@ -121,7 +121,31 @@ export default defineConfig({
                           .items([
                             S.listItem()
                               .title("📋 Lista de productos")
-                              .child(S.documentTypeList("catalogItem").title("Productos")),
+                              .child(
+                                S.list()
+                                  .title("Lista de productos")
+                                  .items([
+                                    S.listItem()
+                                      .title("Todos")
+                                      .child(S.documentTypeList("catalogItem").title("Todos los productos")),
+                                    S.listItem()
+                                      .title("✅ Públicos")
+                                      .child(
+                                        S.documentList()
+                                          .title("Públicos")
+                                          .apiVersion("2025-01-01")
+                                          .filter('_type == "catalogItem" && published != false')
+                                      ),
+                                    S.listItem()
+                                      .title("👁 Ocultos")
+                                      .child(
+                                        S.documentList()
+                                          .title("Ocultos")
+                                          .apiVersion("2025-01-01")
+                                          .filter('_type == "catalogItem" && published == false')
+                                      ),
+                                  ])
+                              ),
                             S.listItem()
                               .title("🗂 Seleccionar y eliminar")
                               .child(
