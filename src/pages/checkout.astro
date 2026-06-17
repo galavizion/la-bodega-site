@@ -3,9 +3,13 @@ export const prerender = false;
 
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { client as sanityClient } from "../lib/sanity/client";
-import { SITE_SETTINGS_QUERY } from "../lib/sanity/queries";
+import { SITE_SETTINGS_QUERY, BRANCHES_QUERY } from "../lib/sanity/queries";
 
-const settings  = await sanityClient.fetch(SITE_SETTINGS_QUERY);
+const [settings, branches] = await Promise.all([
+  sanityClient.fetch(SITE_SETTINGS_QUERY),
+  sanityClient.fetch(BRANCHES_QUERY).catch(() => []),
+]);
+
 const payment   = settings?.payment ?? {};
 const waPhone   = (settings?.organization?.whatsapp ?? "528121087053").replace(/\D/g, "");
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
@@ -66,7 +70,44 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
           </section>
 
           <section class="co-section">
-            <h2 class="co-section__title">Dirección de envío</h2>
+            <h2 class="co-section__title">Método de entrega</h2>
+
+            <label class="pay-option pay-option--active" id="deliveryOptShipping">
+              <input type="radio" name="deliveryMethod" value="shipping" checked />
+              <div class="pay-option__body">
+                <strong>🚚 Envío a domicilio</strong>
+                <span>Recibe tu pedido en la dirección que indiques.</span>
+              </div>
+            </label>
+
+            <label class="pay-option" id="deliveryOptPickup">
+              <input type="radio" name="deliveryMethod" value="pickup" />
+              <div class="pay-option__body">
+                <strong>🏪 Recoger en sucursal</strong>
+                <span>Sin costo de envío. Selecciona la sucursal más cercana.</span>
+              </div>
+            </label>
+
+            {branches.length > 0 && (
+              <div id="branchSelector" style="display:none; margin-top:12px;">
+                <p class="branch-selector__label">Elige tu sucursal:</p>
+                {branches.map((b: any, i: number) => (
+                  <label class={`branch-option${i === 0 ? " branch-option--first" : ""}`}>
+                    <input type="radio" name="pickupBranch" value={b.name} />
+                    <div class="branch-option__body">
+                      <strong>{b.name}</strong>
+                      {b.address && <span>{b.address}</span>}
+                      {b.hours   && <span class="branch-hours">{b.hours}</span>}
+                      {b.phone   && <span>{b.phone}</span>}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section class="co-section">
+            <h2 class="co-section__title" id="addressSectionTitle">Dirección de envío</h2>
             <div class="co-fields">
               <label class="co-field co-field--full">
                 <span>Calle y número</span>
@@ -201,15 +242,52 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
     const KEY = "ranking_cart_v1";
     const getCart = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; } };
 
-    const calcShipping = (subtotal) =>
-      freeShippingThreshold > 0 && subtotal >= freeShippingThreshold ? 0 : shippingCost;
+    const calcShipping = (subtotal, hasBoxItems, isPickup) => {
+      if (isPickup) return 0;
+      if (hasBoxItems) return 0;
+      return freeShippingThreshold > 0 && subtotal >= freeShippingThreshold ? 0 : shippingCost;
+    };
+
+    let currentDelivery = "shipping";
+
+    // ── Método de entrega ───────────────────────────────
+    const branchSelector = document.getElementById("branchSelector");
+    const addressTitle   = document.getElementById("addressSectionTitle");
+    const deliveryOpts   = document.querySelectorAll("[name='deliveryMethod']");
+    const deliveryLabels = {
+      shipping: document.getElementById("deliveryOptShipping"),
+      pickup:   document.getElementById("deliveryOptPickup"),
+    };
+
+    const updateDeliveryUI = (method) => {
+      currentDelivery = method;
+      Object.entries(deliveryLabels).forEach(([val, el]) => {
+        el?.classList.toggle("pay-option--active", val === method);
+      });
+      if (branchSelector) branchSelector.style.display = method === "pickup" ? "block" : "none";
+      if (addressTitle) addressTitle.textContent =
+        method === "pickup" ? "Dirección de facturación" : "Dirección de envío";
+      refreshShippingDisplay();
+    };
+
+    deliveryOpts.forEach((r) => r.addEventListener("change", (e) => updateDeliveryUI(e.target.value)));
 
     // ── Poblar resumen ──────────────────────────────────
     const items = getCart();
-    const listEl = document.getElementById("summaryList");
+    const listEl     = document.getElementById("summaryList");
     const subtotalEl = document.getElementById("sumSubtotal");
     const shippingEl = document.getElementById("sumShipping");
-    const totalEl = document.getElementById("sumTotal");
+    const totalEl    = document.getElementById("sumTotal");
+
+    const refreshShippingDisplay = () => {
+      const total       = items.reduce((a, it) => a + Number(it.price || 0) * (it.qty || 1), 0);
+      const hasBox      = items.some((it) => it.isBox === true);
+      const isPickup    = currentDelivery === "pickup";
+      const fmt         = (n) => "$" + n.toLocaleString("es-MX") + " MXN";
+      const shipping    = total ? calcShipping(total, hasBox, isPickup) : 0;
+      if (shippingEl) shippingEl.textContent = !total ? "Ver cotización" : shipping === 0 ? "Gratis" : fmt(shipping);
+      if (totalEl)    totalEl.textContent    = total ? fmt(total + shipping) : "Ver cotización";
+    };
 
     if (!items.length) {
       window.location.replace("/carrito/");
@@ -234,10 +312,8 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
       }).join("");
 
       const fmt = (n) => "$" + n.toLocaleString("es-MX") + " MXN";
-      const shipping = total ? calcShipping(total) : 0;
       if (subtotalEl) subtotalEl.textContent = total ? fmt(total) : "Ver cotización";
-      if (shippingEl) shippingEl.textContent = !total ? "Ver cotización" : shipping === 0 ? "Gratis" : fmt(shipping);
-      if (totalEl)    totalEl.textContent    = total ? fmt(total + shipping) : "Ver cotización";
+      refreshShippingDisplay();
     }
 
     // ── Copiar datos bancarios ──────────────────────────
@@ -251,7 +327,6 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
     });
 
     // ── Cambiar texto del botón según método de pago ──
-    const walletContainer = document.getElementById("mp-wallet-container");
     const submitBtn = document.getElementById("submitBtn");
     document.querySelectorAll("[name='paymentMethod']").forEach((radio) => {
       radio.addEventListener("change", (e) => {
@@ -261,7 +336,7 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
     });
 
     // ── Submit form ─────────────────────────────────────
-    const form = document.getElementById("checkoutForm");
+    const form  = document.getElementById("checkoutForm");
     const errEl = document.getElementById("formError");
 
     const getCustomer = () => {
@@ -287,6 +362,13 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
       if (!cartItems.length) throw new Error("Tu carrito está vacío.");
 
       const fd = new FormData(form);
+      const deliveryMethod   = fd.get("deliveryMethod")?.toString() || "shipping";
+      const pickupBranchName = fd.get("pickupBranch")?.toString() || "";
+
+      if (deliveryMethod === "pickup" && !pickupBranchName) {
+        throw new Error("Por favor selecciona la sucursal donde recogerás tu pedido.");
+      }
+
       const total = cartItems.reduce((a, it) => a + Number(it.price || 0) * (it.qty || 1), 0);
 
       const res = await fetch("/api/checkout", {
@@ -294,6 +376,7 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer, items: cartItems, paymentMethod, total,
+          deliveryMethod, pickupBranchName,
           _hp_website: fd.get("_hp_website") || "",
           "cf-turnstile-response": fd.get("cf-turnstile-response") || "",
         }),
@@ -471,6 +554,32 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
     .copy-btn:hover { background: #f0fdf4; }
 
     .pay-none { opacity: .5; font-size: 14px; }
+
+    /* ── Sucursales ── */
+    .branch-selector__label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #6b7280;
+      margin: 0 0 10px;
+    }
+    .branch-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1.5px solid rgba(0,0,0,.1);
+      cursor: pointer;
+      margin-bottom: 8px;
+      transition: border-color .15s, background .15s;
+    }
+    .branch-option:hover { border-color: #0f8604; }
+    .branch-option input[type="radio"] { accent-color: #0f8604; flex-shrink: 0; margin-top: 3px; }
+    .branch-option__body { display: flex; flex-direction: column; gap: 2px; }
+    .branch-option__body strong { font-size: 13px; font-weight: 700; }
+    .branch-option__body span { font-size: 12px; color: #6b7280; line-height: 1.4; }
+    .branch-hours { font-style: italic; }
 
     /* ── Error ── */
     .co-error {

@@ -20,6 +20,7 @@ import { formSubmission } from "./documents/formSubmission";
 import { authCode } from "./documents/authCode";
 import { customerProfile } from "./documents/customerProfile";
 import { chatbotProfile } from "./documents/chatbotProfile";
+import { branch } from "./documents/branch";
 
 // Objects
 import { seo } from "./objects/seo";
@@ -62,6 +63,7 @@ export const schemaTypes = [
   authCode,
   customerProfile,
   chatbotProfile,
+  branch,
   // Objects
   seo,
   navItem,

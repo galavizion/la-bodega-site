@@ -38,6 +38,27 @@ export const order = defineType({
     defineField({ name: "createdAt", title: "Fecha del pedido", type: "datetime", group: "info", readOnly: true }),
     defineField({ name: "notes", title: "Notas internas", type: "text", rows: 3, group: "info" }),
     defineField({
+      name: "deliveryMethod",
+      title: "Método de entrega",
+      type: "string",
+      group: "info",
+      options: {
+        list: [
+          { title: "🚚 Envío a domicilio", value: "shipping" },
+          { title: "🏪 Recoger en sucursal", value: "pickup" },
+        ],
+        layout: "radio",
+      },
+      initialValue: "shipping",
+    }),
+    defineField({
+      name: "pickupBranch",
+      title: "Sucursal de recolección",
+      type: "string",
+      group: "info",
+      description: "Solo aplica si el método de entrega es recoger en sucursal.",
+    }),
+    defineField({
       name: "customer",
       title: "Datos del cliente",
       type: "object",
@@ -47,7 +68,7 @@ export const order = defineType({
         { name: "company", title: "Empresa", type: "string" },
         { name: "email",   title: "Email",   type: "string" },
         { name: "phone", title: "Teléfono / WhatsApp", type: "string" },
-        { name: "address", title: "Dirección de envío", type: "text", rows: 3 },
+        { name: "address", title: "Dirección (envío o facturación)", type: "text", rows: 3 },
         { name: "city", title: "Ciudad", type: "string" },
         { name: "state", title: "Estado / Provincia", type: "string" },
         { name: "zip", title: "Código postal", type: "string" },

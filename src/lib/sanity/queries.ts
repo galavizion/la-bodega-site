@@ -513,6 +513,16 @@ export const PRODUCT_CATEGORIES_QUERY = groq`
 }
 `;
 
+export const BRANCHES_QUERY = groq`
+*[_type == "branch" && active != false] | order(name asc) {
+  _id,
+  name,
+  address,
+  phone,
+  hours
+}
+`;
+
 export const SITE_SETTINGS_QUERY = groq`
 {
   // ── General ────────────────────────────────────────────
