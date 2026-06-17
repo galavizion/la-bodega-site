@@ -125,6 +125,113 @@ export function ProductManagerPanel() {
     setWorking(false);
   };
 
+  // ── Normalizar ───────────────────────────────────────
+  const normalizeSelected = async () => {
+    setWorking(true);
+    try {
+      const selectedIds = Array.from(selected);
+      // Extraer todo el documento para revisar sus campos
+      const fullDocs = await client.fetch(`*[_id in $ids]`, { ids: selectedIds });
+
+      const DICTIONARY: Record<string, string> = {
+        "Fire Sprinkler": "Rociador contra incendio",
+        "Wall Plate": "Placa de escudete",
+        "Escutcheon": "Escudete",
+        "FDC": "Toma siamesa",
+        "Hose Valve": "Válvula para manguera",
+        "Check Valve": "Válvula de retención",
+        "Butterfly Valve": "Válvula mariposa",
+        "Alarm Check Valve": "Válvula check de alarma",
+        "Grooved": "Ranurado",
+        "Threaded": "Roscado",
+        "Ductile Iron": "Hierro dúctil",
+      };
+
+      const normalizeText = (text?: string) => {
+        if (!text) return text;
+        let newText = text;
+        for (const [en, es] of Object.entries(DICTIONARY)) {
+          const regex = new RegExp(`\\b${en}\\b`, 'gi');
+          newText = newText.replace(regex, (match) => {
+            if (match === match.toUpperCase() && match.length > 1) return es.toUpperCase();
+            if (match === match.toLowerCase()) return es.toLowerCase();
+            if (match[0] === match[0].toUpperCase()) return es.charAt(0).toUpperCase() + es.slice(1).toLowerCase();
+            return es;
+          });
+        }
+        return newText;
+      };
+
+      let normalizedCount = 0;
+      const tx = client.transaction();
+
+      fullDocs.forEach((doc: any) => {
+        let hasChanges = false;
+        const patch: any = {};
+
+        if (doc.title) {
+          const newTitle = normalizeText(doc.title);
+          if (newTitle !== doc.title) { patch.title = newTitle; hasChanges = true; }
+        }
+
+        if (doc.excerpt) {
+          const newExcerpt = normalizeText(doc.excerpt);
+          if (newExcerpt !== doc.excerpt) { patch.excerpt = newExcerpt; hasChanges = true; }
+        }
+
+        if (doc.variants && Array.isArray(doc.variants)) {
+          const newVariants = doc.variants.map((variant: any) => {
+            let varChanged = false;
+            const newVar = { ...variant };
+            
+            if (newVar.label) {
+              const newLabel = normalizeText(newVar.label);
+              if (newLabel !== newVar.label) { newVar.label = newLabel; varChanged = true; }
+            }
+            
+            if (newVar.specifications && Array.isArray(newVar.specifications)) {
+              newVar.specifications = newVar.specifications.map((spec: any) => {
+                let specChanged = false;
+                const newSpec = { ...spec };
+                if (newSpec.label) {
+                  const newLabel = normalizeText(newSpec.label);
+                  if (newLabel !== newSpec.label) { newSpec.label = newLabel; specChanged = true; }
+                }
+                if (newSpec.value) {
+                  const newValue = normalizeText(newSpec.value);
+                  if (newValue !== newSpec.value) { newSpec.value = newValue; specChanged = true; }
+                }
+                if (specChanged) varChanged = true;
+                return newSpec;
+              });
+            }
+            if (varChanged) hasChanges = true;
+            return newVar;
+          });
+
+          if (hasChanges) { patch.variants = newVariants; }
+        }
+
+        if (hasChanges) {
+          tx.patch(doc._id, { set: patch });
+          normalizedCount++;
+        }
+      });
+
+      if (normalizedCount > 0) {
+        await tx.commit();
+        showToast(`✅ ${normalizedCount} producto(s) normalizado(s)`, true);
+        load();
+      } else {
+        showToast(`ℹ️ Ningún producto necesitaba normalización`, true);
+      }
+      setSelected(new Set());
+    } catch (e: any) {
+      showToast(`❌ Error al normalizar: ${e?.message ?? "Error desconocido"}`, false);
+    }
+    setWorking(false);
+  };
+
   const showToast = (msg: string, ok: boolean) => {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 4000);
@@ -236,6 +343,13 @@ export function ProductManagerPanel() {
         "button",
         { onClick: publishSelected, disabled: none || !selPublished, style: btn("#16a34a", "#fff", none || !selPublished) },
         working ? "…" : "✅ Publicar"
+      ),
+
+      // Normalizar
+      React.createElement(
+        "button",
+        { onClick: normalizeSelected, disabled: none, style: btn("#8b5cf6", "#fff", none) },
+        working ? "…" : "✨ Normalizar"
       ),
 
       // Eliminar
