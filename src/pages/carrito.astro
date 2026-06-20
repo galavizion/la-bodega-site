@@ -137,7 +137,7 @@ if (sumQty) sumQty.textContent = String(totalQty);
 
 if (sumTotal) {
   sumTotal.textContent = total
-    ? `$${total.toLocaleString("es-MX")} MXN`
+    ? `$${total.toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN`
     : "$0 MXN";
 }
 
@@ -174,7 +174,7 @@ if (sumTotal) {
           const unitPrice = Number(it.price || 0);
           const subtotal = unitPrice * qty;
           const priceHtml = unitPrice
-            ? `<div class="row-price">$${unitPrice.toLocaleString("es-MX")} MXN × ${qty} = <strong>$${subtotal.toLocaleString("es-MX")} MXN</strong></div>`
+            ? `<div class="row-price">$${unitPrice.toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN × ${qty} = <strong>$${subtotal.toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN</strong></div>`
             : `<div class="row-price row-price--quote">Precio a cotizar</div>`;
 
           return `

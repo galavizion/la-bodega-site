@@ -283,7 +283,7 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
       const total       = items.reduce((a, it) => a + Number(it.price || 0) * (it.qty || 1), 0);
       const hasBox      = items.some((it) => it.isBox === true);
       const isPickup    = currentDelivery === "pickup";
-      const fmt         = (n) => "$" + n.toLocaleString("es-MX") + " MXN";
+      const fmt         = (n) => "$" + n.toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " MXN";
       const shipping    = total ? calcShipping(total, hasBox, isPickup) : 0;
       if (shippingEl) shippingEl.textContent = !total ? "Ver cotización" : shipping === 0 ? "Gratis" : fmt(shipping);
       if (totalEl)    totalEl.textContent    = total ? fmt(total + shipping) : "Ver cotización";
@@ -296,7 +296,7 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
       listEl.innerHTML = items.map((it) => {
         const qty = it.qty || 1;
         const sub = Number(it.price || 0) * qty;
-        const priceText = sub ? "$" + sub.toLocaleString("es-MX") + " MXN" : "Cotización";
+        const priceText = sub ? "$" + sub.toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " MXN" : "Cotización";
         return `
           <div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e7eb;">
             ${it.image

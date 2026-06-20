@@ -144,7 +144,7 @@ export const POST: APIRoute = async ({ request }) => {
       return `<tr>
         <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9">${it.title}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center">${it.qty ?? 1}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:right">$${sub.toLocaleString("es-MX")} MXN</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:right">$${sub.toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN</td>
       </tr>`;
     }).join("");
 
@@ -175,11 +175,11 @@ export const POST: APIRoute = async ({ request }) => {
             <tfoot>
               <tr>
                 <td colspan="2" style="padding:6px 12px">Envío</td>
-                <td style="padding:6px 12px;text-align:right">${shippingAmount === 0 ? "Gratis" : `$${shippingAmount.toLocaleString("es-MX")} MXN`}</td>
+                <td style="padding:6px 12px;text-align:right">${shippingAmount === 0 ? "Gratis" : `$${shippingAmount.toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN`}</td>
               </tr>
               <tr style="background:#f8fafc">
                 <td colspan="2" style="padding:10px 12px;font-weight:700">TOTAL</td>
-                <td style="padding:10px 12px;font-weight:700;text-align:right">$${grandTotal.toLocaleString("es-MX")} MXN</td>
+                <td style="padding:10px 12px;font-weight:700;text-align:right">$${grandTotal.toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN</td>
               </tr>
             </tfoot>
           </table>
@@ -192,7 +192,7 @@ export const POST: APIRoute = async ({ request }) => {
     await resend.emails.send({
       from: "La Bodega del Instalador <noreply@labodegadelinstalador.net>",
       to: notifyEmails,
-      subject: `[Pedido] #${num} — ${customer.name} · $${grandTotal.toLocaleString("es-MX")} MXN`,
+      subject: `[Pedido] #${num} — ${customer.name} · $${grandTotal.toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN`,
       html,
       replyTo: customer.email || undefined,
     }).catch(() => {});

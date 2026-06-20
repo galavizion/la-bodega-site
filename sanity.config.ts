@@ -112,6 +112,9 @@ export default defineConfig({
                     S.listItem()
                       .title("💳 Métodos de pago")
                       .child(S.document().schemaType("siteSettingsPayment").documentId("siteSettingsPayment")),
+                    S.listItem()
+                      .title("🏪 Sucursales")
+                      .child(S.documentTypeList("branch").title("Sucursales")),
 
                     S.listItem()
                       .title("📦 Productos")

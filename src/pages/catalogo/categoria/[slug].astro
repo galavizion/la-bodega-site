@@ -63,7 +63,7 @@ const markupFactor = 1 + markupPercent / 100;
 const toMXN = (n: number) => (shopCurrency === "USD" ? n * usdRate : n) * markupFactor;
 const toBoxMXN = (unitPrice: number, units: number) =>
   (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + boxMarkupPercent / 100);
-const formatMXN = (n: number) => `$${n.toLocaleString("es-MX")} MXN`;
+const formatMXN = (n: number) => `$${n.toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN`;
 
 const DEFAULT_PHONE = (settings?.organization?.whatsapp ?? "528121087053").replace(/\D/g, "");
 const waLink = (item: CatalogItem) => {

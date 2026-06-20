@@ -47,7 +47,7 @@ const date  = order.createdAt
   ? new Date(order.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
   : "";
 
-const proofMsg = `Hola, te envío el comprobante de pago del pedido #${order.orderNumber} por $${Number(total).toLocaleString("es-MX")} MXN.`;
+const proofMsg = `Hola, te envío el comprobante de pago del pedido #${order.orderNumber} por $${Number(total).toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN.`;
 const proofUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(proofMsg)}`;
 ---
 
@@ -91,7 +91,7 @@ const proofUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(proofMsg)}`
                   <td class="cf-td--center">{it.quantity ?? 1}</td>
                   <td class="cf-td--right">
                     {it.unitPrice
-                      ? `$${(Number(it.unitPrice) * Number(it.quantity ?? 1)).toLocaleString("es-MX")} MXN`
+                      ? `$${(Number(it.unitPrice) * Number(it.quantity ?? 1)).toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN`
                       : "—"}
                   </td>
                 </tr>
@@ -102,7 +102,7 @@ const proofUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(proofMsg)}`
                 <td colspan="2"><strong>Total</strong></td>
                 <td class="cf-td--right">
                   <strong>
-                    {total ? `$${Number(total).toLocaleString("es-MX")} MXN` : "A cotizar"}
+                    {total ? `$${Number(total).toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN` : "A cotizar"}
                   </strong>
                 </td>
               </tr>
@@ -158,7 +158,7 @@ const proofUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(proofMsg)}`
               )}
               <div class="cf-bank__row cf-bank__row--highlight">
                 <span class="cf-bank__label">Monto</span>
-                <strong>{total ? `$${Number(total).toLocaleString("es-MX")} MXN` : "Ver cotización"}</strong>
+                <strong>{total ? `$${Number(total).toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN` : "Ver cotización"}</strong>
               </div>
               <div class="cf-bank__row">
                 <span class="cf-bank__label">Referencia</span>
