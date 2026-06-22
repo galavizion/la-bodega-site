@@ -611,7 +611,7 @@ export const SITE_SETTINGS_QUERY = groq`
   // ── Pago ──────────────────────────────────────────────
   "payment": *[_type == "siteSettingsPayment"][0]{
     transferEnabled, bankName, accountHolder, clabe, accountNumber,
-    reference, instructions, proofWhatsapp, notifyEmail
+    reference, instructions, proofWhatsapp, notifyEmail, mpSandbox
   },
 
   // ── Tienda ─────────────────────────────────────────────

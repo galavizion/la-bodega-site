@@ -27,7 +27,7 @@ const payData = {
 
 const mpPublicKey = import.meta.env.PUBLIC_MP_PUBLIC_KEY ?? "";
 const mpEnabled   = !!mpPublicKey;
-const mpIsProd    = import.meta.env.PROD;
+const mpSandbox   = payment.mpSandbox === true;
 
 const shippingCost: number = settings?.shippingCost ?? 0;
 const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
@@ -239,7 +239,7 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer is:inline></script>
   )}
 
-  <script is:inline define:vars={{ waPhone, mpPublicKey, mpIsProd, shippingCost, freeShippingThreshold }}>
+  <script is:inline define:vars={{ waPhone, mpPublicKey, mpSandbox, shippingCost, freeShippingThreshold }}>
     const KEY = "ranking_cart_v1";
     const getCart = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; } };
 
@@ -402,9 +402,10 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
           const prefRes = await fetch("/api/mp-preference", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ items: cartItems, orderNumber, shipping, siteUrl: window.location.origin }),
+            body: JSON.stringify({ items: cartItems, orderNumber, shipping, siteUrl: window.location.origin, mpSandbox }),
           });
           const prefData = await prefRes.json();
+          console.log("[MP] prefData:", prefData);
           if (!prefRes.ok || !prefData.preferenceId) throw new Error(prefData.error || "Error al iniciar pago");
 
           // Limpiar carrito antes de redirigir a MP
@@ -412,7 +413,7 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
           window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: 0, totalQty: 0 } }));
 
           // Redirigir al checkout de MercadoPago
-          const mpUrl = mpIsProd ? (prefData.initPoint ?? prefData.sandboxPoint) : (prefData.sandboxPoint ?? prefData.initPoint);
+          const mpUrl = prefData.useSandbox ? (prefData.sandboxPoint ?? prefData.initPoint) : (prefData.initPoint ?? prefData.sandboxPoint);
           if (!mpUrl) throw new Error("No se pudo obtener la URL de pago");
           window.location.href = mpUrl;
           if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Confirmar pedido →"; }

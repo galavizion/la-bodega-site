@@ -5,8 +5,9 @@ export const siteSettingsPayment = defineType({
   title: "Métodos de pago",
   type: "document",
   groups: [
-    { name: "transfer", title: "Transferencia / Depósito" },
-    { name: "general",  title: "General" },
+    { name: "transfer",     title: "Transferencia / Depósito" },
+    { name: "mercadopago",  title: "MercadoPago" },
+    { name: "general",      title: "General" },
   ],
   fields: [
     // ── Transferencia ──────────────────────────────────
@@ -69,6 +70,16 @@ export const siteSettingsPayment = defineType({
       group: "transfer",
       initialValue: true,
       description: "Muestra un botón al cliente para enviar el comprobante directamente por WhatsApp.",
+    }),
+
+    // ── MercadoPago ────────────────────────────────────
+    defineField({
+      name: "mpSandbox",
+      title: "Modo sandbox (pruebas)",
+      type: "boolean",
+      group: "mercadopago",
+      initialValue: false,
+      description: "Actívalo para usar el ambiente de pruebas de MercadoPago. Desactívalo para cobros reales.",
     }),
 
     // ── General ────────────────────────────────────────

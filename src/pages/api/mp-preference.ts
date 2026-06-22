@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "JSON inválido" }, 400);
   }
 
-  const { items, orderNumber, siteUrl, shipping } = body;
+  const { items, orderNumber, siteUrl, shipping, mpSandbox } = body;
   if (!Array.isArray(items) || !items.length || !orderNumber) {
     return json({ error: "Datos incompletos" }, 400);
   }
@@ -56,10 +56,13 @@ export const POST: APIRoute = async ({ request }) => {
       },
     });
 
+    const tokenIsSandbox = accessToken.startsWith("TEST-");
+    const useSandbox = mpSandbox === true || tokenIsSandbox;
     return json({
       preferenceId: result.id,
       initPoint:    result.init_point,
       sandboxPoint: result.sandbox_init_point,
+      useSandbox,
     });
   } catch (e: any) {
     const msg = e?.cause?.message ?? e?.message ?? "Error al crear preferencia";
