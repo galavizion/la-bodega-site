@@ -27,6 +27,7 @@ const payData = {
 
 const mpPublicKey = import.meta.env.PUBLIC_MP_PUBLIC_KEY ?? "";
 const mpEnabled   = !!mpPublicKey;
+const mpIsProd    = import.meta.env.PROD;
 
 const shippingCost: number = settings?.shippingCost ?? 0;
 const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
@@ -238,7 +239,7 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer is:inline></script>
   )}
 
-  <script is:inline define:vars={{ waPhone, mpPublicKey, shippingCost, freeShippingThreshold }}>
+  <script is:inline define:vars={{ waPhone, mpPublicKey, mpIsProd, shippingCost, freeShippingThreshold }}>
     const KEY = "ranking_cart_v1";
     const getCart = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; } };
 
@@ -411,7 +412,7 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
           window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: 0, totalQty: 0 } }));
 
           // Redirigir al checkout de MercadoPago
-          const mpUrl = prefData.initPoint ?? prefData.sandboxPoint;
+          const mpUrl = mpIsProd ? (prefData.initPoint ?? prefData.sandboxPoint) : (prefData.sandboxPoint ?? prefData.initPoint);
           if (!mpUrl) throw new Error("No se pudo obtener la URL de pago");
           window.location.href = mpUrl;
           if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Confirmar pedido →"; }
