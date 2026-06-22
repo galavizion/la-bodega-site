@@ -69,8 +69,11 @@ export const POST: APIRoute = async ({ request }) => {
 
   const num = orderNumber();
   const now = new Date().toISOString();
-  const calcTotal = Number(total ?? 0) ||
-    items.reduce((acc: number, it: any) => acc + Number(it.price ?? 0) * Number(it.qty ?? 1), 0);
+  const ceil = (n: number) => Math.ceil(n);
+  const calcTotal = ceil(
+    Number(total ?? 0) ||
+    items.reduce((acc: number, it: any) => acc + Number(it.price ?? 0) * Number(it.qty ?? 1), 0)
+  );
 
   const [shopSettings, siteSettings] = await Promise.all([
     sanity
@@ -93,7 +96,7 @@ export const POST: APIRoute = async ({ request }) => {
       : shopSettings.freeShippingThreshold > 0 && calcTotal >= shopSettings.freeShippingThreshold
         ? 0
         : shopSettings.shippingCost;
-  const grandTotal = calcTotal + shippingAmount;
+  const grandTotal = ceil(calcTotal + shippingAmount);
 
   // ── Crear pedido en Sanity ───────────────────────────
   let created: { _id: string };
@@ -123,7 +126,7 @@ export const POST: APIRoute = async ({ request }) => {
           ...(ref ? { product: { _type: "reference", _ref: ref } } : {}),
           variantLabel: String(it.title ?? ""),
           quantity:  Number(it.qty   ?? 1),
-          unitPrice: Number(it.price ?? 0),
+          unitPrice: ceil(Number(it.price ?? 0)),
         };
       }),
       subtotal: calcTotal,
