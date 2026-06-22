@@ -138,6 +138,11 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   // ── Notificación por email ───────────────────────────
+  // Para MercadoPago el correo se manda desde /api/mp-webhook una vez confirmado el pago
+  if (paymentMethod === "mercadopago") {
+    return json({ success: true, orderId: created._id, orderNumber: num, shipping: shippingAmount, total: grandTotal });
+  }
+
   const resendKey = import.meta.env.RESEND_API_KEY;
   const notifyFromSanity = await sanity
     .fetch<string[] | null>(`*[_type == "siteSettings"][0].orderNotifyEmails`)

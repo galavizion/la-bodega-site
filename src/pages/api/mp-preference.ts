@@ -52,6 +52,7 @@ export const POST: APIRoute = async ({ request }) => {
           failure: `${base}/checkout/`,
         },
         auto_return: "approved",
+        notification_url: `${base}/api/mp-webhook`,
         statement_descriptor: "La Bodega del Instalador",
       },
     });
