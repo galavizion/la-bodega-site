@@ -80,7 +80,7 @@ export const POST: APIRoute = async ({ request }) => {
       .fetch<{ shippingCost: number; freeShippingThreshold: number }>(
         `{ "shippingCost": coalesce(*[_type=="siteSettingsShop"][0].shippingCost, 0), "freeShippingThreshold": coalesce(*[_type=="siteSettingsShop"][0].freeShippingThreshold, 0) }`
       )
-      .catch(() => ({ shippingCost: 0, freeShippingThreshold: 0 })),
+      .catch((e) => { console.error("[checkout] shopSettings fetch failed:", e?.message); return { shippingCost: 0, freeShippingThreshold: 0 }; }),
     sanity
       .fetch<{ whatsapp?: string; payment?: { bankName?: string; accountHolder?: string; clabe?: string; accountNumber?: string } }>(
         `*[_type=="siteSettings"][0]{ "whatsapp": organization.whatsapp, payment }`
@@ -88,8 +88,10 @@ export const POST: APIRoute = async ({ request }) => {
       .catch(() => ({})),
   ]);
 
+  console.log("[checkout] shopSettings:", shopSettings, "calcTotal:", calcTotal, "deliveryMethod:", deliveryMethod);
   const isPickup   = deliveryMethod === "pickup";
   const hasBoxItem = Array.isArray(items) && items.some((it: any) => it.isBox === true);
+  console.log("[checkout] isPickup:", isPickup, "hasBoxItem:", hasBoxItem);
   const shippingAmount =
     isPickup || hasBoxItem
       ? 0
