@@ -88,10 +88,8 @@ export const POST: APIRoute = async ({ request }) => {
       .catch(() => ({})),
   ]);
 
-  console.log("[checkout] shopSettings:", shopSettings, "calcTotal:", calcTotal, "deliveryMethod:", deliveryMethod);
   const isPickup   = deliveryMethod === "pickup";
   const hasBoxItem = Array.isArray(items) && items.some((it: any) => it.isBox === true);
-  console.log("[checkout] isPickup:", isPickup, "hasBoxItem:", hasBoxItem);
   const shippingAmount =
     isPickup || hasBoxItem
       ? 0
