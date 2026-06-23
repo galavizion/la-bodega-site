@@ -35,18 +35,24 @@ export const GET: APIRoute = async ({ params }) => {
       );
     }
 
-    const info = data.response ?? data;
-    const colonias: string[] = Array.isArray(info)
-      ? info.map((r: { asentamiento: string }) => r.asentamiento)
-      : [info.asentamiento];
+    // Copomex puede devolver un array de { error, response: {...} } o un solo objeto
+    const raw = data.response ?? data;
+    const items: any[] = Array.isArray(raw) ? raw : [raw];
 
-    const first = Array.isArray(info) ? info[0] : info;
+    // Cada elemento puede tener sus datos directamente o dentro de .response
+    const normalized = items.map((r: any) => r?.response ?? r);
+
+    const colonias = normalized
+      .map((r: any) => r?.asentamiento ?? r?.d_asenta ?? null)
+      .filter(Boolean);
+
+    const first = normalized[0] ?? {};
 
     return new Response(
       JSON.stringify({
         colonias,
-        municipio: first.municipio,
-        estado: first.estado,
+        municipio: first.municipio ?? first.D_mnpio ?? "",
+        estado:    first.estado    ?? first.d_estado ?? "",
       }),
       {
         status: 200,
