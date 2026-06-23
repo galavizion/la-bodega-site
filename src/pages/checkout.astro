@@ -430,8 +430,12 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
           if (stateInput) stateInput.value = data.estado    ?? "";
 
           if (coloniaSelect && Array.isArray(data.colonias) && data.colonias.length) {
-            coloniaSelect.innerHTML = '<option value="">— Selecciona colonia —</option>' +
-              data.colonias.map(c => `<option value="${c}">${c}</option>`).join("");
+            if (data.colonias.length === 1) {
+              coloniaSelect.innerHTML = `<option value="${data.colonias[0]}">${data.colonias[0]}</option>`;
+            } else {
+              coloniaSelect.innerHTML = data.colonias.map(c => `<option value="${c}">${c}</option>`).join("");
+            }
+            coloniaSelect.value = data.colonias[0];
             coloniaField.style.display = "block";
           }
           if (cpStatus) cpStatus.style.display = "none";
