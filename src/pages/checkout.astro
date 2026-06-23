@@ -124,8 +124,15 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
               </label>
               <label class="co-field">
                 <span>Código postal</span>
-                <input type="text" name="zip" autocomplete="postal-code" placeholder="64000" />
+                <input type="text" name="zip" autocomplete="postal-code" placeholder="64000" maxlength="5" inputmode="numeric" />
               </label>
+              <label class="co-field co-field--full" id="coloniaField" style="display:none">
+                <span>Colonia</span>
+                <select name="colonia">
+                  <option value="">— Selecciona colonia —</option>
+                </select>
+              </label>
+              <p id="cpStatus" style="display:none;font-size:12px;color:#6b7280;grid-column:1/-1;margin:0;"></p>
             </div>
           </section>
 
@@ -351,6 +358,7 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
         city:    fd.get("city")?.toString().trim(),
         state:   fd.get("state")?.toString().trim(),
         zip:     fd.get("zip")?.toString().trim(),
+        colonia: fd.get("colonia")?.toString().trim(),
       };
     };
 
@@ -386,6 +394,52 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
       if (!res.ok || !data.success) throw new Error(data.error || "Error al procesar el pedido");
       return { orderNumber: data.orderNumber, cartItems, shipping: data.shipping || 0 };
     };
+
+    // ── Autocompletar CP ────────────────────────────────
+    const zipInput      = form.querySelector("[name='zip']");
+    const cityInput     = form.querySelector("[name='city']");
+    const stateInput    = form.querySelector("[name='state']");
+    const coloniaField  = document.getElementById("coloniaField");
+    const coloniaSelect = form.querySelector("[name='colonia']");
+    const cpStatus      = document.getElementById("cpStatus");
+
+    let cpTimer;
+    zipInput && zipInput.addEventListener("input", () => {
+      clearTimeout(cpTimer);
+      const val = zipInput.value.replace(/\D/g, "").slice(0, 5);
+      zipInput.value = val;
+
+      if (val.length < 5) {
+        if (coloniaField) coloniaField.style.display = "none";
+        if (cpStatus) cpStatus.style.display = "none";
+        return;
+      }
+
+      if (cpStatus) { cpStatus.textContent = "Buscando…"; cpStatus.style.display = "block"; }
+
+      cpTimer = setTimeout(async () => {
+        try {
+          const res  = await fetch(`/api/cp/${val}`);
+          const data = await res.json();
+          if (!res.ok || data.error) {
+            if (cpStatus) { cpStatus.textContent = data.error || "CP no encontrado"; cpStatus.style.display = "block"; }
+            if (coloniaField) coloniaField.style.display = "none";
+            return;
+          }
+          if (cityInput)  cityInput.value  = data.municipio ?? "";
+          if (stateInput) stateInput.value = data.estado    ?? "";
+
+          if (coloniaSelect && Array.isArray(data.colonias) && data.colonias.length) {
+            coloniaSelect.innerHTML = '<option value="">— Selecciona colonia —</option>' +
+              data.colonias.map(c => `<option value="${c}">${c}</option>`).join("");
+            coloniaField.style.display = "block";
+          }
+          if (cpStatus) cpStatus.style.display = "none";
+        } catch {
+          if (cpStatus) { cpStatus.textContent = "Error al consultar CP"; cpStatus.style.display = "block"; }
+        }
+      }, 400);
+    });
 
     form && form.addEventListener("submit", async (e) => {
       e.preventDefault();
