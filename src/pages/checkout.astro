@@ -552,6 +552,16 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
       background: #fff;
     }
     .co-field input:focus { border-color: #0f8604; }
+    .co-field select {
+      padding: 10px 12px;
+      border: 1px solid rgba(0,0,0,.15);
+      font-size: 14px;
+      outline: none;
+      background: #fff;
+      appearance: auto;
+      transition: border-color .15s;
+    }
+    .co-field select:focus { border-color: #0f8604; }
 
     /* ── Método de pago ── */
     .pay-option {
