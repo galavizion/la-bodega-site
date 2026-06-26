@@ -13,8 +13,12 @@ export default defineConfig({
   title: "La Bodega del Instalador",
   plugins: [
     structureTool({
-      structure: (S) =>
-        S.list()
+      structure: async (S, context) => {
+        const client = context.getClient({ apiVersion: "2025-01-01" });
+        const categories: { _id: string; title: string }[] = await client.fetch(
+          `*[_type == "productCategory"] | order(order asc) { _id, title }`
+        );
+        return S.list()
           .title("Panel")
           .items([
             // ── Configuración ──────────────────────────
@@ -131,6 +135,7 @@ export default defineConfig({
                                     S.listItem()
                                       .title("Todos")
                                       .child(S.documentTypeList("catalogItem").title("Todos los productos")),
+                                    S.divider(),
                                     S.listItem()
                                       .title("✅ Públicos")
                                       .child(
@@ -146,6 +151,44 @@ export default defineConfig({
                                           .title("Ocultos")
                                           .apiVersion("2025-01-01")
                                           .filter('_type == "catalogItem" && published == false')
+                                      ),
+                                    S.divider(),
+                                    S.listItem()
+                                      .title("✔️ Publicados (Sanity)")
+                                      .child(
+                                        S.documentList()
+                                          .title("Publicados en Sanity")
+                                          .apiVersion("2025-01-01")
+                                          .filter('_type == "catalogItem" && !(_id in path("drafts.**"))')
+                                      ),
+                                    S.listItem()
+                                      .title("📝 Borradores (Sanity)")
+                                      .child(
+                                        S.documentList()
+                                          .title("Borradores en Sanity")
+                                          .apiVersion("2025-01-01")
+                                          .filter('_type == "catalogItem" && _id in path("drafts.**")')
+                                      ),
+                                    S.divider(),
+                                    S.listItem()
+                                      .title("🗂 Por categoría")
+                                      .child(
+                                        S.list()
+                                          .title("Por categoría")
+                                          .items(
+                                            categories.map((cat) =>
+                                              S.listItem()
+                                                .title(cat.title)
+                                                .id(cat._id)
+                                                .child(
+                                                  S.documentList()
+                                                    .title(cat.title)
+                                                    .apiVersion("2025-01-01")
+                                                    .filter('_type == "catalogItem" && category._ref == $categoryId')
+                                                    .params({ categoryId: cat._id })
+                                                )
+                                            )
+                                          )
                                       ),
                                   ])
                               ),
@@ -243,7 +286,8 @@ export default defineConfig({
                       ),
                   ])
               ),
-          ]),
+          ]);
+      },
     }),
     visionTool(),
   ],
