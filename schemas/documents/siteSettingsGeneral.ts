@@ -10,6 +10,14 @@ export const siteSettingsGeneral = defineType({
     defineField({ name: "logo", title: "Logo principal", type: "image", options: { hotspot: true } }),
     defineField({ name: "logoAlt", title: "Logo versión clara (para footer)", type: "image", options: { hotspot: true } }),
     defineField({
+      name: "orderNotifyEmails",
+      title: "Emails de notificación de pedidos",
+      description: "Recibirán un aviso cada vez que entre un nuevo pedido.",
+      type: "array",
+      of: [{ type: "string" }],
+      options: { layout: "tags" },
+    }),
+    defineField({
       name: "organization",
       title: "Organización",
       type: "object",
