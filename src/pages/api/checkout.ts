@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { createClient } from "@sanity/client";
 import { Resend } from "resend";
+import { resolveMarkup } from "../../lib/pricing";
 
 export const prerender = false;
 
@@ -56,37 +57,81 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "El carrito está vacío" }, 400);
   }
 
-  // ── Resolver referencias por slug ───────────────────
-  const slugs: string[] = items.map((it: any) => it.slug).filter(Boolean);
-  const refs: Record<string, string> = {};
-  if (slugs.length) {
-    const found = await sanity.fetch<{ _id: string; slug: string }[]>(
-      `*[_type=="catalogItem" && slug.current in $slugs]{ _id, "slug": slug.current }`,
-      { slugs }
+  // ── Resolver referencias y precios por slug ─────────
+  const baseSlugOf = (s: string) => s.replace(/--caja$/, "");
+  const baseSlugs = [...new Set(
+    items.map((it: any) => baseSlugOf(String(it.slug || ""))).filter(Boolean)
+  )];
+
+  type ProductRow = {
+    _id: string; slug: string; price?: number; boxUnitsPerBox?: number;
+    catMarkup?: number | null; catBoxMarkup?: number | null;
+    parentMarkup?: number | null; parentBoxMarkup?: number | null;
+  };
+  const productMap: Record<string, ProductRow> = {};
+  if (baseSlugs.length) {
+    const found = await sanity.fetch<ProductRow[]>(
+      `*[_type=="catalogItem" && slug.current in $slugs]{
+        _id, "slug": slug.current, price,
+        "boxUnitsPerBox": boxOption.unitsPerBox,
+        "catMarkup": category->markupPercent,
+        "catBoxMarkup": category->boxMarkupPercent,
+        "parentMarkup": category->parent->markupPercent,
+        "parentBoxMarkup": category->parent->boxMarkupPercent
+      }`,
+      { slugs: baseSlugs }
     ).catch(() => []);
-    found.forEach((p) => { refs[p.slug] = p._id; });
+    found.forEach((p) => { productMap[p.slug] = p; });
   }
+
+  const refs: Record<string, string> = {};
+  Object.values(productMap).forEach((p) => { refs[p.slug] = p._id; });
 
   const num = orderNumber();
   const now = new Date().toISOString();
   const ceil = (n: number) => Math.ceil(n);
-  const calcTotal = ceil(
-    Number(total ?? 0) ||
-    items.reduce((acc: number, it: any) => acc + Number(it.price ?? 0) * Number(it.qty ?? 1), 0)
-  );
 
   const [shopSettings, siteSettings] = await Promise.all([
     sanity
-      .fetch<{ shippingCost: number; freeShippingThreshold: number }>(
-        `{ "shippingCost": coalesce(*[_type=="siteSettingsShop"][0].shippingCost, 0), "freeShippingThreshold": coalesce(*[_type=="siteSettingsShop"][0].freeShippingThreshold, 0) }`
+      .fetch<{ shippingCost: number; freeShippingThreshold: number; currency: string; usdRate: number; markupPercent: number; boxMarkupPercent: number }>(
+        `*[_type=="siteSettingsShop"][0]{
+          "shippingCost": coalesce(shippingCost, 0),
+          "freeShippingThreshold": coalesce(freeShippingThreshold, 0),
+          "currency": coalesce(currency, "USD"),
+          "usdRate": coalesce(usdRate, 17),
+          "markupPercent": coalesce(markupPercent, 26.5),
+          "boxMarkupPercent": coalesce(boxMarkupPercent, 0)
+        }`
       )
-      .catch((e) => { console.error("[checkout] shopSettings fetch failed:", e?.message); return { shippingCost: 0, freeShippingThreshold: 0 }; }),
+      .catch(() => ({ shippingCost: 0, freeShippingThreshold: 0, currency: "USD", usdRate: 17, markupPercent: 26.5, boxMarkupPercent: 0 })),
     sanity
       .fetch<{ whatsapp?: string; payment?: { bankName?: string; accountHolder?: string; clabe?: string; accountNumber?: string } }>(
         `*[_type=="siteSettings"][0]{ "whatsapp": organization.whatsapp, payment }`
       )
       .catch(() => ({})),
   ]);
+
+  // ── Precio calculado en servidor ─────────────────────
+  const serverUnitPrice = (slug: string): number | null => {
+    const base = baseSlugOf(slug);
+    const isBox = slug.endsWith("--caja");
+    const prod = productMap[base];
+    if (!prod?.price) return null;
+    const { unit, box } = resolveMarkup(
+      { markupPercent: prod.catMarkup, boxMarkupPercent: prod.catBoxMarkup, parentMarkupPercent: prod.parentMarkup, parentBoxMarkupPercent: prod.parentBoxMarkup },
+      { markupPercent: shopSettings.markupPercent, boxMarkupPercent: shopSettings.boxMarkupPercent }
+    );
+    const raw = shopSettings.currency === "USD" ? prod.price * shopSettings.usdRate : prod.price;
+    if (isBox && prod.boxUnitsPerBox) return ceil(raw * prod.boxUnitsPerBox * (1 + box / 100));
+    return ceil(raw * (1 + unit / 100));
+  };
+
+  const calcTotal = ceil(
+    items.reduce((acc: number, it: any) => {
+      const price = serverUnitPrice(String(it.slug || "")) ?? ceil(Number(it.price ?? 0));
+      return acc + price * Number(it.qty ?? 1);
+    }, 0)
+  );
 
   const isPickup   = deliveryMethod === "pickup";
   const hasBoxItem = Array.isArray(items) && items.some((it: any) => it.isBox === true);
@@ -120,13 +165,15 @@ export const POST: APIRoute = async ({ request }) => {
         zip:     String(customer.zip     ?? "").trim(),
       },
       items: items.map((it: any) => {
-        const ref = refs[it.slug];
+        const base = baseSlugOf(String(it.slug || ""));
+        const ref  = productMap[base]?._id;
+        const unitPrice = serverUnitPrice(String(it.slug || "")) ?? ceil(Number(it.price ?? 0));
         return {
           _key: crypto.randomUUID(),
           ...(ref ? { product: { _type: "reference", _ref: ref } } : {}),
           variantLabel: String(it.title ?? ""),
-          quantity:  Number(it.qty   ?? 1),
-          unitPrice: ceil(Number(it.price ?? 0)),
+          quantity:  Number(it.qty ?? 1),
+          unitPrice,
         };
       }),
       subtotal: calcTotal,

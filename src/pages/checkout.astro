@@ -463,7 +463,6 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
             body: JSON.stringify({ items: cartItems, orderNumber, shipping, siteUrl: window.location.origin, mpSandbox }),
           });
           const prefData = await prefRes.json();
-          console.log("[MP] prefData:", prefData);
           if (!prefRes.ok || !prefData.preferenceId) throw new Error(prefData.error || "Error al iniciar pago");
 
           // Limpiar carrito antes de redirigir a MP

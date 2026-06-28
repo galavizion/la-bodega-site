@@ -1,7 +1,16 @@
 import type { APIRoute } from "astro";
 import { MercadoPagoConfig, Preference } from "mercadopago";
+import { createClient } from "@sanity/client";
 
 export const prerender = false;
+
+const sanity = createClient({
+  projectId: import.meta.env.PUBLIC_SANITY_PROJECT_ID ?? "a7b3q6z9",
+  dataset:   import.meta.env.PUBLIC_SANITY_DATASET   ?? "production",
+  apiVersion: "2025-01-01",
+  token: import.meta.env.SANITY_WRITE_TOKEN,
+  useCdn: false,
+});
 
 export const POST: APIRoute = async ({ request }) => {
   const accessToken = import.meta.env.MP_ACCESS_TOKEN;
@@ -16,10 +25,23 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "JSON inválido" }, 400);
   }
 
-  const { items, orderNumber, siteUrl, shipping, mpSandbox } = body;
-  if (!Array.isArray(items) || !items.length || !orderNumber) {
+  const { orderNumber, siteUrl, mpSandbox } = body;
+  if (!orderNumber) {
     return json({ error: "Datos incompletos" }, 400);
   }
+
+  // ── Obtener total desde Sanity (precio calculado en servidor) ──
+  const order = await sanity
+    .fetch<{ total: number; subtotal: number } | null>(
+      `*[_type=="order" && orderNumber==$num][0]{ total, subtotal }`,
+      { num: orderNumber }
+    )
+    .catch(() => null);
+
+  if (!order) return json({ error: "Pedido no encontrado" }, 404);
+
+  const orderTotal = Math.ceil(order.total ?? order.subtotal ?? 0);
+  if (orderTotal <= 0) return json({ error: "Total de pedido inválido" }, 400);
 
   const base = siteUrl ?? "https://www.labodegadelinstalador.net";
 
@@ -30,20 +52,13 @@ export const POST: APIRoute = async ({ request }) => {
     const result = await preference.create({
       body: {
         items: [
-          ...items.map((it: any) => ({
-            id:         it.slug ?? it.title,
-            title:      String(it.title ?? "Producto"),
-            quantity:   Number(it.qty ?? 1),
-            unit_price: Math.ceil(Number(it.price ?? 0)),
-            currency_id: "MXN",
-          })),
-          ...(Number(shipping) > 0 ? [{
-            id: "envio",
-            title: "Envío",
+          {
+            id: orderNumber,
+            title: `Pedido #${orderNumber} — La Bodega del Instalador`,
             quantity: 1,
-            unit_price: Math.ceil(Number(shipping)),
+            unit_price: orderTotal,
             currency_id: "MXN",
-          }] : []),
+          },
         ],
         external_reference: orderNumber,
         back_urls: {
