@@ -220,7 +220,12 @@ export default defineConfig({
                           .items([
                             S.listItem()
                               .title("📋 Todos los pedidos")
-                              .child(S.documentTypeList("order").title("Todos los pedidos")),
+                              .child(
+                                S.documentList()
+                                  .title("Pedidos Actuales")
+                                  .apiVersion("2025-01-01")
+                                  .filter('_type == "order" && !(status in ["shipped", "delivered", "deleted"])')
+                              ),
                             S.listItem()
                               .title("⚙️ Gestionar pedidos en bloque")
                               .child(
