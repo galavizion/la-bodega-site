@@ -56,9 +56,11 @@ export const order = defineType({
     defineField({
       name: "pickupBranch",
       title: "Sucursal de recolección",
-      type: "string",
+      type: "reference",
+      to: [{ type: "branch" }],
       group: "info",
-      description: "Solo aplica si el método de entrega es recoger en sucursal.",
+      hidden: ({ parent }) => parent?.deliveryMethod !== "pickup",
+      description: "Aparece cuando el método de entrega es 'Recoger en sucursal'.",
     }),
     defineField({
       name: 'shippingInfo',

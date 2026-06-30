@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "JSON inválido" }, 400);
   }
 
-  const { customer, items, paymentMethod, total, deliveryMethod, pickupBranchName, _hp_website, "cf-turnstile-response": tsToken } = body;
+  const { customer, items, paymentMethod, total, deliveryMethod, pickupBranchId, pickupBranchName, _hp_website, "cf-turnstile-response": tsToken } = body;
 
   // ── Honeypot ───────────────────────────────────────────────────────────────
   if (_hp_website) {
@@ -153,7 +153,7 @@ export const POST: APIRoute = async ({ request }) => {
       createdAt: now,
       paymentMethod:   paymentMethod ?? "transfer",
       deliveryMethod:  deliveryMethod ?? "shipping",
-      ...(pickupBranchName ? { pickupBranch: String(pickupBranchName).trim() } : {}),
+      ...(pickupBranchId ? { pickupBranch: { _type: "reference", _ref: pickupBranchId } } : {}),
       customer: {
         name:    String(customer.name).trim(),
         company: String(customer.company ?? "").trim() || undefined,
@@ -248,7 +248,7 @@ export const POST: APIRoute = async ({ request }) => {
               <tr><td style="padding:6px 0;font-weight:600">Cliente</td><td>${customer.name}</td></tr>
               <tr><td style="padding:6px 0;font-weight:600">Email</td><td>${customer.email}</td></tr>
               <tr><td style="padding:6px 0;font-weight:600">Teléfono</td><td>${customer.phone}</td></tr>
-              <tr><td style="padding:6px 0;font-weight:600">Pago</td><td>${paymentMethod === "transfer" ? "Transferencia / Depósito" : paymentMethod}</td></tr>
+              <tr><td style="padding:6px 0;font-weight:600">Pago</td><td>${paymentMethod === "transfer" ? "Transferencia / Depósito" : (paymentMethod || "N/A")}</td></tr>
               <tr><td style="padding:6px 0;font-weight:600">Entrega</td><td>${deliveryMethod === "pickup" ? `Recoger en sucursal${pickupBranchName ? `: ${pickupBranchName}` : ""}` : "Envío a domicilio"}</td></tr>
             </table>
             ${itemsTable}

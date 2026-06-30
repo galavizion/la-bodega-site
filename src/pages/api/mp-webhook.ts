@@ -31,7 +31,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const order = await sanity.fetch<any>(
       `*[_type=="order" && orderNumber==$num][0]{
-        _id, status, createdAt, paymentMethod, deliveryMethod, pickupBranch,
+        _id, status, createdAt, paymentMethod, deliveryMethod, "pickupBranchName": pickupBranch->name,
         customer, items[]{ variantLabel, quantity, unitPrice },
         subtotal, shipping, total
       }`,
@@ -48,7 +48,10 @@ export const POST: APIRoute = async ({ request }) => {
     } else if (["rejected", "cancelled"].includes(payment.status ?? "")) {
       await sanity.patch(order._id).set({ status: "cancelled" }).commit();
     }
-  } catch { /* siempre respondemos 200 para que MP no reintente indefinidamente */ }
+  } catch (e: any) {
+    console.error("Error procesando webhook de MercadoPago:", e?.message ?? String(e));
+    // Siempre respondemos 200 para que MP no reintente indefinidamente, pero ahora el error queda registrado.
+  }
 
   return ok();
 };
@@ -96,7 +99,7 @@ async function sendConfirmationEmails(order: any, orderNumber: string) {
   if (!resendKey) return;
 
   const resend = new Resend(resendKey);
-  const { customer, items, shipping, total, deliveryMethod, pickupBranch } = order;
+  const { customer, items, shipping, total, deliveryMethod, pickupBranchName } = order;
   const now = new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
 
   const [notifyFromSanity, siteSettings] = await Promise.all([
@@ -117,7 +120,7 @@ async function sendConfirmationEmails(order: any, orderNumber: string) {
   const itemsTable = buildItemsTable(items, shipping, total);
 
   const entrega = deliveryMethod === "pickup"
-    ? `Recoger en sucursal${pickupBranch ? `: ${pickupBranch}` : ""}`
+    ? `Recoger en sucursal${pickupBranchName ? `: ${pickupBranchName}` : ""}`
     : "Envío a domicilio";
 
   // ── Correo al admin ──────────────────────────────────
