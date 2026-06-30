@@ -4,6 +4,7 @@ import { visionTool } from "@sanity/vision";
 import { schemaTypes } from "./schemas";
 import { ImporterPanel } from "./studio-components/ImporterPanel";
 import { ProductManagerPanel } from "./studio-components/ProductManagerPanel";
+import { OrderManagerPanel } from "./schemas/documents/OrderManagerPanel";
 import { DuplicatePageAction } from "./studio-components/DuplicatePageAction";
 import { FamilyManagerPanel } from "./studio-components/FamilyManagerPanel";
 
@@ -220,6 +221,13 @@ export default defineConfig({
                             S.listItem()
                               .title("📋 Todos los pedidos")
                               .child(S.documentTypeList("order").title("Todos los pedidos")),
+                            S.listItem()
+                              .title("⚙️ Gestionar pedidos en bloque")
+                              .child(
+                                S.component()
+                                  .title("Gestionar Pedidos")
+                                  .component(OrderManagerPanel)
+                              ),
                             S.divider(),
                             S.listItem()
                               .title("⏳ Pendientes")
@@ -268,6 +276,15 @@ export default defineConfig({
                                   .title("Cancelados")
                                   .apiVersion("2025-01-01")
                                   .filter('_type == "order" && status == "cancelled"')
+                              ),
+                            S.divider(),
+                            S.listItem()
+                              .title("🗑️ Eliminados")
+                              .child(
+                                S.documentList()
+                                  .title("Eliminados")
+                                  .apiVersion("2025-01-01")
+                                  .filter('_type == "order" && status == "deleted"')
                               ),
                           ])
                       ),

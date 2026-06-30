@@ -9,6 +9,5 @@
   ],
   "exclude": [
     "dist",
-    "studio-components"
   ]
 }

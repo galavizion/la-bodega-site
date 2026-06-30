@@ -25,11 +25,13 @@ export const order = defineType({
       options: {
         list: [
           { title: "⏳ Pendiente", value: "pending" },
+          { title: "🏦 Esperando Pago (Transferencia)", value: "awaiting_payment" },
           { title: "✅ Confirmado", value: "confirmed" },
           { title: "📦 En preparación", value: "processing" },
           { title: "🚚 Enviado", value: "shipped" },
           { title: "🏠 Entregado", value: "delivered" },
           { title: "❌ Cancelado", value: "cancelled" },
+          { title: "🗑️ Eliminado", value: "deleted" },
         ],
         layout: "radio",
       },
@@ -57,6 +59,18 @@ export const order = defineType({
       type: "string",
       group: "info",
       description: "Solo aplica si el método de entrega es recoger en sucursal.",
+    }),
+    defineField({
+      name: 'shippingInfo',
+      title: 'Información de Envío',
+      type: 'object',
+      group: 'info',
+      hidden: ({ parent }) => parent?.deliveryMethod !== 'shipping',
+      fields: [
+        { name: 'provider', title: 'Paquetería', type: 'string', description: 'Ej: Estafeta, FedEx, DHL' },
+        { name: 'trackingNumber', title: 'Número de Guía', type: 'string' },
+        { name: 'trackingUrl', title: 'URL de Rastreo (opcional)', type: 'url' },
+      ],
     }),
     defineField({
       name: "customer",

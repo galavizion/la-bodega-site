@@ -108,7 +108,7 @@ export const POST: APIRoute = async ({ request }) => {
       .fetch<{ whatsapp?: string; payment?: { bankName?: string; accountHolder?: string; clabe?: string; accountNumber?: string } }>(
         `*[_type=="siteSettings"][0]{ "whatsapp": organization.whatsapp, payment }`
       )
-      .catch(() => ({})),
+      .catch(() => ({ whatsapp: undefined, payment: undefined })),
   ]);
 
   // ── Precio calculado en servidor ─────────────────────
@@ -149,7 +149,7 @@ export const POST: APIRoute = async ({ request }) => {
     created = await sanity.create({
       _type: "order",
       orderNumber: num,
-      status: "pending",
+      status: paymentMethod === "transfer" ? "awaiting_payment" : "pending",
       createdAt: now,
       paymentMethod:   paymentMethod ?? "transfer",
       deliveryMethod:  deliveryMethod ?? "shipping",

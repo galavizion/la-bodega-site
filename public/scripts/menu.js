@@ -17,6 +17,7 @@
   const closeMenu = () => {
     header.classList.remove('is-open');
     toggle.setAttribute('aria-expanded', 'false');
+    closeAllSubmenus();
   };
 
   toggle.addEventListener('click', () => {
@@ -40,23 +41,6 @@
     if (e.matches) closeMenu();
   });
 
-
-    // Manejo de submenus en móvil
-  const submenuToggles = document.querySelectorAll('.submenu-toggle');
-
-  submenuToggles.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const parent = btn.closest('.has-submenu');
-
-      // Cierra otros submenus abiertos (opcional pero limpio)
-      document.querySelectorAll('.has-submenu.is-open')
-        .forEach(item => {
-          if (item !== parent) item.classList.remove('is-open');
-        });
-
-      parent.classList.toggle('is-open');
-    });
-  });// Submenu: click en móvil (y accesible)
 const submenuButtons = document.querySelectorAll('.submenu-toggle');
 
 const closeAllSubmenus = () => {
@@ -87,19 +71,6 @@ submenuButtons.forEach(btn => {
     }
   });
 });
-
-// Cuando cierras el menú principal, cierra submenus también
-const originalCloseMenu = closeMenu;
-closeMenu = () => {
-  originalCloseMenu();
-  closeAllSubmenus();
-};
-
-// Si cambias a desktop, limpia estados
-window.matchMedia('(min-width: 901px)').addEventListener('change', (e) => {
-  if (e.matches) closeAllSubmenus();
-});
-
 
   // Actualiza sombra
   window.addEventListener('scroll', setScrolled, { passive: true });
