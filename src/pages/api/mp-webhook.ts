@@ -104,7 +104,7 @@ async function sendConfirmationEmails(order: any, orderNumber: string) {
 
   const [notifyFromSanity, siteSettings] = await Promise.all([
     sanity.fetch<string[] | null>(`coalesce(*[_type=="siteSettingsGeneral"][0].orderNotifyEmails, *[_type=="siteSettings"][0].orderNotifyEmails)`).catch(() => null),
-    sanity.fetch<{ whatsapp?: string }>(`coalesce(*[_type=="siteSettingsGeneral"][0], *[_type=="siteSettings"][0]){ "whatsapp": organization.whatsapp }`).catch(() => ({})),
+    sanity.fetch<{ whatsapp?: string }>(`coalesce(*[_type=="siteSettingsGeneral"][0], *[_type=="siteSettings"][0]){ "whatsapp": organization.whatsapp }`).catch(() => ({ whatsapp: undefined })),
   ]);
 
   const envEmail = import.meta.env.NOTIFY_EMAIL;
@@ -156,7 +156,7 @@ async function sendConfirmationEmails(order: any, orderNumber: string) {
       subject: `[Pedido confirmado] #${orderNumber} — ${customer.name} · ${fmt(total)}`,
       html: adminHtml,
       replyTo: customer.email || undefined,
-    }).catch(() => {});
+    }).catch(console.error);
   }
 
   // ── Correo al cliente ────────────────────────────────
@@ -184,5 +184,5 @@ async function sendConfirmationEmails(order: any, orderNumber: string) {
     to: [customer.email],
     subject: `¡Pago confirmado! Pedido #${orderNumber} — La Bodega del Instalador`,
     html: clientHtml,
-  }).catch(() => {});
+  }).catch(console.error);
 }
