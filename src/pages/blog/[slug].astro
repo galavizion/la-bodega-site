@@ -3,15 +3,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import { sanity, urlFor } from "../../lib/sanity";
 import { toHTML } from "@portabletext/to-html";
 
-export const prerender = import.meta.env.PROD;
-type SlugRow = { slug: string };
-
-export async function getStaticPaths() {
-  const slugs = await sanity.fetch<SlugRow[]>(
-    `*[_type=="post" && defined(slug.current)][]{"slug": slug.current}`
-  );
-  return (slugs ?? []).map((s) => ({ params: { slug: s.slug } }));
-}
+export const prerender = false;
 
 type Post = {
   title: string;

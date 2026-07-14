@@ -3,19 +3,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import Builder from "../components/builder/Builder.astro";
 import { sanityFetch } from "../lib/sanity/client";
 import { pageBySlugQuery } from "../lib/sanity/queries";
-import groq from "groq";
 
-export const prerender = true;
-
-export async function getStaticPaths() {
-  const pages = await sanityFetch<{ slug: string }[]>({
-    query: groq`*[_type == "page" && defined(slug.current) && pageType != "home"][]{
-      "slug": slug.current
-    }`,
-  });
-
-  return (pages ?? []).map((p) => ({ params: { slug: p.slug } }));
-}
+export const prerender = false;
 
 const slug = Astro.params.slug as string;
 const page = await sanityFetch<any>({

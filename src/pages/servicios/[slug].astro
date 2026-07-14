@@ -4,18 +4,7 @@ import { sanity, urlFor } from "../../lib/sanity";
 import { toHTML } from "@portabletext/to-html";
 import { SERVICE_BY_SLUG } from "../../lib/serviceQueries";
 
-// ✅ Para hosting estático (HostGator /dist)
-export const prerender = true;
-
-type SlugRow = { slug: string };
-
-export async function getStaticPaths() {
-  const slugs = await sanity.fetch<SlugRow[]>(
-    `*[_type=="service" && defined(slug.current)][]{"slug": slug.current}`
-  );
-
-  return (slugs ?? []).map((s) => ({ params: { slug: s.slug } }));
-}
+export const prerender = false;
 
 const { slug } = Astro.params;
 

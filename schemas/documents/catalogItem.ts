@@ -168,6 +168,23 @@ export const catalogItem = defineType({
       group: "shop",
       initialValue: false,
       description: "Si está activo, este producto aparece como la tarjeta representante en el catálogo. Los demás de la familia solo se ven al entrar.",
+      validation: (Rule) =>
+        Rule.custom(async (value, context) => {
+          if (!value) return true;
+          const familySlug = (context.document as { familySlug?: string })?.familySlug;
+          if (!familySlug) return true;
+
+          const id = context.document?._id.replace(/^drafts\./, "");
+          const client = context.getClient({ apiVersion: "2025-01-01" });
+          const hasOtherPrincipal: boolean = await client.fetch(
+            `count(*[_type=="catalogItem" && familySlug==$familySlug && isFamilyRepresentative==true && !(_id in [$id, $draftId])]) > 0`,
+            { familySlug, id, draftId: `drafts.${id}` }
+          );
+
+          return hasOtherPrincipal
+            ? "Ya hay otro producto principal en esta familia. Desactívalo antes de marcar este."
+            : true;
+        }),
     }),
     defineField({
       name: "boxOption",
