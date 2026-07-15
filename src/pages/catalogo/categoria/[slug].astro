@@ -47,6 +47,8 @@ if (!category) {
   return Astro.redirect("/catalogo/", 302);
 }
 
+const catalogOnlyMode: boolean = settings?.catalogOnlyMode === true;
+
 const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
 const img = (item: CatalogItem): string | null => {
@@ -180,7 +182,7 @@ const pgRange = paginationRange(page, totalPages);
                     ? <p class="card__excerpt">{item.excerpt}</p>
                     : null
                   }
-                  {item.familySlug && (item.price != null ? (
+                  {!catalogOnlyMode && item.familySlug && (item.price != null ? (
                     <p class="card__price">{formatMXN(toMXN(item.price))}</p>
                   ) : item.priceLabel ? (
                     <p class="card__price">{item.priceLabel}</p>
@@ -191,7 +193,7 @@ const pgRange = paginationRange(page, totalPages);
               <div class="card__actions">
                 {item.familySlug ? (
                   <a class="btn-family" href={href}>Elige la medida →</a>
-                ) : (
+                ) : !catalogOnlyMode && (
                   <div class="card__buy">
                     <div class="card__buy-row">
                       <div class="card__stepper">

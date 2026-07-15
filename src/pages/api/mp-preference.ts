@@ -18,6 +18,13 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "MercadoPago no configurado" }, 500);
   }
 
+  const catalogOnlyMode = await sanity
+    .fetch<boolean>(`coalesce(*[_type=="siteSettingsShop"][0].catalogOnlyMode, false)`)
+    .catch(() => false);
+  if (catalogOnlyMode) {
+    return json({ error: "La tienda está en modo catálogo. Las compras están deshabilitadas." }, 403);
+  }
+
   let body: Record<string, any>;
   try {
     body = await request.json();

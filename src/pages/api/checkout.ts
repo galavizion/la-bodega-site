@@ -50,6 +50,13 @@ export const POST: APIRoute = async ({ request }) => {
     }
   }
 
+  const catalogOnlyMode = await sanity
+    .fetch<boolean>(`coalesce(*[_type=="siteSettingsShop"][0].catalogOnlyMode, false)`)
+    .catch(() => false);
+  if (catalogOnlyMode) {
+    return json({ error: "La tienda está en modo catálogo. Las compras están deshabilitadas." }, 403);
+  }
+
   if (!customer?.name?.trim() || !customer?.email?.trim() || !customer?.phone?.trim()) {
     return json({ error: "Nombre, email y teléfono son obligatorios" }, 400);
   }

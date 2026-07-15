@@ -63,6 +63,8 @@ const [{ items, total }, settings] = await Promise.all([
   sanityClient.fetch(SITE_SETTINGS_QUERY),
 ]);
 
+const catalogOnlyMode: boolean = settings?.catalogOnlyMode === true;
+
 const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
 const img = (item: CatalogItem): string | null => {
@@ -192,7 +194,7 @@ const pgRange = paginationRange(page, totalPages);
                     : null
                   }
 
-                  {item.familySlug && (item.price != null ? (
+                  {!catalogOnlyMode && item.familySlug && (item.price != null ? (
                     <p class="card__price">{formatMXN(toMXN(item.price, item))}</p>
                   ) : item.priceLabel ? (
                     <p class="card__price">{item.priceLabel}</p>
@@ -203,7 +205,7 @@ const pgRange = paginationRange(page, totalPages);
               <div class="card__actions">
                 {item.familySlug ? (
                   <a class="btn-family" href={href}>Elige la medida →</a>
-                ) : (
+                ) : !catalogOnlyMode && (
                   <div class="card__buy">
                     {/* Fila unidad */}
                     <div class="card__buy-row">

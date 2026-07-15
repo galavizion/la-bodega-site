@@ -10,6 +10,8 @@ const [settings, branches] = await Promise.all([
   sanityClient.fetch(BRANCHES_QUERY).catch(() => []),
 ]);
 
+if (settings?.catalogOnlyMode) return Astro.redirect("/catalogo/", 302);
+
 const payment   = settings?.payment ?? {};
 const waPhone   = (settings?.organization?.whatsapp ?? "528121087053").replace(/\D/g, "");
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
@@ -465,10 +467,7 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
           const prefData = await prefRes.json();
           if (!prefRes.ok || !prefData.preferenceId) throw new Error(prefData.error || "Error al iniciar pago");
 
-          // Limpiar carrito antes de redirigir a MP
-          localStorage.removeItem(KEY);
-          window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: 0, totalQty: 0 } }));
-
+          // El carrito se limpia hasta que el pago se confirme (ver /confirmacion/[id])
           // Redirigir al checkout de MercadoPago
           const mpUrl = prefData.useSandbox ? (prefData.sandboxPoint ?? prefData.initPoint) : (prefData.initPoint ?? prefData.sandboxPoint);
           if (!mpUrl) throw new Error("No se pudo obtener la URL de pago");

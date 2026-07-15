@@ -615,6 +615,7 @@ export const SITE_SETTINGS_QUERY = groq`
   },
 
   // ── Tienda ─────────────────────────────────────────────
+  "catalogOnlyMode":   coalesce(*[_type == "siteSettingsShop"][0].catalogOnlyMode, false),
   "shopCurrency":      coalesce(*[_type == "siteSettingsShop"][0].currency,         *[_type == "siteSettings"][0].shop.currency,      "USD"),
   "usdRate":           coalesce(*[_type == "siteSettingsShop"][0].usdRate,           *[_type == "siteSettings"][0].shop.usdRate,        17),
   "markupPercent":     coalesce(*[_type == "siteSettingsShop"][0].markupPercent,     *[_type == "siteSettings"][0].shop.markupPercent,  26.5),

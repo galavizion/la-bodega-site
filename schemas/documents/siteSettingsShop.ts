@@ -6,6 +6,13 @@ export const siteSettingsShop = defineType({
   type: "document",
   fields: [
     defineField({
+      name: "catalogOnlyMode",
+      title: "🔒 Modo catálogo (sin precios ni compra)",
+      type: "boolean",
+      initialValue: false,
+      description: "Al activarlo, todo el sitio oculta precios, botones de compra, carrito y checkout — solo se muestran los productos como catálogo informativo. Desactívalo para volver a la tienda normal.",
+    }),
+    defineField({
       name: "currency",
       title: "Moneda de los precios en catálogo",
       type: "string",
@@ -54,9 +61,9 @@ export const siteSettingsShop = defineType({
     }),
   ],
   preview: {
-    select: { currency: "currency", rate: "usdRate", markup: "markupPercent", boxMarkup: "boxMarkupPercent" },
-    prepare: ({ currency, rate, markup, boxMarkup }) => ({
-      title: "Tienda / Precios",
+    select: { currency: "currency", rate: "usdRate", markup: "markupPercent", boxMarkup: "boxMarkupPercent", catalogOnly: "catalogOnlyMode" },
+    prepare: ({ currency, rate, markup, boxMarkup, catalogOnly }) => ({
+      title: catalogOnly ? "🔒 Tienda / Precios (Modo catálogo ON)" : "Tienda / Precios",
       subtitle: [
         currency === "USD" ? `USD → MXN × ${rate}` : "Precios en MXN",
         markup != null ? `+${markup}% unitario` : "",

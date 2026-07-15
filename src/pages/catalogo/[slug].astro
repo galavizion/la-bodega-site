@@ -14,6 +14,7 @@ const [item, settings] = await Promise.all([
   sanityClient.fetch(SITE_SETTINGS_QUERY),
 ]);
 
+const catalogOnlyMode: boolean = settings?.catalogOnlyMode === true;
 const shopCurrency: string = settings?.shopCurrency ?? "USD";
 const usdRate: number = settings?.usdRate ?? 17;
 const { unit: markupPercent, box: boxMarkupPercent } = resolveMarkup(item?.categoryPricing, settings);
@@ -78,7 +79,7 @@ const schema: Record<string, any> = {
   brand: { "@type": "Brand", name: "La Bodega del Instalador" },
 };
 
-if (basePrice != null) {
+if (!catalogOnlyMode && basePrice != null) {
   schema.offers = {
     "@type": "Offer",
     price: Number(basePrice),
@@ -86,7 +87,7 @@ if (basePrice != null) {
     url: canonical,
     availability: "https://schema.org/InStock",
   };
-} else if (item?.priceLabel) {
+} else if (!catalogOnlyMode && item?.priceLabel) {
   schema.priceSpecification = {
     "@type": "PriceSpecification",
     description: String(item.priceLabel),
@@ -154,7 +155,7 @@ if (basePrice != null) {
           )}
 
           {/* Precio + opciones de cantidad */}
-          {box ? (
+          {!catalogOnlyMode && (box ? (
             <div class="product__buy-options">
               {/* Fila unidad */}
               <div class="buy-row" id="buyRowUnit">
@@ -229,7 +230,7 @@ if (basePrice != null) {
                 </button>
               </div>
             </>
-          )}
+          ))}
 
           <div class="product__trust">
             <div class="trust-item">

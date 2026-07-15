@@ -30,6 +30,8 @@ if (!order) {
   return Astro.redirect("/catalogo/", 302);
 }
 
+if (settings?.catalogOnlyMode) return Astro.redirect("/catalogo/", 302);
+
 const payment = settings?.payment ?? {};
 const waPhone = (settings?.organization?.whatsapp ?? "528121087053").replace(/\D/g, "");
 const payData = {
@@ -191,6 +193,10 @@ const proofUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(proofMsg)}`
   </main>
 
   <script is:inline>
+    // Llegar aquí significa que el pedido quedó confirmado (transferencia) o pagado (MercadoPago)
+    localStorage.removeItem("ranking_cart_v1");
+    window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: 0, totalQty: 0 } }));
+
     document.querySelectorAll("[data-copy]").forEach((btn) => {
       btn.addEventListener("click", () => {
         navigator.clipboard.writeText(btn.getAttribute("data-copy") || "");

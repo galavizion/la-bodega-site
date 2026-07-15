@@ -6,6 +6,7 @@ import { ImporterPanel } from "./studio-components/ImporterPanel";
 import { ProductManagerPanel } from "./studio-components/ProductManagerPanel";
 import { OrderManagerPanel } from "./schemas/documents/OrderManagerPanel";
 import { DuplicatePageAction } from "./studio-components/DuplicatePageAction";
+import { DownloadOrderPdfAction } from "./studio-components/DownloadOrderPdfAction";
 import { FamilyManagerPanel } from "./studio-components/FamilyManagerPanel";
 
 export default defineConfig({
@@ -314,10 +315,11 @@ export default defineConfig({
     visionTool(),
   ],
   document: {
-    actions: (prev, context) =>
-      context.schemaType === "page"
-        ? [...prev, DuplicatePageAction]
-        : prev,
+    actions: (prev, context) => {
+      if (context.schemaType === "page") return [...prev, DuplicatePageAction];
+      if (context.schemaType === "order") return [...prev, DownloadOrderPdfAction];
+      return prev;
+    },
   },
   schema: {
     types: schemaTypes,
