@@ -19,7 +19,7 @@ const [order, settings] = await Promise.all([
         quantity,
         unitPrice
       },
-      subtotal, total
+      subtotal, shipping, iva, total
     }`,
     { num: id }
   ),
@@ -45,6 +45,7 @@ const payData = {
 };
 
 const total = order.total ?? order.subtotal ?? 0;
+const fmtMXN = (n: number) => `$${Number(n).toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN`;
 const date  = order.createdAt
   ? new Date(order.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
   : "";
@@ -100,11 +101,23 @@ const proofUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(proofMsg)}`
               ))}
             </tbody>
             <tfoot>
+              {order.shipping != null && (
+                <tr>
+                  <td colspan="2">Envío</td>
+                  <td class="cf-td--right">{order.shipping ? fmtMXN(order.shipping) : "Gratis"}</td>
+                </tr>
+              )}
+              {order.iva > 0 && (
+                <tr>
+                  <td colspan="2">IVA</td>
+                  <td class="cf-td--right">{fmtMXN(order.iva)}</td>
+                </tr>
+              )}
               <tr>
                 <td colspan="2"><strong>Total</strong></td>
                 <td class="cf-td--right">
                   <strong>
-                    {total ? `$${Number(total).toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN` : "A cotizar"}
+                    {total ? fmtMXN(total) : "A cotizar"}
                   </strong>
                 </td>
               </tr>

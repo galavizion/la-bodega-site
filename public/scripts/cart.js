@@ -30,9 +30,12 @@
 
   const addItem = (item) => {
     const cart = getCart();
-    const existing = cart.find((x) => x.slug === item.slug);
-    if (existing) existing.qty = (existing.qty || 1) + 1;
-    else cart.push({ ...item, qty: 1 });
+    const qty = Number(item.qty) || 1;
+    const existing = cart.find(
+      (x) => x.slug === item.slug && x.variantLabel === item.variantLabel
+    );
+    if (existing) existing.qty = (existing.qty || 1) + qty;
+    else cart.push({ ...item, qty });
     setCart(cart);
   };
 

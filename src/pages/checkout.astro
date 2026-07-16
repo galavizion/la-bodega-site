@@ -33,6 +33,8 @@ const mpSandbox   = payment.mpSandbox === true;
 
 const shippingCost: number = settings?.shippingCost ?? 0;
 const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
+const ivaEnabled: boolean = settings?.ivaEnabled === true;
+const ivaPercent: number = settings?.ivaPercent ?? 16;
 ---
 
 <BaseLayout
@@ -236,6 +238,9 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
           <div class="sum-totals">
             <div class="sum-row"><span>Subtotal</span><strong id="sumSubtotal">—</strong></div>
             <div class="sum-row sum-row--shipping"><span>Envío</span><strong id="sumShipping">—</strong></div>
+            {ivaEnabled && (
+              <div class="sum-row sum-row--iva"><span>IVA ({ivaPercent}%)</span><strong id="sumIva">—</strong></div>
+            )}
             <div class="sum-row sum-row--total"><span>Total estimado</span><strong id="sumTotal">—</strong></div>
           </div>
         </div>
@@ -248,7 +253,7 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer is:inline></script>
   )}
 
-  <script is:inline define:vars={{ waPhone, mpPublicKey, mpSandbox, shippingCost, freeShippingThreshold }}>
+  <script is:inline define:vars={{ waPhone, mpPublicKey, mpSandbox, shippingCost, freeShippingThreshold, ivaEnabled, ivaPercent }}>
     const KEY = "ranking_cart_v1";
     const getCart = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; } };
 
@@ -287,6 +292,7 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
     const listEl     = document.getElementById("summaryList");
     const subtotalEl = document.getElementById("sumSubtotal");
     const shippingEl = document.getElementById("sumShipping");
+    const ivaEl      = document.getElementById("sumIva");
     const totalEl    = document.getElementById("sumTotal");
 
     const refreshShippingDisplay = () => {
@@ -295,8 +301,10 @@ const freeShippingThreshold: number = settings?.freeShippingThreshold ?? 0;
       const isPickup    = currentDelivery === "pickup";
       const fmt         = (n) => "$" + n.toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " MXN";
       const shipping    = total ? calcShipping(total, hasBox, isPickup) : 0;
+      const iva         = ivaEnabled && total ? Math.ceil(total * (ivaPercent / 100)) : 0;
       if (shippingEl) shippingEl.textContent = !total ? "Ver cotización" : shipping === 0 ? "Gratis" : fmt(shipping);
-      if (totalEl)    totalEl.textContent    = total ? fmt(total + shipping) : "Ver cotización";
+      if (ivaEl)      ivaEl.textContent      = total ? fmt(iva) : "—";
+      if (totalEl)    totalEl.textContent    = total ? fmt(total + shipping + iva) : "Ver cotización";
     };
 
     if (!items.length) {

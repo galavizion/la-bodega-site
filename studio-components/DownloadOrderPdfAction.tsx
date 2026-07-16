@@ -85,10 +85,17 @@ export function DownloadOrderPdfAction(props: any) {
 
         const finalY = (pdf as any).lastAutoTable?.finalY ?? y + 20;
         pdf.setFontSize(10);
-        pdf.text(`Subtotal: ${fmt(doc.subtotal ?? 0)}`, 140, finalY + 10);
-        pdf.text(`Envío: ${fmt(doc.shipping ?? 0)}`, 140, finalY + 16);
+        let sumY = finalY + 10;
+        pdf.text(`Subtotal: ${fmt(doc.subtotal ?? 0)}`, 140, sumY);
+        sumY += 6;
+        pdf.text(`Envío: ${fmt(doc.shipping ?? 0)}`, 140, sumY);
+        sumY += 6;
+        if (doc.iva > 0) {
+          pdf.text(`IVA: ${fmt(doc.iva)}`, 140, sumY);
+          sumY += 6;
+        }
         pdf.setFontSize(11);
-        pdf.text(`Total: ${fmt(doc.total ?? 0)}`, 140, finalY + 24);
+        pdf.text(`Total: ${fmt(doc.total ?? 0)}`, 140, sumY + 2);
 
         pdf.save(`pedido-${orderNumber}.pdf`);
         props.onComplete();

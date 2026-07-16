@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ request }) => {
       `*[_type=="order" && orderNumber==$num][0]{
         _id, status, createdAt, paymentMethod, deliveryMethod, "pickupBranchName": pickupBranch->name,
         customer, items[]{ variantLabel, quantity, unitPrice },
-        subtotal, shipping, total
+        subtotal, shipping, iva, total
       }`,
       { num: orderNumber }
     ).catch(() => null);
@@ -64,7 +64,7 @@ function ok() {
 
 const fmt = (n: number) => `$${Math.ceil(n).toLocaleString("es-MX")} MXN`;
 
-function buildItemsTable(items: any[], shipping: number, total: number) {
+function buildItemsTable(items: any[], shipping: number, total: number, iva: number = 0) {
   const rows = items.map((it: any) => {
     const sub = Math.ceil(Number(it.unitPrice ?? 0)) * Number(it.quantity ?? 1);
     return `<tr>
@@ -86,6 +86,10 @@ function buildItemsTable(items: any[], shipping: number, total: number) {
         <td colspan="2" style="padding:6px 12px">Envío</td>
         <td style="padding:6px 12px;text-align:right">${shipping === 0 ? "Gratis" : fmt(shipping)}</td>
       </tr>
+      ${iva > 0 ? `<tr>
+        <td colspan="2" style="padding:6px 12px">IVA</td>
+        <td style="padding:6px 12px;text-align:right">${fmt(iva)}</td>
+      </tr>` : ""}
       <tr style="background:#f8fafc">
         <td colspan="2" style="padding:10px 12px;font-weight:700">TOTAL</td>
         <td style="padding:10px 12px;font-weight:700;text-align:right">${fmt(total)}</td>
@@ -99,7 +103,7 @@ async function sendConfirmationEmails(order: any, orderNumber: string) {
   if (!resendKey) return;
 
   const resend = new Resend(resendKey);
-  const { customer, items, shipping, total, deliveryMethod, pickupBranchName } = order;
+  const { customer, items, shipping, iva, total, deliveryMethod, pickupBranchName } = order;
   const now = new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
 
   const [notifyFromSanity, siteSettings] = await Promise.all([
@@ -117,7 +121,7 @@ async function sendConfirmationEmails(order: any, orderNumber: string) {
   const customerWaPhone = String(customer.phone ?? "").replace(/\D/g, "");
   const waMsg  = encodeURIComponent(`Hola ${customer.name}, te contactamos de La Bodega del Instalador sobre tu pedido #${orderNumber} por ${fmt(total)}.`);
   const waLink = `https://wa.me/${customerWaPhone}?text=${waMsg}`;
-  const itemsTable = buildItemsTable(items, shipping, total);
+  const itemsTable = buildItemsTable(items, shipping, total, iva);
 
   const entrega = deliveryMethod === "pickup"
     ? `Recoger en sucursal${pickupBranchName ? `: ${pickupBranchName}` : ""}`

@@ -100,17 +100,19 @@ export const POST: APIRoute = async ({ request }) => {
 
   const [shopSettings, siteSettings] = await Promise.all([
     sanity
-      .fetch<{ shippingCost: number; freeShippingThreshold: number; currency: string; usdRate: number; markupPercent: number; boxMarkupPercent: number }>(
+      .fetch<{ shippingCost: number; freeShippingThreshold: number; currency: string; usdRate: number; markupPercent: number; boxMarkupPercent: number; ivaEnabled: boolean; ivaPercent: number }>(
         `*[_type=="siteSettingsShop"][0]{
           "shippingCost": coalesce(shippingCost, 0),
           "freeShippingThreshold": coalesce(freeShippingThreshold, 0),
           "currency": coalesce(currency, "USD"),
           "usdRate": coalesce(usdRate, 17),
           "markupPercent": coalesce(markupPercent, 26.5),
-          "boxMarkupPercent": coalesce(boxMarkupPercent, 0)
+          "boxMarkupPercent": coalesce(boxMarkupPercent, 0),
+          "ivaEnabled": coalesce(ivaEnabled, false),
+          "ivaPercent": coalesce(ivaPercent, 16)
         }`
       )
-      .catch(() => ({ shippingCost: 0, freeShippingThreshold: 0, currency: "USD", usdRate: 17, markupPercent: 26.5, boxMarkupPercent: 0 })),
+      .catch(() => ({ shippingCost: 0, freeShippingThreshold: 0, currency: "USD", usdRate: 17, markupPercent: 26.5, boxMarkupPercent: 0, ivaEnabled: false, ivaPercent: 16 })),
     sanity
       .fetch<{ whatsapp?: string; payment?: { bankName?: string; accountHolder?: string; clabe?: string; accountNumber?: string } }>(
         `*[_type=="siteSettings"][0]{ "whatsapp": organization.whatsapp, payment }`
@@ -148,7 +150,8 @@ export const POST: APIRoute = async ({ request }) => {
       : shopSettings.freeShippingThreshold > 0 && calcTotal >= shopSettings.freeShippingThreshold
         ? 0
         : shopSettings.shippingCost;
-  const grandTotal = ceil(calcTotal + shippingAmount);
+  const ivaAmount = shopSettings.ivaEnabled ? ceil(calcTotal * (shopSettings.ivaPercent / 100)) : 0;
+  const grandTotal = ceil(calcTotal + shippingAmount + ivaAmount);
 
   // ── Crear pedido en Sanity ───────────────────────────
   let created: { _id: string };
@@ -185,6 +188,7 @@ export const POST: APIRoute = async ({ request }) => {
       }),
       subtotal: calcTotal,
       shipping: shippingAmount,
+      iva:      ivaAmount,
       total:    grandTotal,
     });
   } catch (e: any) {
@@ -194,7 +198,7 @@ export const POST: APIRoute = async ({ request }) => {
   // ── Notificación por email ───────────────────────────
   // Para MercadoPago el correo se manda desde /api/mp-webhook una vez confirmado el pago
   if (paymentMethod === "mercadopago") {
-    return json({ success: true, orderId: created._id, orderNumber: num, shipping: shippingAmount, total: grandTotal });
+    return json({ success: true, orderId: created._id, orderNumber: num, shipping: shippingAmount, iva: ivaAmount, total: grandTotal });
   }
 
   const resendKey = import.meta.env.RESEND_API_KEY;
@@ -222,6 +226,10 @@ export const POST: APIRoute = async ({ request }) => {
       <td colspan="2" style="padding:6px 12px">Envío</td>
       <td style="padding:6px 12px;text-align:right">${shippingAmount === 0 ? "Gratis" : fmt(shippingAmount)}</td>
     </tr>`;
+    const ivaRow = ivaAmount > 0 ? `<tr>
+      <td colspan="2" style="padding:6px 12px">IVA (${shopSettings.ivaPercent}%)</td>
+      <td style="padding:6px 12px;text-align:right">${fmt(ivaAmount)}</td>
+    </tr>` : "";
     const totalRow = `<tr style="background:#f8fafc">
       <td colspan="2" style="padding:10px 12px;font-weight:700">TOTAL</td>
       <td style="padding:10px 12px;font-weight:700;text-align:right">${fmt(grandTotal)}</td>
@@ -233,7 +241,7 @@ export const POST: APIRoute = async ({ request }) => {
         <th style="padding:8px 12px;text-align:right;font-size:11px;text-transform:uppercase;opacity:.6">Subtotal</th>
       </tr></thead>
       <tbody>${rows}</tbody>
-      <tfoot>${shippingRow}${totalRow}</tfoot>
+      <tfoot>${shippingRow}${ivaRow}${totalRow}</tfoot>
     </table>`;
 
     const waPhone = (siteSettings?.whatsapp ?? "528121087053").replace(/\D/g, "");

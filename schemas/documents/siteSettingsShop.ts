@@ -59,15 +59,32 @@ export const siteSettingsShop = defineType({
       initialValue: 0,
       validation: (Rule) => Rule.min(0),
     }),
+    defineField({
+      name: "ivaEnabled",
+      title: "Cobrar IVA",
+      type: "boolean",
+      initialValue: false,
+      description: "Si está activo, se agrega el % de IVA sobre el subtotal como línea aparte en el checkout y en el total del pedido.",
+    }),
+    defineField({
+      name: "ivaPercent",
+      title: "IVA (%)",
+      type: "number",
+      initialValue: 16,
+      description: "Porcentaje de IVA a aplicar sobre el subtotal (sin envío). Ej: 16 = 16%.",
+      validation: (Rule) => Rule.min(0).max(100),
+      hidden: ({ parent }) => !parent?.ivaEnabled,
+    }),
   ],
   preview: {
-    select: { currency: "currency", rate: "usdRate", markup: "markupPercent", boxMarkup: "boxMarkupPercent", catalogOnly: "catalogOnlyMode" },
-    prepare: ({ currency, rate, markup, boxMarkup, catalogOnly }) => ({
+    select: { currency: "currency", rate: "usdRate", markup: "markupPercent", boxMarkup: "boxMarkupPercent", catalogOnly: "catalogOnlyMode", ivaEnabled: "ivaEnabled", ivaPercent: "ivaPercent" },
+    prepare: ({ currency, rate, markup, boxMarkup, catalogOnly, ivaEnabled, ivaPercent }) => ({
       title: catalogOnly ? "🔒 Tienda / Precios (Modo catálogo ON)" : "Tienda / Precios",
       subtitle: [
         currency === "USD" ? `USD → MXN × ${rate}` : "Precios en MXN",
         markup != null ? `+${markup}% unitario` : "",
         boxMarkup != null ? `+${boxMarkup}% caja` : "",
+        ivaEnabled ? `IVA ${ivaPercent ?? 16}%` : "",
       ].filter(Boolean).join(" · "),
     }),
   },

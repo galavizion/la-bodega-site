@@ -622,5 +622,7 @@ export const SITE_SETTINGS_QUERY = groq`
   "boxMarkupPercent":  coalesce(*[_type == "siteSettingsShop"][0].boxMarkupPercent,  0),
   "shippingCost":            coalesce(*[_type == "siteSettingsShop"][0].shippingCost,            0),
   "freeShippingThreshold":   coalesce(*[_type == "siteSettingsShop"][0].freeShippingThreshold,   0),
+  "ivaEnabled":              coalesce(*[_type == "siteSettingsShop"][0].ivaEnabled,               false),
+  "ivaPercent":              coalesce(*[_type == "siteSettingsShop"][0].ivaPercent,                16),
 }
 `;
