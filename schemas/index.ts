@@ -21,6 +21,8 @@ import { authCode } from "./documents/authCode";
 import { customerProfile } from "./documents/customerProfile";
 import { chatbotProfile } from "./documents/chatbotProfile";
 import { branch } from "./documents/branch";
+import { cashbackSettings } from "./documents/cashbackSettings";
+import { walletTransaction } from "./documents/walletTransaction";
 
 // Objects
 import { seo } from "./objects/seo";
@@ -64,6 +66,8 @@ export const schemaTypes = [
   customerProfile,
   chatbotProfile,
   branch,
+  cashbackSettings,
+  walletTransaction,
   // Objects
   seo,
   navItem,

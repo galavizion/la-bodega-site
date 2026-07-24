@@ -127,7 +127,8 @@ export const order = defineType({
     defineField({ name: "subtotal", title: "Subtotal", type: "number", group: "items", readOnly: true }),
     defineField({ name: "shipping", title: "Envío", type: "number", group: "items", initialValue: 0 }),
     defineField({ name: "iva", title: "IVA", type: "number", group: "items", readOnly: true, initialValue: 0 }),
-    defineField({ name: "total", title: "Total", type: "number", group: "items", readOnly: true }),
+    defineField({ name: "total", title: "Total (ya con cashback aplicado)", type: "number", group: "items", readOnly: true }),
+    defineField({ name: "cashbackApplied", title: "Cashback usado como pago", type: "number", group: "items", readOnly: true, initialValue: 0 }),
     defineField({
       name: "paymentMethod",
       title: "Método de pago",

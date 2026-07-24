@@ -4,11 +4,27 @@ export const prerender = false;
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { client as sanityClient } from "../lib/sanity/client";
 import { SITE_SETTINGS_QUERY, BRANCHES_QUERY } from "../lib/sanity/queries";
+import { getSession } from "../lib/auth";
 
-const [settings, branches] = await Promise.all([
+const [settings, branches, session] = await Promise.all([
   sanityClient.fetch(SITE_SETTINGS_QUERY),
   sanityClient.fetch(BRANCHES_QUERY).catch(() => []),
+  getSession(Astro.request),
 ]);
+
+let cashbackBalance = 0;
+if (session) {
+  const [cbSettings, balance] = await Promise.all([
+    sanityClient.fetch<{ enabled?: boolean } | null>(`*[_type=="cashbackSettings"][0]{enabled}`).catch(() => null),
+    sanityClient
+      .fetch<number>(
+        `math::sum(*[_type=="walletTransaction" && customerEmail==$email && status != "reverted"].amount)`,
+        { email: session.email }
+      )
+      .catch(() => 0),
+  ]);
+  cashbackBalance = cbSettings?.enabled ? Math.max(balance ?? 0, 0) : 0;
+}
 
 if (settings?.catalogOnlyMode) return Astro.redirect("/catalogo/", 302);
 
@@ -45,6 +61,12 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
   <main class="co-wrap container">
     <a class="co-back" href="/carrito/">← Volver al carrito</a>
     <h1 class="co-title">Finalizar pedido</h1>
+
+    {!session && (
+      <p class="co-login-hint">
+        ¿Ya tienes cuenta? <a href="/mi-cuenta/">Inicia sesión</a> para ver el estado de tus pedidos más fácil.
+      </p>
+    )}
 
     <div class="co-grid">
 
@@ -209,6 +231,15 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
             <div id="mp-wallet-container" style="display:none; margin-top:16px;"></div>
           </section>
 
+          {cashbackBalance > 0 && (
+            <section class="co-section">
+              <label class="cashback-toggle">
+                <input type="checkbox" id="useCashback" name="useCashback" />
+                <span>Usar mi saldo de cashback disponible (<strong>${cashbackBalance.toLocaleString("es-MX")} MXN</strong>)</span>
+              </label>
+            </section>
+          )}
+
           {/* Honeypot */}
           <div style="position:absolute;left:-9999px;opacity:0;pointer-events:none;height:0;overflow:hidden" aria-hidden="true">
             <input type="text" name="_hp_website" tabindex="-1" autocomplete="off" value="" />
@@ -241,6 +272,9 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
             {ivaEnabled && (
               <div class="sum-row sum-row--iva"><span>IVA ({ivaPercent}%)</span><strong id="sumIva">—</strong></div>
             )}
+            {cashbackBalance > 0 && (
+              <div class="sum-row sum-row--cashback" id="sumCashbackRow" style="display:none"><span>Cashback aplicado</span><strong id="sumCashback">—</strong></div>
+            )}
             <div class="sum-row sum-row--total"><span>Total estimado</span><strong id="sumTotal">—</strong></div>
           </div>
         </div>
@@ -253,7 +287,7 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer is:inline></script>
   )}
 
-  <script is:inline define:vars={{ waPhone, mpPublicKey, mpSandbox, shippingCost, freeShippingThreshold, ivaEnabled, ivaPercent }}>
+  <script is:inline define:vars={{ waPhone, mpPublicKey, mpSandbox, shippingCost, freeShippingThreshold, ivaEnabled, ivaPercent, cashbackBalance }}>
     const KEY = "ranking_cart_v1";
     const getCart = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; } };
 
@@ -290,10 +324,13 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
     // ── Poblar resumen ──────────────────────────────────
     const items = getCart();
     const listEl     = document.getElementById("summaryList");
-    const subtotalEl = document.getElementById("sumSubtotal");
-    const shippingEl = document.getElementById("sumShipping");
-    const ivaEl      = document.getElementById("sumIva");
-    const totalEl    = document.getElementById("sumTotal");
+    const subtotalEl     = document.getElementById("sumSubtotal");
+    const shippingEl     = document.getElementById("sumShipping");
+    const ivaEl          = document.getElementById("sumIva");
+    const totalEl        = document.getElementById("sumTotal");
+    const cashbackRow    = document.getElementById("sumCashbackRow");
+    const cashbackEl     = document.getElementById("sumCashback");
+    const useCashbackBox = document.getElementById("useCashback");
 
     const refreshShippingDisplay = () => {
       const total       = items.reduce((a, it) => a + Number(it.price || 0) * (it.qty || 1), 0);
@@ -302,10 +339,17 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
       const fmt         = (n) => "$" + n.toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " MXN";
       const shipping    = total ? calcShipping(total, hasBox, isPickup) : 0;
       const iva         = ivaEnabled && total ? Math.ceil(total * (ivaPercent / 100)) : 0;
+      const grossTotal  = total + shipping + iva;
+      const wantsCashback = !!(useCashbackBox && useCashbackBox.checked);
+      const cashbackUsed  = wantsCashback ? Math.min(cashbackBalance, grossTotal) : 0;
       if (shippingEl) shippingEl.textContent = !total ? "Ver cotización" : shipping === 0 ? "Gratis" : fmt(shipping);
       if (ivaEl)      ivaEl.textContent      = total ? fmt(iva) : "—";
-      if (totalEl)    totalEl.textContent    = total ? fmt(total + shipping + iva) : "Ver cotización";
+      if (cashbackRow) cashbackRow.style.display = wantsCashback && total ? "flex" : "none";
+      if (cashbackEl) cashbackEl.textContent = total ? "-" + fmt(cashbackUsed) : "—";
+      if (totalEl)    totalEl.textContent    = total ? fmt(grossTotal - cashbackUsed) : "Ver cotización";
     };
+
+    useCashbackBox && useCashbackBox.addEventListener("change", refreshShippingDisplay);
 
     if (!items.length) {
       window.location.replace("/carrito/");
@@ -396,6 +440,7 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
         body: JSON.stringify({
           customer, items: cartItems, paymentMethod, total,
           deliveryMethod, pickupBranchName,
+          useCashback: !!(useCashbackBox && useCashbackBox.checked),
           _hp_website: fd.get("_hp_website") || "",
           "cf-turnstile-response": fd.get("cf-turnstile-response") || "",
         }),
@@ -524,6 +569,26 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
       letter-spacing: -.02em;
       margin: 0 0 32px;
     }
+
+    .co-login-hint {
+      font-size: 13px;
+      background: #f3f4f6;
+      border: 1px solid rgba(0,0,0,.1);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin: -20px 0 24px;
+    }
+    .co-login-hint a { color: #111827; font-weight: 700; text-decoration: underline; }
+
+    .cashback-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .cashback-toggle input { width: 18px; height: 18px; flex-shrink: 0; }
+    .sum-row--cashback strong { color: #166534; }
 
     .co-grid {
       display: grid;

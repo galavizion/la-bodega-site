@@ -8,6 +8,7 @@ import { OrderManagerPanel } from "./schemas/documents/OrderManagerPanel";
 import { DuplicatePageAction } from "./studio-components/DuplicatePageAction";
 import { DownloadOrderPdfAction } from "./studio-components/DownloadOrderPdfAction";
 import { FamilyManagerPanel } from "./studio-components/FamilyManagerPanel";
+import { CreditCashbackAction } from "./studio-components/CreditCashbackAction";
 
 export default defineConfig({
   projectId: "a7b3q6z9",
@@ -121,6 +122,20 @@ export default defineConfig({
                     S.listItem()
                       .title("🏪 Sucursales")
                       .child(S.documentTypeList("branch").title("Sucursales")),
+                    S.listItem()
+                      .title("💰 Cashback")
+                      .child(
+                        S.list()
+                          .title("Cashback")
+                          .items([
+                            S.listItem()
+                              .title("⚙️ Configuración")
+                              .child(S.document().schemaType("cashbackSettings").documentId("cashbackSettings")),
+                            S.listItem()
+                              .title("📒 Movimientos")
+                              .child(S.documentTypeList("walletTransaction").title("Movimientos de cashback")),
+                          ])
+                      ),
 
                     S.listItem()
                       .title("📦 Productos")
@@ -317,7 +332,7 @@ export default defineConfig({
   document: {
     actions: (prev, context) => {
       if (context.schemaType === "page") return [...prev, DuplicatePageAction];
-      if (context.schemaType === "order") return [...prev, DownloadOrderPdfAction];
+      if (context.schemaType === "order") return [...prev, DownloadOrderPdfAction, CreditCashbackAction];
       return prev;
     },
   },

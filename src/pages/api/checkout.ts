@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { createClient } from "@sanity/client";
 import { Resend } from "resend";
 import { resolveMarkup } from "../../lib/pricing";
+import { getSession } from "../../lib/auth";
 
 export const prerender = false;
 
@@ -27,7 +28,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "JSON inválido" }, 400);
   }
 
-  const { customer, items, paymentMethod, total, deliveryMethod, pickupBranchId, pickupBranchName, _hp_website, "cf-turnstile-response": tsToken } = body;
+  const { customer, items, paymentMethod, total, deliveryMethod, pickupBranchId, pickupBranchName, useCashback, _hp_website, "cf-turnstile-response": tsToken } = body;
 
   // ── Honeypot ───────────────────────────────────────────────────────────────
   if (_hp_website) {
@@ -153,6 +154,23 @@ export const POST: APIRoute = async ({ request }) => {
   const ivaAmount = shopSettings.ivaEnabled ? ceil(calcTotal * (shopSettings.ivaPercent / 100)) : 0;
   const grandTotal = ceil(calcTotal + shippingAmount + ivaAmount);
 
+  // ── Cashback: solo si hay sesión activa y coincide con el email del pedido ──
+  // El monto NUNCA se toma del cliente — siempre se recalcula del saldo real en Sanity.
+  const session = await getSession(request);
+  let cashbackApplied = 0;
+  const sessionEmail = session?.email?.trim().toLowerCase();
+  const customerEmail = String(customer.email ?? "").trim().toLowerCase();
+  if (useCashback === true && sessionEmail && sessionEmail === customerEmail) {
+    const balance = await sanity
+      .fetch<number>(
+        `math::sum(*[_type=="walletTransaction" && customerEmail==$email && status != "reverted"].amount)`,
+        { email: sessionEmail }
+      )
+      .catch(() => 0);
+    cashbackApplied = Math.min(Math.max(balance ?? 0, 0), grandTotal);
+  }
+  const netTotal = ceil(grandTotal - cashbackApplied);
+
   // ── Crear pedido en Sanity ───────────────────────────
   let created: { _id: string };
   try {
@@ -189,16 +207,29 @@ export const POST: APIRoute = async ({ request }) => {
       subtotal: calcTotal,
       shipping: shippingAmount,
       iva:      ivaAmount,
-      total:    grandTotal,
+      total:    netTotal,
+      cashbackApplied,
     });
   } catch (e: any) {
     return json({ error: e?.message ?? "Error al guardar el pedido" }, 500);
   }
 
+  if (cashbackApplied > 0) {
+    await sanity.create({
+      _type: "walletTransaction",
+      customerEmail: sessionEmail,
+      order: { _type: "reference", _ref: created._id, _weak: true },
+      amount: -cashbackApplied,
+      status: "redeemed",
+      note: `Usado en pedido #${num}`,
+      createdAt: now,
+    }).catch((e) => console.error("Error al registrar redención de cashback:", e));
+  }
+
   // ── Notificación por email ───────────────────────────
   // Para MercadoPago el correo se manda desde /api/mp-webhook una vez confirmado el pago
   if (paymentMethod === "mercadopago") {
-    return json({ success: true, orderId: created._id, orderNumber: num, shipping: shippingAmount, iva: ivaAmount, total: grandTotal });
+    return json({ success: true, orderId: created._id, orderNumber: num, shipping: shippingAmount, iva: ivaAmount, total: netTotal, cashbackApplied });
   }
 
   const resendKey = import.meta.env.RESEND_API_KEY;
@@ -230,9 +261,13 @@ export const POST: APIRoute = async ({ request }) => {
       <td colspan="2" style="padding:6px 12px">IVA (${shopSettings.ivaPercent}%)</td>
       <td style="padding:6px 12px;text-align:right">${fmt(ivaAmount)}</td>
     </tr>` : "";
+    const cashbackRow = cashbackApplied > 0 ? `<tr>
+      <td colspan="2" style="padding:6px 12px;color:#166534">Cashback aplicado</td>
+      <td style="padding:6px 12px;text-align:right;color:#166534">-${fmt(cashbackApplied)}</td>
+    </tr>` : "";
     const totalRow = `<tr style="background:#f8fafc">
-      <td colspan="2" style="padding:10px 12px;font-weight:700">TOTAL</td>
-      <td style="padding:10px 12px;font-weight:700;text-align:right">${fmt(grandTotal)}</td>
+      <td colspan="2" style="padding:10px 12px;font-weight:700">TOTAL A PAGAR</td>
+      <td style="padding:10px 12px;font-weight:700;text-align:right">${fmt(netTotal)}</td>
     </tr>`;
     const itemsTable = `<table style="width:100%;border-collapse:collapse;font-size:14px">
       <thead><tr style="background:#f8fafc">
@@ -241,12 +276,12 @@ export const POST: APIRoute = async ({ request }) => {
         <th style="padding:8px 12px;text-align:right;font-size:11px;text-transform:uppercase;opacity:.6">Subtotal</th>
       </tr></thead>
       <tbody>${rows}</tbody>
-      <tfoot>${shippingRow}${ivaRow}${totalRow}</tfoot>
+      <tfoot>${shippingRow}${ivaRow}${cashbackRow}${totalRow}</tfoot>
     </table>`;
 
     const waPhone = (siteSettings?.whatsapp ?? "528121087053").replace(/\D/g, "");
     const customerWaPhone = String(customer.phone ?? "").replace(/\D/g, "");
-    const waMsg = encodeURIComponent(`Hola ${customer.name}, te contactamos de La Bodega del Instalador sobre tu pedido #${num} por ${fmt(grandTotal)}.`);
+    const waMsg = encodeURIComponent(`Hola ${customer.name}, te contactamos de La Bodega del Instalador sobre tu pedido #${num} por ${fmt(netTotal)}.`);
     const waLink = `https://wa.me/${customerWaPhone}?text=${waMsg}`;
 
     // ── Correo al admin ─────────────────────────────────────
@@ -281,7 +316,7 @@ export const POST: APIRoute = async ({ request }) => {
       await resend.emails.send({
         from: "La Bodega del Instalador <noreply@labodegadelinstalador.net>",
         to: notifyEmails,
-        subject: `[Pedido] #${num} — ${customer.name} · ${fmt(grandTotal)}`,
+        subject: `[Pedido] #${num} — ${customer.name} · ${fmt(netTotal)}`,
         html: adminHtml,
         replyTo: customer.email || undefined,
       }).catch(() => {});
@@ -332,7 +367,7 @@ export const POST: APIRoute = async ({ request }) => {
     }).catch(() => {});
   }
 
-  return json({ success: true, orderId: created._id, orderNumber: num, shipping: shippingAmount, total: grandTotal });
+  return json({ success: true, orderId: created._id, orderNumber: num, shipping: shippingAmount, total: netTotal, cashbackApplied });
 };
 
 function json(data: unknown, status = 200) {

@@ -129,6 +129,7 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
 
       <a class="nav-account" href="/mi-cuenta/" aria-label="Mi cuenta">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="nav-account__label">Mi cuenta</span>
       </a>
 
       {!settings?.catalogOnlyMode && (
@@ -488,15 +489,16 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
   .nav-account {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 36px;
+    gap: 6px;
     height: 36px;
+    padding: 0 10px 0 8px;
     border-radius: 8px;
     color: #fff;
     text-decoration: none;
     transition: background .15s;
   }
   .nav-account:hover { background: rgba(255,255,255,.1); }
+  .nav-account__label { font-size: 11px; font-weight: 600; white-space: nowrap; }
 
   .nav-cart {
     position: relative;
@@ -550,6 +552,8 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
 
     .nav-cta { display: none; }
     .menu-toggle { display: inline-flex; }
+    .nav-account { width: 36px; padding: 0; justify-content: center; }
+    .nav-account__label { display: none; }
 
     .menu {
       display: none;
