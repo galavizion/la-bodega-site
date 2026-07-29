@@ -12,7 +12,7 @@ const sanity = createClient({
 
 export const GET: APIRoute = async () => {
   const items = await sanity.fetch<any[]>(`
-    *[_type == "catalogItem"] | order(title asc) {
+    *[_type == "catalogItem" && published != false] | order(title asc) {
       _id,
       title,
       "slug": slug.current,
@@ -29,7 +29,15 @@ export const GET: APIRoute = async () => {
       "boxEnabled":      boxOption.enabled,
       "boxUnitsPerBox":  boxOption.unitsPerBox,
       "boxLabel":        boxOption.boxLabel,
-      variants[]{ sku, size, label, price, comparePrice, stock }
+      length,
+      width,
+      height,
+      weight,
+      "boxLength": boxOption.length,
+      "boxWidth":  boxOption.width,
+      "boxHeight": boxOption.height,
+      "boxWeight": boxOption.weight,
+      variants[]{ sku, size, label, price, comparePrice, stock, length, width, height, weight }
     }
   `);
 
@@ -40,7 +48,10 @@ export const GET: APIRoute = async () => {
     "title", "slug", "sku", "brand", "excerpt", "category",
     "price", "comparePrice", "published", "featured", "familySlug", "tags",
     "boxEnabled", "boxUnitsPerBox", "boxLabel",
+    "length", "width", "height", "weight",
+    "boxLength", "boxWidth", "boxHeight", "boxWeight",
     "variant_sku", "variant_size", "variant_label", "variant_price", "variant_comparePrice", "variant_stock",
+    "variant_length", "variant_width", "variant_height", "variant_weight",
   ]);
 
   for (const item of items) {
@@ -60,6 +71,14 @@ export const GET: APIRoute = async () => {
       item.boxEnabled     != null ? String(item.boxEnabled)     : "",
       item.boxUnitsPerBox != null ? String(item.boxUnitsPerBox) : "",
       item.boxLabel ?? "",
+      item.length != null ? String(item.length) : "",
+      item.width  != null ? String(item.width)  : "",
+      item.height != null ? String(item.height) : "",
+      item.weight != null ? String(item.weight) : "",
+      item.boxLength != null ? String(item.boxLength) : "",
+      item.boxWidth  != null ? String(item.boxWidth)  : "",
+      item.boxHeight != null ? String(item.boxHeight) : "",
+      item.boxWeight != null ? String(item.boxWeight) : "",
     ];
 
     if (Array.isArray(item.variants) && item.variants.length > 0) {
@@ -72,10 +91,14 @@ export const GET: APIRoute = async () => {
           v.price        != null ? String(v.price)        : "",
           v.comparePrice != null ? String(v.comparePrice) : "",
           v.stock        != null ? String(v.stock)        : "",
+          v.length != null ? String(v.length) : "",
+          v.width  != null ? String(v.width)  : "",
+          v.height != null ? String(v.height) : "",
+          v.weight != null ? String(v.weight) : "",
         ]);
       }
     } else {
-      rows.push([...base, "", "", "", "", "", ""]);
+      rows.push([...base, "", "", "", "", "", "", "", "", "", ""]);
     }
   }
 
