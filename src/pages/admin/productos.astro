@@ -1,4 +1,6 @@
 ---
+import AdminNav from "../../components/AdminNav.astro";
+
 export const prerender = false;
 
 const isDev = import.meta.env.DEV;
@@ -141,6 +143,7 @@ if (!isDev) {
 </head>
 <body>
   <div class="wrap">
+    <AdminNav active="productos" />
     <h1>🗂 Gestionar productos</h1>
     <p class="sub">Selecciona uno o varios productos para eliminarlos de Sanity.</p>
 

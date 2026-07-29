@@ -15,7 +15,7 @@ if (adminKey && Astro.url.searchParams.get("key") !== adminKey) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Importar productos desde Excel</title>
+  <title>Importar medidas y peso</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body {
@@ -38,22 +38,6 @@ if (adminKey && Astro.url.searchParams.get("key") !== adminKey) {
       margin-bottom: 24px;
     }
     h2 { font-size: 16px; margin: 0 0 16px; }
-
-    .template-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
-      border-radius: 10px;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.12);
-      color: inherit;
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 20px;
-    }
-    .template-link:hover { background: rgba(255,255,255,.14); }
 
     label { display: block; font-size: 13px; opacity: .7; margin-bottom: 6px; }
 
@@ -138,29 +122,25 @@ if (adminKey && Astro.url.searchParams.get("key") !== adminKey) {
 </head>
 <body>
   <div class="wrap">
-    <AdminNav active="importar" />
-    <h1>📥 Importar productos</h1>
-    <p class="sub">Carga un archivo Excel (.xlsx / .xls / .csv) para crear o actualizar productos en Sanity.</p>
+    <AdminNav active="importar-medidas" />
+    <h1>📏 Importar medidas y peso</h1>
+    <p class="sub">
+      Carga un Excel/CSV que solo traiga SKU + medidas. Este importador <strong>no toca</strong>
+      nombre, precio, imágenes ni ningún otro campo — solo actualiza Length, Width, Height y Weight.
+    </p>
 
     <div class="card">
-      <h2>Plantilla de columnas</h2>
-      <a class="template-link" href="/admin/plantilla-productos.xlsx" download id="downloadTemplate">
-        ⬇️ Descargar plantilla Excel
-      </a>
+      <h2>Columnas esperadas</h2>
       <p class="cols-info">
-        <strong>Columnas requeridas:</strong><br/>
-        <code>nombre</code> · <code>sku</code> · <code>marca</code> · <code>descripcion</code> ·
-        <code>precio</code> · <code>precio_oferta</code> · <code>disponible</code> · <code>categoria</code>
+        <strong>Requerida:</strong> <code>sku</code> (busca primero en variantes; si no coincide, usa el SKU principal del producto)
         <br/><br/>
-        <strong>Especificaciones de variante (opcional):</strong><br/>
-        <code>variante_1</code> · <code>variante_2</code> · <code>variante_3</code><br/>
-        Formato: <code>Medida: 1"</code> · <code>Cantidad: 500 pzas</code> · <code>Color: Gris</code>
+        <strong>Medida del producto/variante (al menos una):</strong><br/>
+        <code>length</code> / <code>largo</code> (cm) · <code>width</code> / <code>ancho</code> (cm) ·
+        <code>height</code> / <code>alto</code> (cm) · <code>weight</code> / <code>peso</code> (kg)
         <br/><br/>
-        <strong>Columnas opcionales:</strong><br/>
-        <code>certifications</code> (ul, fm, nom, nsf, ce, iso9001) · <code>whatsappPhone</code> · <code>whatsappMessage</code>
-        <br/><br/>
-        <strong>Disponible:</strong> <code>si</code> / <code>no</code><br/>
-        <strong>Filas con mismo <code>nombre</code></strong> = mismo producto, se agrupan como variantes.
+        <strong>Medida de la caja (opcional):</strong><br/>
+        <code>box_length</code> / <code>largo_caja</code> · <code>box_width</code> / <code>ancho_caja</code> ·
+        <code>box_height</code> / <code>alto_caja</code> · <code>box_weight</code> / <code>peso_caja</code>
       </p>
     </div>
 
@@ -173,9 +153,9 @@ if (adminKey && Astro.url.searchParams.get("key") !== adminKey) {
 
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <button class="btn btn-primary" id="importBtn" disabled>
-          ⬆️ Importar a Sanity
+          ⬆️ Actualizar medidas
         </button>
-        <button class="btn" id="clearLogBtn" style="background:rgba(255,255,255,.08);color:inherit" onclick="localStorage.removeItem('importar_log');document.getElementById('log').innerHTML='';document.getElementById('log').style.display='none'">
+        <button class="btn" id="clearLogBtn" style="background:rgba(255,255,255,.08);color:inherit" onclick="localStorage.removeItem('importar_medidas_log');document.getElementById('log').innerHTML='';document.getElementById('log').style.display='none'">
           🗑 Limpiar log
         </button>
       </div>
@@ -197,10 +177,9 @@ if (adminKey && Astro.url.searchParams.get("key") !== adminKey) {
     const progressBar = document.getElementById("progressBar");
     const progressFill = document.getElementById("progressFill");
 
-    const LOG_KEY = "importar_log";
+    const LOG_KEY = "importar_medidas_log";
     let parsedRows = [];
 
-    // ── Restaurar log previo al cargar la página ─────────
     (function restoreLog() {
       const saved = localStorage.getItem(LOG_KEY);
       if (!saved) return;
@@ -210,7 +189,6 @@ if (adminKey && Astro.url.searchParams.get("key") !== adminKey) {
       entries.forEach(({ type, msg }) => _renderLogItem(type, msg));
     })();
 
-    // Corrige mojibake Latin-1→UTF-8 (ej: "Ã¡" → "á")
     function fixEncoding(str) {
       if (typeof str !== "string" || !str) return str;
       try { return decodeURIComponent(escape(str)); } catch { return str; }
@@ -224,17 +202,13 @@ if (adminKey && Astro.url.searchParams.get("key") !== adminKey) {
       return fixed;
     }
 
-    // ── Parse file ──────────────────────────────────────
     fileInput.addEventListener("change", async (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
       const buffer = await file.arrayBuffer();
       const wb = XLSX.read(buffer, { type: "array" });
-      const sheetName =
-        wb.SheetNames.find((n) =>
-          /cat[aá]logo|products|productos/i.test(n)
-        ) ?? wb.SheetNames[0];
+      const sheetName = wb.SheetNames[0];
       const ws = wb.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json(ws, { defval: "" }).map(fixRowEncoding);
 
@@ -258,7 +232,6 @@ if (adminKey && Astro.url.searchParams.get("key") !== adminKey) {
       `;
     }
 
-    // ── Import ───────────────────────────────────────────
     importBtn.addEventListener("click", async () => {
       if (!parsedRows.length) return;
 
@@ -268,20 +241,19 @@ if (adminKey && Astro.url.searchParams.get("key") !== adminKey) {
       progressBar.style.display = "block";
       localStorage.removeItem(LOG_KEY);
 
-      let ok = 0, err = 0, skip = 0;
+      let ok = 0, err = 0;
       const timestamp = new Date().toLocaleString("es-MX");
-      addLog("skip", `⏱ Importación iniciada — ${timestamp} — ${parsedRows.length} filas`);
+      addLog("skip", `⏱ Importación de medidas iniciada — ${timestamp} — ${parsedRows.length} filas`);
 
       for (let i = 0; i < parsedRows.length; i++) {
         const row = parsedRows[i];
         const pct = Math.round(((i + 1) / parsedRows.length) * 100);
         progressFill.style.width = pct + "%";
 
-        // Nombre para mostrar en el log
-        const label = row.nombre || row.title || row.sku || `Fila ${i+1}`;
+        const label = row.sku || row.SKU || `Fila ${i+1}`;
 
         try {
-          const res = await fetch("/api/import-product", {
+          const res = await fetch("/api/import-dimensions", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(row),
@@ -290,7 +262,7 @@ if (adminKey && Astro.url.searchParams.get("key") !== adminKey) {
 
           if (res.ok) {
             ok++;
-            addLog("ok", `✅ ${label} — ${data.action ?? "creado"}`);
+            addLog("ok", `✅ ${label} — ${data.action ?? "actualizado"}`);
           } else {
             err++;
             addLog("err", `❌ ${label} — ${data.error ?? "error"}`);
@@ -301,14 +273,12 @@ if (adminKey && Astro.url.searchParams.get("key") !== adminKey) {
         }
       }
 
-      addLog("skip", `─── Listo: ${ok} importados · ${skip} omitidos · ${err} errores ───`);
+      addLog("skip", `─── Listo: ${ok} actualizados · ${err} errores ───`);
       importBtn.disabled = false;
     });
 
-    // ── Renderiza y persiste cada entrada del log ────────
     function addLog(type, msg) {
       _renderLogItem(type, msg);
-      // Guardar en localStorage
       const saved = JSON.parse(localStorage.getItem(LOG_KEY) || "[]");
       saved.push({ type, msg });
       localStorage.setItem(LOG_KEY, JSON.stringify(saved));

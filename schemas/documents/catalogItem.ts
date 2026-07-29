@@ -9,6 +9,7 @@ export const catalogItem = defineType({
     { name: "media",    title: "Imágenes" },
     { name: "variants", title: "Variantes" },
     { name: "shop",     title: "Tienda" },
+    { name: "logistics", title: "Logística (interno)" },
     { name: "seo",      title: "SEO" },
   ],
   fields: [
@@ -101,6 +102,30 @@ export const catalogItem = defineType({
             { name: "comparePrice", title: "Precio anterior (tachado)", type: "number" },
             { name: "stock", title: "Stock disponible",   type: "number", initialValue: 0 },
             {
+              name: "length",
+              title: "Largo (cm)",
+              type: "number",
+              description: "Interno — solo se llena si no viene en el Excel de importación.",
+            },
+            {
+              name: "width",
+              title: "Ancho (cm)",
+              type: "number",
+              description: "Interno — solo se llena si no viene en el Excel de importación.",
+            },
+            {
+              name: "height",
+              title: "Alto (cm)",
+              type: "number",
+              description: "Interno — solo se llena si no viene en el Excel de importación.",
+            },
+            {
+              name: "weight",
+              title: "Peso (kg)",
+              type: "number",
+              description: "Interno — solo se llena si no viene en el Excel de importación.",
+            },
+            {
               name: "specifications",
               title: "Especificaciones técnicas",
               type: "array",
@@ -135,6 +160,36 @@ export const catalogItem = defineType({
           },
         },
       ],
+    }),
+
+    // ── LOGÍSTICA (interno, no se muestra al cliente) ─────
+    defineField({
+      name: "length",
+      title: "Largo (cm)",
+      type: "number",
+      group: "logistics",
+      description: "Interno — solo se llena si no viene en el Excel de importación.",
+    }),
+    defineField({
+      name: "width",
+      title: "Ancho (cm)",
+      type: "number",
+      group: "logistics",
+      description: "Interno — solo se llena si no viene en el Excel de importación.",
+    }),
+    defineField({
+      name: "height",
+      title: "Alto (cm)",
+      type: "number",
+      group: "logistics",
+      description: "Interno — solo se llena si no viene en el Excel de importación.",
+    }),
+    defineField({
+      name: "weight",
+      title: "Peso (kg)",
+      type: "number",
+      group: "logistics",
+      description: "Interno — solo se llena si no viene en el Excel de importación.",
     }),
 
     // ── TIENDA ────────────────────────────────────────────
@@ -197,6 +252,30 @@ export const catalogItem = defineType({
         { name: "unitsPerBox", title: "Piezas por caja",           type: "number" },
         { name: "boxLabel",    title: "Etiqueta (ej: caja de 33)", type: "string" },
         { name: "boxPrice",    title: "boxPrice (campo heredado)", type: "number", hidden: true },
+        {
+          name: "length",
+          title: "Largo de caja (cm)",
+          type: "number",
+          description: "Interno — solo se llena si no viene en el Excel de importación.",
+        },
+        {
+          name: "width",
+          title: "Ancho de caja (cm)",
+          type: "number",
+          description: "Interno — solo se llena si no viene en el Excel de importación.",
+        },
+        {
+          name: "height",
+          title: "Alto de caja (cm)",
+          type: "number",
+          description: "Interno — solo se llena si no viene en el Excel de importación.",
+        },
+        {
+          name: "weight",
+          title: "Peso de caja (kg)",
+          type: "number",
+          description: "Interno — solo se llena si no viene en el Excel de importación.",
+        },
       ],
     }),
     defineField({

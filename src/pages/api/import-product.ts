@@ -169,6 +169,14 @@ export const POST: APIRoute = async ({ request }) => {
   const v2Key       = findKey(["variante_2", "variant_2", "variante2"]);
   const v3Key       = findKey(["variante_3", "variant_3", "variante3"]);
   const familySlugKey = findKey(["familyslug", "family_slug", "familia", "familia_slug"]);
+  const lengthKey  = findKey(["length", "largo", "length (cm)", "largo (cm)", "largo_cm"]);
+  const widthKey   = findKey(["width", "ancho", "width (cm)", "ancho (cm)", "ancho_cm"]);
+  const heightKey  = findKey(["height", "alto", "height (cm)", "alto (cm)", "alto_cm"]);
+  const weightKey  = findKey(["weight", "peso", "weight (kg)", "peso (kg)", "peso_kg"]);
+  const boxLengthKey = findKey(["box_length", "box length", "largo_caja", "largo caja"]);
+  const boxWidthKey  = findKey(["box_width", "box width", "ancho_caja", "ancho caja"]);
+  const boxHeightKey = findKey(["box_height", "box height", "alto_caja", "alto caja"]);
+  const boxWeightKey = findKey(["box_weight", "box weight", "peso_caja", "peso caja"]);
 
   const brand   = fixEncoding(String(brandKey ? row[brandKey] : "").trim());
   const excerpt = fixEncoding(String(excerptKey ? row[excerptKey] : "").trim());
@@ -262,6 +270,17 @@ export const POST: APIRoute = async ({ request }) => {
 
   // ── Construir objeto variante ───────────────────────────────────────────────
   const basePriceValue = basePriceKey && row[basePriceKey] !== "" && row[basePriceKey] != null ? Number(row[basePriceKey]) : undefined;
+
+  // ── Dimensiones y peso (opcionales — si no vienen en el Excel, se respeta lo llenado manualmente en Sanity) ──
+  const toNum = (key: string) => (key && row[key] !== "" && row[key] != null ? Number(row[key]) : undefined);
+  const lengthValue = toNum(lengthKey);
+  const widthValue  = toNum(widthKey);
+  const heightValue = toNum(heightKey);
+  const weightValue = toNum(weightKey);
+  const boxLengthValue = toNum(boxLengthKey);
+  const boxWidthValue  = toNum(boxWidthKey);
+  const boxHeightValue = toNum(boxHeightKey);
+  const boxWeightValue = toNum(boxWeightKey);
   const familySlugRaw = familySlugKey ? String(row[familySlugKey] || "").trim() : "";
   const familySlug = familySlugRaw ? slugify(familySlugRaw) : undefined;
   const variantSku   = String(skuKey  ? row[skuKey]  : row.variant_sku  || "").trim();
@@ -281,6 +300,10 @@ export const POST: APIRoute = async ({ request }) => {
         comparePrice: variantCompare !== undefined && variantCompare !== "" ? Number(variantCompare) : undefined,
         stock: variantStock,
         specifications,
+        ...(lengthValue !== undefined ? { length: lengthValue } : {}),
+        ...(widthValue  !== undefined ? { width:  widthValue  } : {}),
+        ...(heightValue !== undefined ? { height: heightValue } : {}),
+        ...(weightValue !== undefined ? { weight: weightValue } : {}),
       }
     : null;
 
@@ -288,7 +311,8 @@ export const POST: APIRoute = async ({ request }) => {
   const boxEnabledRaw = boxEnabledKey ? row[boxEnabledKey] : undefined;
   const boxUnitsRaw   = boxUnitsKey   ? row[boxUnitsKey]   : undefined;
   const boxLabelRaw   = boxLabelKey   ? row[boxLabelKey]   : undefined;
-  const hasBoxData    = boxEnabledRaw !== undefined || boxUnitsRaw !== undefined || boxLabelRaw !== undefined;
+  const hasBoxData    = boxEnabledRaw !== undefined || boxUnitsRaw !== undefined || boxLabelRaw !== undefined
+    || boxLengthValue !== undefined || boxWidthValue !== undefined || boxHeightValue !== undefined || boxWeightValue !== undefined;
 
   const boxOption = hasBoxData ? {
     enabled:     boxEnabledRaw !== undefined
@@ -296,6 +320,10 @@ export const POST: APIRoute = async ({ request }) => {
                    : false,
     unitsPerBox: boxUnitsRaw !== undefined && boxUnitsRaw !== "" ? Number(boxUnitsRaw) : undefined,
     boxLabel:    boxLabelRaw ? String(boxLabelRaw).trim() : undefined,
+    ...(boxLengthValue !== undefined ? { length: boxLengthValue } : {}),
+    ...(boxWidthValue  !== undefined ? { width:  boxWidthValue  } : {}),
+    ...(boxHeightValue !== undefined ? { height: boxHeightValue } : {}),
+    ...(boxWeightValue !== undefined ? { weight: boxWeightValue } : {}),
   } : undefined;
 
   // ── Buscar producto existente por slug o título ─────────────────────────────
@@ -331,6 +359,10 @@ export const POST: APIRoute = async ({ request }) => {
         ...(coverImageAsset ? { coverImage: coverImageAsset } : imageUrl ? { imageUrl } : {}),
         ...(categoryRef ? { category: categoryRef } : {}),
         ...(boxOption ? { boxOption } : {}),
+        ...(lengthValue !== undefined ? { length: lengthValue } : {}),
+        ...(widthValue  !== undefined ? { width:  widthValue  } : {}),
+        ...(heightValue !== undefined ? { height: heightValue } : {}),
+        ...(weightValue !== undefined ? { weight: weightValue } : {}),
         ...(row.whatsappPhone ? {
           whatsapp: {
             enabled: true,
@@ -360,6 +392,10 @@ export const POST: APIRoute = async ({ request }) => {
           if (variant.stock        !== undefined) patch[`variants[_key=="${matchingKey}"].stock`]        = variant.stock;
           if (variant.size)                       patch[`variants[_key=="${matchingKey}"].size`]         = variant.size;
           if (variant.label)                      patch[`variants[_key=="${matchingKey}"].label`]        = variant.label;
+          if (variant.length  !== undefined)      patch[`variants[_key=="${matchingKey}"].length`]       = variant.length;
+          if (variant.width   !== undefined)      patch[`variants[_key=="${matchingKey}"].width`]        = variant.width;
+          if (variant.height  !== undefined)      patch[`variants[_key=="${matchingKey}"].height`]       = variant.height;
+          if (variant.weight  !== undefined)      patch[`variants[_key=="${matchingKey}"].weight`]       = variant.weight;
           if (Object.keys(patch).length) await client.patch(existingId).set(patch).commit();
           return new Response(JSON.stringify({ action: "variante actualizada", id: existingId }), { status: 200 });
         }
@@ -389,6 +425,10 @@ export const POST: APIRoute = async ({ request }) => {
         ...(body ? { body } : {}),
         variants: variant ? [variant] : [],
         ...(boxOption ? { boxOption } : {}),
+        ...(lengthValue !== undefined ? { length: lengthValue } : {}),
+        ...(widthValue  !== undefined ? { width:  widthValue  } : {}),
+        ...(heightValue !== undefined ? { height: heightValue } : {}),
+        ...(weightValue !== undefined ? { weight: weightValue } : {}),
         whatsapp: {
           enabled: true,
           phone: String(row.whatsappPhone || ""),

@@ -1,4 +1,6 @@
 ---
+import AdminNav from "../../components/AdminNav.astro";
+
 export const prerender = false;
 
 const adminKey = import.meta.env.ADMIN_KEY;
@@ -155,6 +157,7 @@ const sanityDataset = import.meta.env.PUBLIC_SANITY_DATASET ?? "production";
 </head>
 <body>
   <div class="wrap">
+    <AdminNav active="eliminar" />
     <h1>🗑 Eliminar productos</h1>
     <p class="sub">Selecciona uno o varios productos y elimínalos de Sanity.</p>
 

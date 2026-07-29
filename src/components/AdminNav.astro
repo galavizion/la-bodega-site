@@ -1,0 +1,56 @@
+---
+interface Props {
+  active: "importar" | "importar-medidas" | "productos" | "eliminar";
+}
+const { active } = Astro.props;
+
+const key = Astro.url.searchParams.get("key");
+const qs = key ? `?key=${encodeURIComponent(key)}` : "";
+
+const links = [
+  { id: "importar",          label: "📥 Importar productos", href: "/admin/importar" },
+  { id: "importar-medidas",  label: "📏 Importar medidas",    href: "/admin/importar-medidas" },
+  { id: "productos",         label: "🗂 Gestionar productos", href: "/admin/productos" },
+  { id: "eliminar",          label: "🗑 Eliminar productos",  href: "/admin/eliminar" },
+];
+---
+
+<nav class="admin-nav">
+  {links.map((l) => (
+    <a
+      href={`${l.href}${qs}`}
+      class={`admin-nav__link ${l.id === active ? "is-active" : ""}`}
+    >
+      {l.label}
+    </a>
+  ))}
+</nav>
+
+<style>
+  .admin-nav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+  .admin-nav__link {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1);
+    color: inherit;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: .7;
+    transition: opacity .2s, background .2s;
+  }
+  .admin-nav__link:hover { opacity: 1; background: rgba(255,255,255,.09); }
+  .admin-nav__link.is-active {
+    opacity: 1;
+    background: rgba(66,117,255,.18);
+    border-color: rgba(66,117,255,.4);
+  }
+</style>
