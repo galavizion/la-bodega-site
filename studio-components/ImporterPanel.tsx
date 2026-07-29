@@ -44,6 +44,20 @@ export function ImporterPanel() {
       React.createElement(
         "a",
         {
+          href: "/admin/importar-medidas",
+          target: "_blank",
+          rel: "noopener noreferrer",
+          style: {
+            display: "inline-flex", alignItems: "center", gap: "8px",
+            padding: "12px 24px", borderRadius: "8px", background: "#0891b2",
+            color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: "15px",
+          },
+        },
+        "📏 Importar medidas"
+      ),
+      React.createElement(
+        "a",
+        {
           href: "/api/export-products",
           target: "_blank",
           rel: "noopener noreferrer",
