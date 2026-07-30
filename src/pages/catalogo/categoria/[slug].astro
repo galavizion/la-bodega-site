@@ -175,7 +175,7 @@ const pgRange = paginationRange(page, totalPages);
 
                 <div class="card__meta">
                   <h2 class="card__title">{item.title}</h2>
-                  {item.familyCount && item.familyCount > 1 && (
+                  {item.familyCount > 1 && (
                     <p class="card__family-badge">{item.familyCount} medidas disponibles →</p>
                   )}
                   {item.excerpt
