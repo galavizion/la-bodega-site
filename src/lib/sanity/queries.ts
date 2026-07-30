@@ -401,6 +401,7 @@ export const CATALOG_LIST = groq`
   "slug": slug.current,
   excerpt,
   category,
+  disableMarkup,
   "categoryPricing": category->{
     markupPercent,
     boxMarkupPercent,
@@ -426,6 +427,7 @@ export const CATALOG_BY_SLUG = groq`
   "slug": slug.current,
   excerpt,
   "category": category->title,
+  disableMarkup,
   "categoryPricing": category->{
     markupPercent,
     boxMarkupPercent,
@@ -491,6 +493,7 @@ export const CATALOG_BY_CATEGORY = groq`
       defined(familySlug) => count(*[_type=="catalogItem" && familySlug==^.familySlug && published!=false]),
       0
     ),
+    disableMarkup,
     boxOption{ enabled, unitsPerBox, boxMarkupPercent, boxLabel },
     whatsapp{ enabled, phone, message }
   },

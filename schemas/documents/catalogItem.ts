@@ -208,6 +208,14 @@ export const catalogItem = defineType({
       group: "shop",
     }),
     defineField({ name: "featured",  title: "Producto destacado",   type: "boolean", initialValue: false, group: "shop" }),
+    defineField({
+      name: "disableMarkup",
+      title: "Excluir del margen automático (%)",
+      type: "boolean",
+      initialValue: false,
+      group: "shop",
+      description: "Interno — si está activo, este producto se vende al precio base exacto, sin el % de margen que se le aplica al resto (por categoría o global). No se muestra al cliente en ningún lado.",
+    }),
     defineField({ name: "published", title: "Publicado en tienda",  type: "boolean", initialValue: true,  group: "shop" }),
     defineField({
       name: "familySlug",

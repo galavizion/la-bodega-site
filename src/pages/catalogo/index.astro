@@ -20,6 +20,7 @@ type CatalogItem = {
   whatsapp?: { enabled?: boolean; phone?: string; message?: string };
   boxOption?: { enabled?: boolean; unitsPerBox?: number; boxMarkupPercent?: number; boxLabel?: string };
   categoryPricing?: { markupPercent?: number; boxMarkupPercent?: number; parentMarkupPercent?: number; parentBoxMarkupPercent?: number };
+  disableMarkup?: boolean;
 };
 
 const PAGE_SIZE = 20;
@@ -52,6 +53,7 @@ const query = groq`{
       "parentMarkupPercent": parent->markupPercent,
       "parentBoxMarkupPercent": parent->boxMarkupPercent
     },
+    disableMarkup,
     boxOption{ enabled, unitsPerBox, boxMarkupPercent, boxLabel },
     whatsapp{ enabled, phone, message }
   },
@@ -77,11 +79,11 @@ const img = (item: CatalogItem): string | null => {
 const shopCurrency: string = settings?.shopCurrency ?? "USD";
 const usdRate: number = settings?.usdRate ?? 17;
 const toMXN = (n: number, item: CatalogItem) => {
-  const { unit } = resolveMarkup(item.categoryPricing, settings);
+  const { unit } = resolveMarkup(item.categoryPricing, settings, item);
   return (shopCurrency === "USD" ? n * usdRate : n) * (1 + unit / 100);
 };
 const toBoxMXN = (unitPrice: number, units: number, item: CatalogItem) => {
-  const { box } = resolveMarkup(item.categoryPricing, settings);
+  const { box } = resolveMarkup(item.categoryPricing, settings, item);
   return (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + box / 100);
 };
 const formatMXN = (n: number) => `$${n.toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN`;
@@ -185,7 +187,7 @@ const pgRange = paginationRange(page, totalPages);
                 <div class="card__meta">
                   <h2 class="card__title">{item.title}</h2>
 
-                  {item.familyCount > 1 && (
+                  {(item.familyCount ?? 0) > 1 && (
                     <p class="card__family-badge">{item.familyCount} medidas disponibles →</p>
                   )}
 

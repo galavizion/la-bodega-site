@@ -75,6 +75,7 @@ export const POST: APIRoute = async ({ request }) => {
     _id: string; slug: string; price?: number; boxUnitsPerBox?: number;
     catMarkup?: number | null; catBoxMarkup?: number | null;
     parentMarkup?: number | null; parentBoxMarkup?: number | null;
+    disableMarkup?: boolean | null;
   };
   const productMap: Record<string, ProductRow> = {};
   if (baseSlugs.length) {
@@ -85,7 +86,8 @@ export const POST: APIRoute = async ({ request }) => {
         "catMarkup": category->markupPercent,
         "catBoxMarkup": category->boxMarkupPercent,
         "parentMarkup": category->parent->markupPercent,
-        "parentBoxMarkup": category->parent->boxMarkupPercent
+        "parentBoxMarkup": category->parent->boxMarkupPercent,
+        disableMarkup
       }`,
       { slugs: baseSlugs }
     ).catch(() => []);
@@ -129,7 +131,8 @@ export const POST: APIRoute = async ({ request }) => {
     if (!prod?.price) return null;
     const { unit, box } = resolveMarkup(
       { markupPercent: prod.catMarkup, boxMarkupPercent: prod.catBoxMarkup, parentMarkupPercent: prod.parentMarkup, parentBoxMarkupPercent: prod.parentBoxMarkup },
-      { markupPercent: shopSettings.markupPercent, boxMarkupPercent: shopSettings.boxMarkupPercent }
+      { markupPercent: shopSettings.markupPercent, boxMarkupPercent: shopSettings.boxMarkupPercent },
+      { disableMarkup: prod.disableMarkup }
     );
     const raw = shopSettings.currency === "USD" ? prod.price * shopSettings.usdRate : prod.price;
     if (isBox && prod.boxUnitsPerBox) return ceil(raw * prod.boxUnitsPerBox * (1 + box / 100));

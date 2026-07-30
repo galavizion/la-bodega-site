@@ -37,6 +37,7 @@ export const GET: APIRoute = async () => {
           "parentMarkupPercent": parent->markupPercent,
           "parentBoxMarkupPercent": parent->boxMarkupPercent
         },
+        disableMarkup,
         "boxEnabled": boxOption.enabled,
         "boxUnitsPerBox": boxOption.unitsPerBox,
         variants[]{ sku, size, label, price }
@@ -52,7 +53,7 @@ export const GET: APIRoute = async () => {
   ]);
 
   for (const item of items) {
-    const { unit, box } = resolveMarkup(item.categoryPricing, shopSettings);
+    const { unit, box } = resolveMarkup(item.categoryPricing, shopSettings, item);
     const toFinal = (raw: number) =>
       round2((shopSettings.currency === "USD" ? raw * shopSettings.usdRate : raw) * (1 + unit / 100));
 

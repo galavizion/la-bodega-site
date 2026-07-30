@@ -23,6 +23,7 @@ type FamilyItem = {
   whatsapp?: { enabled?: boolean; phone?: string; message?: string };
   boxOption?: { enabled?: boolean; unitsPerBox?: number; boxMarkupPercent?: number; boxLabel?: string };
   categoryPricing?: { markupPercent?: number; boxMarkupPercent?: number; parentMarkupPercent?: number; parentBoxMarkupPercent?: number };
+  disableMarkup?: boolean;
 };
 
 const { slug: familySlug } = Astro.params;
@@ -39,6 +40,7 @@ const [items, settings] = await Promise.all([
         "parentMarkupPercent": parent->markupPercent,
         "parentBoxMarkupPercent": parent->boxMarkupPercent
       },
+      disableMarkup,
       boxOption{ enabled, unitsPerBox, boxMarkupPercent, boxLabel },
       whatsapp{ enabled, phone, message }
     }`,
@@ -58,11 +60,11 @@ const familyTitle = representative.title
 const shopCurrency: string = settings?.shopCurrency ?? "USD";
 const usdRate: number      = settings?.usdRate      ?? 17;
 const toMXN = (n: number, item: FamilyItem) => {
-  const { unit } = resolveMarkup(item.categoryPricing, settings);
+  const { unit } = resolveMarkup(item.categoryPricing, settings, item);
   return (shopCurrency === "USD" ? n * usdRate : n) * (1 + unit / 100);
 };
 const toBoxMXN = (unitPrice: number, units: number, item: FamilyItem) => {
-  const { box } = resolveMarkup(item.categoryPricing, settings);
+  const { box } = resolveMarkup(item.categoryPricing, settings, item);
   return (shopCurrency === "USD" ? unitPrice * usdRate : unitPrice) * units * (1 + box / 100);
 };
 const formatMXN = (n: number) => `$${n.toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN`;

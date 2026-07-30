@@ -200,7 +200,8 @@ async function runSearchProducts(query: string, settings: ShopSettings): Promise
         boxMarkupPercent,
         "parentMarkupPercent": parent->markupPercent,
         "parentBoxMarkupPercent": parent->boxMarkupPercent
-      }
+      },
+      disableMarkup
     }`,
     { q: `*${query}*` }
   ).catch(() => [] as any[]);
@@ -209,7 +210,7 @@ async function runSearchProducts(query: string, settings: ShopSettings): Promise
 
   return results.map(p => {
     const raw = p.price ?? p.variantPrice;
-    const { unit, box } = resolveMarkup(p.categoryPricing, settings);
+    const { unit, box } = resolveMarkup(p.categoryPricing, settings, p);
     const toMXN = (n: number) => (settings.shopCurrency === "USD" ? n * settings.usdRate : n) * (1 + unit / 100);
 
     const priceStr = raw != null

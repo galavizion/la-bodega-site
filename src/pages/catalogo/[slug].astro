@@ -17,7 +17,7 @@ const [item, settings] = await Promise.all([
 const catalogOnlyMode: boolean = settings?.catalogOnlyMode === true;
 const shopCurrency: string = settings?.shopCurrency ?? "USD";
 const usdRate: number = settings?.usdRate ?? 17;
-const { unit: markupPercent, box: boxMarkupPercent } = resolveMarkup(item?.categoryPricing, settings);
+const { unit: markupPercent, box: boxMarkupPercent } = resolveMarkup(item?.categoryPricing, settings, item);
 const markupFactor = 1 + markupPercent / 100;
 const toMXN = (n: number) => (shopCurrency === "USD" ? n * usdRate : n) * markupFactor;
 
