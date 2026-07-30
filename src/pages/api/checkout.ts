@@ -72,7 +72,7 @@ export const POST: APIRoute = async ({ request }) => {
   )];
 
   type ProductRow = {
-    _id: string; slug: string; price?: number; boxUnitsPerBox?: number;
+    _id: string; slug: string; price?: number; variantPrice?: number; boxUnitsPerBox?: number;
     catMarkup?: number | null; catBoxMarkup?: number | null;
     parentMarkup?: number | null; parentBoxMarkup?: number | null;
     disableMarkup?: boolean | null;
@@ -82,6 +82,7 @@ export const POST: APIRoute = async ({ request }) => {
     const found = await sanity.fetch<ProductRow[]>(
       `*[_type=="catalogItem" && slug.current in $slugs]{
         _id, "slug": slug.current, price,
+        "variantPrice": variants[price != null][0].price,
         "boxUnitsPerBox": boxOption.unitsPerBox,
         "catMarkup": category->markupPercent,
         "catBoxMarkup": category->boxMarkupPercent,
@@ -124,30 +125,52 @@ export const POST: APIRoute = async ({ request }) => {
   ]);
 
   // ── Precio calculado en servidor ─────────────────────
+  // Nunca confiar en el precio que manda el navegador: siempre se recalcula
+  // desde Sanity, usando price del producto o, si no existe, el de su variante.
+  // Devuelve null solo cuando el slug no corresponde a ningún producto real
+  // (en ese caso se rechaza el pedido más abajo, en vez de confiar en el cliente).
+  // Si el producto existe pero no tiene precio numérico (solo priceLabel /
+  // cotización), se cobra 0 — nunca el precio que mande el navegador.
   const serverUnitPrice = (slug: string): number | null => {
     const base = baseSlugOf(slug);
     const isBox = slug.endsWith("--caja");
     const prod = productMap[base];
-    if (!prod?.price) return null;
+    if (!prod) return null;
+    const basePrice = prod.price ?? prod.variantPrice;
+    if (basePrice == null) return 0;
     const { unit, box } = resolveMarkup(
       { markupPercent: prod.catMarkup, boxMarkupPercent: prod.catBoxMarkup, parentMarkupPercent: prod.parentMarkup, parentBoxMarkupPercent: prod.parentBoxMarkup },
       { markupPercent: shopSettings.markupPercent, boxMarkupPercent: shopSettings.boxMarkupPercent },
       { disableMarkup: prod.disableMarkup }
     );
-    const raw = shopSettings.currency === "USD" ? prod.price * shopSettings.usdRate : prod.price;
+    const raw = shopSettings.currency === "USD" ? basePrice * shopSettings.usdRate : basePrice;
     if (isBox && prod.boxUnitsPerBox) return ceil(raw * prod.boxUnitsPerBox * (1 + box / 100));
     return ceil(raw * (1 + unit / 100));
   };
 
+  // ── Validar que cada item del carrito corresponda a un producto real ──
+  const unknownSlugs = items
+    .map((it: any) => String(it.slug || ""))
+    .filter((slug: string) => serverUnitPrice(slug) === null);
+  if (unknownSlugs.length) {
+    return json({ error: `Producto no encontrado o ya no disponible: ${unknownSlugs.join(", ")}` }, 400);
+  }
+
   const calcTotal = ceil(
     items.reduce((acc: number, it: any) => {
-      const price = serverUnitPrice(String(it.slug || "")) ?? ceil(Number(it.price ?? 0));
+      const price = serverUnitPrice(String(it.slug || "")) ?? 0;
       return acc + price * Number(it.qty ?? 1);
     }, 0)
   );
 
   const isPickup   = deliveryMethod === "pickup";
-  const hasBoxItem = Array.isArray(items) && items.some((it: any) => it.isBox === true);
+  // Verificado contra Sanity (no se confía en el flag it.isBox que manda el navegador):
+  // solo cuenta como "caja" si el slug lo indica y el producto realmente tiene esa opción configurada.
+  const hasBoxItem = items.some((it: any) => {
+    const slug = String(it.slug || "");
+    if (!slug.endsWith("--caja")) return false;
+    return !!productMap[baseSlugOf(slug)]?.boxUnitsPerBox;
+  });
   const shippingAmount =
     isPickup || hasBoxItem
       ? 0
@@ -198,7 +221,7 @@ export const POST: APIRoute = async ({ request }) => {
       items: items.map((it: any) => {
         const base = baseSlugOf(String(it.slug || ""));
         const ref  = productMap[base]?._id;
-        const unitPrice = serverUnitPrice(String(it.slug || "")) ?? ceil(Number(it.price ?? 0));
+        const unitPrice = serverUnitPrice(String(it.slug || "")) ?? 0;
         return {
           _key: crypto.randomUUID(),
           ...(ref ? { product: { _type: "reference", _ref: ref } } : {}),
@@ -248,7 +271,7 @@ export const POST: APIRoute = async ({ request }) => {
     const resend = new Resend(resendKey);
     const fmt = (n: number) => `$${n.toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN`;
     const rows = items.map((it: any) => {
-      const sub = Number(it.price ?? 0) * Number(it.qty ?? 1);
+      const sub = (serverUnitPrice(String(it.slug || "")) ?? 0) * Number(it.qty ?? 1);
       return `<tr>
         <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9">${it.title}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center">${it.qty ?? 1}</td>
