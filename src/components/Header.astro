@@ -159,6 +159,7 @@ const shopCategories: { _id: string; title: string; slug: string }[] = showShopB
                 {shopCategories.map((cat) => (
                   <a href={`/catalogo/categoria/${cat.slug}/`} data-shoplink>{cat.title}</a>
                 ))}
+                <a href="/catalogo/marca/potter/" data-shoplink>POTTER</a>
               </div>
               {/* Hamburguesa — solo visible en mobile */}
               <button class="shop-cats__toggle" type="button" data-cats-toggle aria-expanded="false" aria-label="Ver categorías">

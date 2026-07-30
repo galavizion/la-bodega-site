@@ -508,6 +508,51 @@ export const CATALOG_BY_CATEGORY = groq`
 }
 `;
 
+export const CATALOG_BY_BRAND = groq`
+{
+  "brandTitle": *[_type == "catalogItem" && defined(brand) && lower(brand) == $brand][0].brand,
+  "items": *[
+    _type == "catalogItem" &&
+    defined(slug.current) &&
+    published != false &&
+    defined(brand) && lower(brand) == $brand &&
+    (!defined(familySlug) || isFamilyRepresentative == true) &&
+    ($q == "" || title match $q + "*" || excerpt match $q + "*")
+  ] | order(_createdAt desc) [$from...$to] {
+    _id,
+    title,
+    "slug": slug.current,
+    excerpt,
+    coverImage,
+    imageUrl,
+    "price": coalesce(price, variants[0].price),
+    priceLabel,
+    familySlug,
+    "familyCount": select(
+      defined(familySlug) => count(*[_type=="catalogItem" && familySlug==^.familySlug && published!=false]),
+      0
+    ),
+    disableMarkup,
+    "categoryPricing": category->{
+      markupPercent,
+      boxMarkupPercent,
+      "parentMarkupPercent": parent->markupPercent,
+      "parentBoxMarkupPercent": parent->boxMarkupPercent
+    },
+    boxOption{ enabled, unitsPerBox, boxMarkupPercent, boxLabel },
+    whatsapp{ enabled, phone, message }
+  },
+  "total": count(*[
+    _type == "catalogItem" &&
+    defined(slug.current) &&
+    published != false &&
+    defined(brand) && lower(brand) == $brand &&
+    (!defined(familySlug) || isFamilyRepresentative == true) &&
+    ($q == "" || title match $q + "*" || excerpt match $q + "*")
+  ])
+}
+`;
+
 export const PRODUCT_CATEGORIES_QUERY = groq`
 *[_type == "productCategory" && !defined(parent)] | order(order asc) {
   _id,
