@@ -120,7 +120,7 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
                 <p class="branch-selector__label">Elige tu sucursal:</p>
                 {branches.map((b: any, i: number) => (
                   <label class={`branch-option${i === 0 ? " branch-option--first" : ""}`}>
-                    <input type="radio" name="pickupBranch" value={b.name} />
+                    <input type="radio" name="pickupBranch" value={b._id} data-branch-name={b.name} />
                     <div class="branch-option__body">
                       <strong>{b.name}</strong>
                       {b.address && <span>{b.address}</span>}
@@ -425,10 +425,12 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
       if (!cartItems.length) throw new Error("Tu carrito está vacío.");
 
       const fd = new FormData(form);
-      const deliveryMethod   = fd.get("deliveryMethod")?.toString() || "shipping";
-      const pickupBranchName = fd.get("pickupBranch")?.toString() || "";
+      const deliveryMethod    = fd.get("deliveryMethod")?.toString() || "shipping";
+      const pickupBranchInput = form.querySelector('input[name="pickupBranch"]:checked');
+      const pickupBranchId    = pickupBranchInput?.value || "";
+      const pickupBranchName  = pickupBranchInput?.getAttribute("data-branch-name") || "";
 
-      if (deliveryMethod === "pickup" && !pickupBranchName) {
+      if (deliveryMethod === "pickup" && !pickupBranchId) {
         throw new Error("Por favor selecciona la sucursal donde recogerás tu pedido.");
       }
 
@@ -439,7 +441,7 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer, items: cartItems, paymentMethod, total,
-          deliveryMethod, pickupBranchName,
+          deliveryMethod, pickupBranchId, pickupBranchName,
           useCashback: !!(useCashbackBox && useCashbackBox.checked),
           _hp_website: fd.get("_hp_website") || "",
           "cf-turnstile-response": fd.get("cf-turnstile-response") || "",

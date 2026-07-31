@@ -44,6 +44,8 @@ export const order = defineType({
       title: "Método de entrega",
       type: "string",
       group: "info",
+      readOnly: true,
+      description: "Elegido por el cliente en el checkout — no editable.",
       options: {
         list: [
           { title: "🚚 Envío a domicilio", value: "shipping" },
@@ -59,8 +61,9 @@ export const order = defineType({
       type: "reference",
       to: [{ type: "branch" }],
       group: "info",
+      readOnly: true,
       hidden: ({ parent }) => parent?.deliveryMethod !== "pickup",
-      description: "Aparece cuando el método de entrega es 'Recoger en sucursal'.",
+      description: "Elegida por el cliente en el checkout — no editable. Aparece cuando el método de entrega es 'Recoger en sucursal'.",
     }),
     defineField({
       name: 'shippingInfo',
@@ -134,8 +137,11 @@ export const order = defineType({
       title: "Método de pago",
       type: "string",
       group: "info",
+      readOnly: true,
+      description: "Elegido por el cliente en el checkout — no editable.",
       options: {
         list: [
+          { title: "Mercado Pago", value: "mercadopago" },
           { title: "Transferencia", value: "transfer" },
           { title: "Efectivo", value: "cash" },
           { title: "Tarjeta", value: "card" },
