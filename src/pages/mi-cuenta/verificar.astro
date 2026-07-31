@@ -97,11 +97,11 @@ if (session) return Astro.redirect("/mi-cuenta/dashboard/");
 
   <style>
     .acc-wrap {
-      min-height: calc(100vh - 120px);
+      min-height: calc(100vh - var(--header-h, 120px));
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 60px 16px;
+      padding: calc(var(--header-h, 80px) + 40px) 16px 60px;
     }
     .acc-card {
       background: #fff;
