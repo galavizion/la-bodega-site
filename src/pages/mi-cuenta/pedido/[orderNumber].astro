@@ -40,7 +40,7 @@ type Order = {
 };
 
 const order = await sanity.fetch<Order | null>(
-  `*[_type == "order" && orderNumber == $orderNumber && customer.email == $email][0]{
+  `*[_type == "order" && orderNumber == $orderNumber && customer.email == $email && status != "deleted"][0]{
     _id, orderNumber, status, createdAt, subtotal, shipping, total, paymentMethod,
     customer,
     items[]{ quantity, unitPrice, variantLabel, product->{ _id, title, "imageUrl": mainImage.asset->url, "slug": slug.current } }
@@ -61,6 +61,7 @@ const isCancelled = order.status === "cancelled";
 const currentStep = STATUS_STEPS.findIndex(s => s.key === order.status);
 
 const PAYMENT_LABEL: Record<string, string> = {
+  mercadopago: "Mercado Pago",
   transfer: "Transferencia bancaria",
   cash: "Efectivo",
   card: "Tarjeta",

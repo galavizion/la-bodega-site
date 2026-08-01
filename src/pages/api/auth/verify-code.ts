@@ -28,14 +28,38 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (!email || !code) return json({ error: "Email y código requeridos" }, 400);
 
-  // Buscar código válido
-  const match = await sanity.fetch<{ _id: string; expiresAt: string } | null>(
-    `*[_type == "authCode" && email == $email && code == $code && used != true][0]{ _id, expiresAt }`,
-    { email, code }
+  const MAX_ATTEMPTS = 5;
+
+  // Buscar el código activo más reciente para este email (sin importar si el
+  // dígito enviado coincide, para poder contar intentos fallidos contra él).
+  const active = await sanity.fetch<{ _id: string; code: string; expiresAt: string; attempts?: number } | null>(
+    `*[_type == "authCode" && email == $email && used != true] | order(_createdAt desc)[0]{ _id, code, expiresAt, attempts }`,
+    { email }
   ).catch(() => null);
 
-  if (!match) return json({ error: "Código incorrecto o expirado." }, 400);
-  if (new Date(match.expiresAt) < new Date()) return json({ error: "El código ha expirado." }, 400);
+  if (!active) return json({ error: "Código incorrecto o expirado." }, 400);
+
+  if (new Date(active.expiresAt) < new Date()) {
+    await sanity.patch(active._id).set({ used: true }).commit().catch(() => {});
+    return json({ error: "El código ha expirado. Solicita uno nuevo." }, 400);
+  }
+
+  if ((active.attempts ?? 0) >= MAX_ATTEMPTS) {
+    await sanity.patch(active._id).set({ used: true }).commit().catch(() => {});
+    return json({ error: "Demasiados intentos incorrectos. Solicita un nuevo código." }, 429);
+  }
+
+  if (active.code !== code) {
+    await sanity.patch(active._id).set({ attempts: (active.attempts ?? 0) + 1 }).commit().catch(() => {});
+    const remaining = MAX_ATTEMPTS - ((active.attempts ?? 0) + 1);
+    return json({
+      error: remaining > 0
+        ? `Código incorrecto. Te quedan ${remaining} intento${remaining === 1 ? "" : "s"}.`
+        : "Demasiados intentos incorrectos. Solicita un nuevo código.",
+    }, 400);
+  }
+
+  const match = active;
 
   // Marcar como usado
   await sanity.patch(match._id).set({ used: true }).commit().catch(() => {});

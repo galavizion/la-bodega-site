@@ -23,6 +23,15 @@ export const POST: APIRoute = async ({ request }) => {
   const email = String(body.email ?? "").trim().toLowerCase();
   if (!email || !email.includes("@")) return json({ error: "Email inválido" }, 400);
 
+  // No permitir pedir otro código antes de 30s (evita spam al correo del usuario)
+  const lastCode = await sanity.fetch<{ _createdAt: string } | null>(
+    `*[_type == "authCode" && email == $email] | order(_createdAt desc)[0]{ _createdAt }`,
+    { email }
+  ).catch(() => null);
+  if (lastCode && Date.now() - new Date(lastCode._createdAt).getTime() < 30_000) {
+    return json({ error: "Espera unos segundos antes de solicitar otro código." }, 429);
+  }
+
   // Generar código de 6 dígitos, válido 15 minutos
   const code = String(Math.floor(100000 + Math.random() * 900000));
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();

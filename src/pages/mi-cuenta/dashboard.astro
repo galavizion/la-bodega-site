@@ -38,7 +38,7 @@ type WalletTx = { _id: string; amount: number; status: string; note?: string; cr
 
 const [orders, profile, walletTx] = await Promise.all([
   sanity.fetch<Order[]>(
-    `*[_type == "order" && customer.email == $email] | order(createdAt desc)[0...20]{
+    `*[_type == "order" && customer.email == $email && status != "deleted"] | order(createdAt desc)[0...20]{
       _id, orderNumber, status, createdAt, total,
       items[]{ quantity, unitPrice, variantLabel, product->{ _id, title, "imageUrl": mainImage.asset->url, "slug": slug.current } }
     }`,
@@ -61,12 +61,13 @@ const cashbackBalance = walletTx
   .reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
 const STATUS_LABEL: Record<string, string> = {
-  pending:    "⏳ Pendiente",
-  confirmed:  "✅ Confirmado",
-  processing: "📦 En preparación",
-  shipped:    "🚚 Enviado",
-  delivered:  "🏠 Entregado",
-  cancelled:  "❌ Cancelado",
+  pending:          "⏳ Pendiente",
+  awaiting_payment: "🏦 Esperando pago",
+  confirmed:        "✅ Confirmado",
+  processing:       "📦 En preparación",
+  shipped:          "🚚 Enviado",
+  delivered:        "🏠 Entregado",
+  cancelled:        "❌ Cancelado",
 };
 
 function fmt(n?: number) {
