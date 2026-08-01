@@ -31,10 +31,22 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response("Sin cambios de estado", { status: 200 });
     }
 
-    const { customer, orderNumber, shippingInfo } = after;
+    const { customer, orderNumber, shippingInfo, items, total } = after;
 
     // 2. Lógica de notificación según el nuevo estado
-    if (after.status === "shipped" && before.status !== "shipped") {
+    if (after.status === "confirmed" && before.status !== "confirmed") {
+      // Solo para confirmaciones manuales (Studio) — MercadoPago ya manda su
+      // propio correo de confirmación desde /api/mp-webhook al aprobar el pago.
+      if (after.paymentMethod !== "mercadopago") {
+        await sendConfirmedEmail({
+          to: customer.email,
+          name: customer.name,
+          orderNumber,
+          items,
+          total,
+        });
+      }
+    } else if (after.status === "shipped" && before.status !== "shipped") {
       await sendShippedEmail({
         to: customer.email,
         name: customer.name,
@@ -81,10 +93,10 @@ async function sendShippedEmail(props: ShippedEmailProps) {
   }
 
   const clientHtml = `
-    <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto">
-      <div style="background:#0284c7;padding:24px 32px;border-radius:12px 12px 0 0">
-        <h1 style="margin:0;color:#fff;font-size:20px">🚚 ¡Tu pedido #${orderNumber} va en camino!</h1>
-        <p style="margin:6px 0 0;color:rgba(255,255,255,.8);font-size:14px">La Bodega del Instalador</p>
+    <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;color:#111827">
+      <div style="background:#111827;padding:24px 32px;border-radius:12px 12px 0 0">
+        <h1 style="margin:0;color:#FFD700;font-size:20px">🚚 ¡Tu pedido #${orderNumber} va en camino!</h1>
+        <p style="margin:6px 0 0;color:rgba(255,255,255,.75);font-size:14px">La Bodega del Instalador</p>
       </div>
       <div style="background:#fff;padding:24px 32px;border:1px solid #e2e8f0;border-top:none">
         <p style="margin:0 0 20px;font-size:15px">Hola <strong>${name}</strong>, te confirmamos que tu pedido ha sido enviado.</p>
@@ -99,6 +111,60 @@ async function sendShippedEmail(props: ShippedEmailProps) {
     from: "La Bodega del Instalador <noreply@labodegadelinstalador.net>",
     to: [to],
     subject: `Tu pedido #${orderNumber} ha sido enviado`,
+    html: clientHtml,
+  }).catch(console.error);
+}
+
+interface ConfirmedEmailProps {
+  to: string;
+  name: string;
+  orderNumber: string;
+  items?: { variantLabel?: string; quantity?: number; unitPrice?: number; product?: { title?: string } }[];
+  total?: number;
+}
+
+async function sendConfirmedEmail(props: ConfirmedEmailProps) {
+  const { to, name, orderNumber, items, total } = props;
+  const resend = new Resend(resendKey);
+  const fmt = (n: number) => `$${Math.ceil(n).toLocaleString("es-MX")} MXN`;
+
+  const itemsTable = Array.isArray(items) && items.length ? `
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:8px">
+      <thead><tr style="background:#f8fafc">
+        <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;opacity:.6">Producto</th>
+        <th style="padding:8px 12px;text-align:center;font-size:11px;text-transform:uppercase;opacity:.6">Cant.</th>
+      </tr></thead>
+      <tbody>
+        ${items.map((it) => `<tr>
+          <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9">${it.product?.title ?? it.variantLabel ?? "Producto"}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center">${it.quantity ?? 1}</td>
+        </tr>`).join("")}
+      </tbody>
+      ${total != null ? `<tfoot><tr style="background:#f8fafc">
+        <td style="padding:10px 12px;font-weight:700">TOTAL</td>
+        <td style="padding:10px 12px;font-weight:700;text-align:center">${fmt(total)}</td>
+      </tr></tfoot>` : ""}
+    </table>` : "";
+
+  const clientHtml = `
+    <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;color:#111827">
+      <div style="background:#111827;padding:24px 32px;border-radius:12px 12px 0 0">
+        <h1 style="margin:0;color:#FFD700;font-size:20px">✅ ¡Pedido confirmado! #${orderNumber}</h1>
+        <p style="margin:6px 0 0;color:rgba(255,255,255,.75);font-size:14px">La Bodega del Instalador</p>
+      </div>
+      <div style="background:#fff;padding:24px 32px;border:1px solid #e2e8f0;border-top:none">
+        <p style="margin:0 0 8px;font-size:15px">Hola <strong>${name}</strong>, confirmamos tu pedido #${orderNumber}. Ya lo estamos preparando.</p>
+        ${itemsTable}
+      </div>
+      <div style="background:#f8fafc;padding:12px 32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;font-size:12px;color:#94a3b8;text-align:center">
+        Gracias por tu compra.
+      </div>
+    </div>`;
+
+  await resend.emails.send({
+    from: "La Bodega del Instalador <noreply@labodegadelinstalador.net>",
+    to: [to],
+    subject: `¡Pedido confirmado! #${orderNumber} — La Bodega del Instalador`,
     html: clientHtml,
   }).catch(console.error);
 }
