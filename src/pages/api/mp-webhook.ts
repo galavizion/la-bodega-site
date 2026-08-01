@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { createClient } from "@sanity/client";
 import { Resend } from "resend";
+import { logNotification } from "../../lib/notifications";
 
 export const prerender = false;
 
@@ -161,6 +162,7 @@ async function sendConfirmationEmails(order: any, orderNumber: string) {
       html: adminHtml,
       replyTo: customer.email || undefined,
     }).catch(console.error);
+    await logNotification(sanity, order._id, "admin_payment_confirmed", notifyEmails.join(", "));
   }
 
   // ── Correo al cliente ────────────────────────────────
@@ -189,4 +191,5 @@ async function sendConfirmationEmails(order: any, orderNumber: string) {
     subject: `¡Pago confirmado! Pedido #${orderNumber} — La Bodega del Instalador`,
     html: clientHtml,
   }).catch(console.error);
+  await logNotification(sanity, order._id, "payment_confirmed", customer.email);
 }

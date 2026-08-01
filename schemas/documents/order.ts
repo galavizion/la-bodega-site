@@ -8,6 +8,7 @@ export const order = defineType({
     { name: "info", title: "Información" },
     { name: "customer", title: "Cliente" },
     { name: "items", title: "Productos" },
+    { name: "log", title: "Bitácora" },
   ],
   fields: [
     defineField({
@@ -158,6 +159,31 @@ export const order = defineType({
           { title: "WhatsApp / Manual", value: "whatsapp" },
         ],
       },
+    }),
+    defineField({
+      name: "notificationsSent",
+      title: "Correos enviados",
+      type: "array",
+      group: "log",
+      readOnly: true,
+      description: "Bitácora automática — registra cada correo que se le mandó al cliente sobre este pedido.",
+      of: [
+        {
+          type: "object",
+          fields: [
+            { name: "type", title: "Tipo", type: "string" },
+            { name: "to", title: "Destinatario", type: "string" },
+            { name: "sentAt", title: "Enviado", type: "datetime" },
+          ],
+          preview: {
+            select: { type: "type", to: "to", sentAt: "sentAt" },
+            prepare: ({ type, to, sentAt }) => ({
+              title: type ?? "Correo",
+              subtitle: `${to ?? "?"} · ${sentAt ? new Date(sentAt).toLocaleString("es-MX") : ""}`,
+            }),
+          },
+        },
+      ],
     }),
   ],
   preview: {

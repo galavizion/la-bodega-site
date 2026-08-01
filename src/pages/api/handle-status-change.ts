@@ -1,10 +1,20 @@
 import type { APIRoute } from "astro";
 import { Resend } from "resend";
+import { createClient } from "@sanity/client";
+import { logNotification } from "../../lib/notifications";
 
 export const prerender = false;
 
 const resendKey = import.meta.env.RESEND_API_KEY;
 const webhookSecret = import.meta.env.SANITY_WEBHOOK_SECRET;
+
+const sanity = createClient({
+  projectId: import.meta.env.PUBLIC_SANITY_PROJECT_ID ?? "a7b3q6z9",
+  dataset:   import.meta.env.PUBLIC_SANITY_DATASET   ?? "production",
+  apiVersion: "2025-01-01",
+  token: import.meta.env.SANITY_WRITE_TOKEN,
+  useCdn: false,
+});
 
 /**
  * Este endpoint es llamado por un Webhook de Sanity cada vez que un pedido se actualiza.
@@ -45,6 +55,7 @@ export const POST: APIRoute = async ({ request }) => {
           items,
           total,
         });
+        await logNotification(sanity, after._id, "confirmed", customer.email);
       }
     } else if (after.status === "shipped" && before.status !== "shipped") {
       await sendShippedEmail({
@@ -55,6 +66,7 @@ export const POST: APIRoute = async ({ request }) => {
         trackingNumber: shippingInfo?.trackingNumber,
         trackingUrl: shippingInfo?.trackingUrl,
       });
+      await logNotification(sanity, after._id, "shipped", customer.email);
     } else if (after.status === "delivered" && before.status !== "delivered") {
       // Opcional: Podrías enviar un correo de "Pedido Entregado"
     }

@@ -3,6 +3,7 @@ import { createClient } from "@sanity/client";
 import { Resend } from "resend";
 import { resolveMarkup } from "../../lib/pricing";
 import { getSession } from "../../lib/auth";
+import { logNotification } from "../../lib/notifications";
 
 export const prerender = false;
 
@@ -360,6 +361,7 @@ export const POST: APIRoute = async ({ request }) => {
         html: adminHtml,
         replyTo: customer.email || undefined,
       }).catch(() => {});
+      await logNotification(sanity, created._id, "admin_new_order", notifyEmails.join(", "));
     }
 
     // ── Correo de confirmación al cliente ───────────────────
@@ -406,6 +408,7 @@ export const POST: APIRoute = async ({ request }) => {
       subject: `Confirmación de pedido #${num} — La Bodega del Instalador`,
       html: clientHtml,
     }).catch(() => {});
+    await logNotification(sanity, created._id, "order_received", customer.email);
   }
 
   return json({ success: true, orderId: created._id, orderNumber: num, confirmationToken, shipping: shippingAmount, total: netTotal, cashbackApplied });
