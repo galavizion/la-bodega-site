@@ -313,13 +313,13 @@ export const POST: APIRoute = async ({ request }) => {
     // ── Correo al admin ─────────────────────────────────────
     if (notifyEmails.length > 0) {
       const adminHtml = `
-        <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto">
-          <div style="background:#0f8604;padding:24px 32px;border-radius:12px 12px 0 0">
-            <h1 style="margin:0;color:#fff;font-size:20px">🛒 Nuevo pedido #${num}</h1>
-            <p style="margin:6px 0 0;color:rgba(255,255,255,.8);font-size:14px">La Bodega del Instalador</p>
+        <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;color:#111827">
+          <div style="background:#111827;padding:24px 32px;border-radius:12px 12px 0 0">
+            <h1 style="margin:0;color:#FFD700;font-size:20px">🛒 Nuevo pedido #${num}</h1>
+            <p style="margin:6px 0 0;color:rgba(255,255,255,.75);font-size:14px">La Bodega del Instalador</p>
           </div>
           <div style="background:#fff;padding:24px 32px;border:1px solid #e2e8f0;border-top:none">
-            <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:20px">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:20px;color:#111827">
               <tr><td style="padding:6px 0;font-weight:600;width:140px">Pedido</td><td>#${num}</td></tr>
               <tr><td style="padding:6px 0;font-weight:600">Cliente</td><td>${customer.name}</td></tr>
               <tr><td style="padding:6px 0;font-weight:600">Email</td><td>${customer.email}</td></tr>
@@ -365,17 +365,17 @@ export const POST: APIRoute = async ({ request }) => {
       </div>` : "";
 
     const clientHtml = `
-      <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto">
-        <div style="background:#0f8604;padding:24px 32px;border-radius:12px 12px 0 0">
-          <h1 style="margin:0;color:#fff;font-size:20px">¡Pedido recibido! #${num}</h1>
-          <p style="margin:6px 0 0;color:rgba(255,255,255,.8);font-size:14px">La Bodega del Instalador</p>
+      <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;color:#111827">
+        <div style="background:#111827;padding:24px 32px;border-radius:12px 12px 0 0">
+          <h1 style="margin:0;color:#FFD700;font-size:20px">¡Pedido recibido! #${num}</h1>
+          <p style="margin:6px 0 0;color:rgba(255,255,255,.75);font-size:14px">La Bodega del Instalador</p>
         </div>
         <div style="background:#fff;padding:24px 32px;border:1px solid #e2e8f0;border-top:none">
           <p style="margin:0 0 20px;font-size:15px">Hola <strong>${customer.name}</strong>, confirmamos que recibimos tu pedido. Aquí está el resumen:</p>
           ${itemsTable}
           ${bankSection}
           <div style="margin-top:24px;text-align:center">
-            <a href="https://labodegadelinstalador.net/mi-cuenta/" style="display:inline-block;background:#0f8604;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:600">
+            <a href="https://labodegadelinstalador.net/mi-cuenta/" style="display:inline-block;background:#111827;color:#FFD700;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:600">
               Ver mis pedidos
             </a>
           </div>
