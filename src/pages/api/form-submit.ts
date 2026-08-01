@@ -84,8 +84,15 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   // ── 2. Enviar email via Resend ──────────────────────────────────────────────
-  const notifyEmail = import.meta.env.NOTIFY_EMAIL;
-  if (import.meta.env.RESEND_API_KEY && notifyEmail) {
+  const notifyFromSanity = await sanity
+    .fetch<string[] | null>(`coalesce(*[_type=="siteSettingsGeneral"][0].formNotifyEmails, *[_type=="siteSettings"][0].formNotifyEmails)`)
+    .catch(() => null);
+  const envEmail = import.meta.env.NOTIFY_EMAIL;
+  const notifyEmails: string[] = [
+    ...(notifyFromSanity?.filter(Boolean) ?? []),
+    ...(envEmail && !notifyFromSanity?.includes(envEmail) ? [envEmail] : []),
+  ];
+  if (import.meta.env.RESEND_API_KEY && notifyEmails.length > 0) {
     const formLabel = FORM_LABELS[formType] ?? formType ?? "Formulario";
 
     // Tabla HTML con todos los campos
@@ -115,7 +122,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     await resend.emails.send({
       from: "La Bodega del Instalador <noreply@labodegadelinstalador.net>",
-      to: notifyEmail,
+      to: notifyEmails,
       subject: `[La Bodega] ${formLabel}${name ? ` — ${name}` : ""}`,
       html,
       replyTo: email || undefined,

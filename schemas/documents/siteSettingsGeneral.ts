@@ -18,6 +18,14 @@ export const siteSettingsGeneral = defineType({
       options: { layout: "tags" },
     }),
     defineField({
+      name: "formNotifyEmails",
+      title: "Emails de notificación de formularios",
+      description: "Recibirán un aviso cada vez que se envíe un formulario de contacto, cotización o suscripción.",
+      type: "array",
+      of: [{ type: "string" }],
+      options: { layout: "tags" },
+    }),
+    defineField({
       name: "organization",
       title: "Organización",
       type: "object",
