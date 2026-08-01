@@ -119,8 +119,19 @@ export const POST: APIRoute = async ({ request }) => {
       )
       .catch(() => ({ shippingCost: 0, freeShippingThreshold: 0, currency: "USD", usdRate: 17, markupPercent: 26.5, boxMarkupPercent: 0, ivaEnabled: false, ivaPercent: 16 })),
     sanity
-      .fetch<{ whatsapp?: string; payment?: { bankName?: string; accountHolder?: string; clabe?: string; accountNumber?: string } }>(
-        `*[_type=="siteSettings"][0]{ "whatsapp": organization.whatsapp, payment }`
+      .fetch<{
+        whatsapp?: string;
+        payment?: {
+          bankName?: string; accountHolder?: string; clabe?: string; accountNumber?: string;
+          reference?: string; instructions?: string; proofWhatsapp?: boolean;
+        };
+      }>(
+        `{
+          "whatsapp": coalesce(*[_type=="siteSettingsGeneral"][0].organization.whatsapp, *[_type=="siteSettings"][0].organization.whatsapp),
+          "payment": *[_type=="siteSettingsPayment"][0]{
+            bankName, accountHolder, clabe, accountNumber, reference, instructions, proofWhatsapp
+          }
+        }`
       )
       .catch(() => ({ whatsapp: undefined, payment: undefined })),
   ]);
@@ -362,9 +373,10 @@ export const POST: APIRoute = async ({ request }) => {
           ${pay.accountHolder ? `<tr><td style="padding:4px 16px 4px 0;opacity:.7">Titular</td><td style="font-weight:600">${pay.accountHolder}</td></tr>` : ""}
           ${pay.clabe         ? `<tr><td style="padding:4px 16px 4px 0;opacity:.7">CLABE</td><td style="font-family:monospace;font-weight:600">${pay.clabe}</td></tr>` : ""}
           ${pay.accountNumber ? `<tr><td style="padding:4px 16px 4px 0;opacity:.7">No. cuenta</td><td style="font-family:monospace;font-weight:600">${pay.accountNumber}</td></tr>` : ""}
-          <tr><td style="padding:4px 16px 4px 0;opacity:.7">Referencia</td><td style="font-weight:600">Pedido ${num}</td></tr>
+          <tr><td style="padding:4px 16px 4px 0;opacity:.7">Referencia</td><td style="font-weight:600">${pay.reference || `Pedido ${num}`}</td></tr>
         </table>
-        <p style="margin:14px 0 0;font-size:13px;color:#166534">Una vez realizado el pago, envía tu comprobante por WhatsApp al <a href="https://wa.me/${waPhone}" style="color:#166534">+${waPhone}</a>.</p>
+        <p style="margin:14px 0 0;font-size:13px;color:#166534">${pay.instructions || "Una vez realizado el pago, envía tu comprobante para confirmar tu pedido."}</p>
+        ${pay.proofWhatsapp !== false ? `<p style="margin:8px 0 0;font-size:13px;color:#166534">Envíalo por WhatsApp al <a href="https://wa.me/${waPhone}" style="color:#166534">+${waPhone}</a>.</p>` : ""}
       </div>` : "";
 
     const clientHtml = `
