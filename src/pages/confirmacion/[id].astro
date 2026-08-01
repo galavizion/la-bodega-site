@@ -11,8 +11,8 @@ const { id } = Astro.params;
 const [order, settings] = await Promise.all([
   sanityClient.fetch(
     groq`*[_type == "order" && orderNumber == $num][0]{
-      orderNumber, status, createdAt, paymentMethod,
-      customer{ name, email, phone, address, city, state, zip },
+      orderNumber, status, createdAt, paymentMethod, confirmationToken,
+      customer{ name, email, phone, address, colonia, city, state, zip },
       items[]{
         _key,
         "title": coalesce(product->title, variantLabel),
@@ -27,6 +27,13 @@ const [order, settings] = await Promise.all([
 ]);
 
 if (!order) {
+  return Astro.redirect("/catalogo/", 302);
+}
+
+// Pedidos creados antes de este cambio no tienen token — se dejan pasar para
+// no romper links viejos. Los nuevos SIEMPRE deben traer el token correcto.
+const token = Astro.url.searchParams.get("t") ?? "";
+if (order.confirmationToken && order.confirmationToken !== token) {
   return Astro.redirect("/catalogo/", 302);
 }
 
@@ -132,6 +139,7 @@ const proofUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(proofMsg)}`
             <dt>Email</dt>    <dd>{order.customer?.email ?? "—"}</dd>
             <dt>Teléfono</dt> <dd>{order.customer?.phone ?? "—"}</dd>
             {order.customer?.address && <><dt>Dirección</dt><dd>{order.customer.address}</dd></>}
+            {order.customer?.colonia && <><dt>Colonia</dt><dd>{order.customer.colonia}</dd></>}
             {order.customer?.city    && <><dt>Ciudad</dt>   <dd>{order.customer.city}{order.customer?.state ? `, ${order.customer.state}` : ""}</dd></>}
           </dl>
         </section>

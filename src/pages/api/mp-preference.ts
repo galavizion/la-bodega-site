@@ -32,15 +32,15 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "JSON inválido" }, 400);
   }
 
-  const { orderNumber, siteUrl, mpSandbox } = body;
+  const { orderNumber, mpSandbox } = body;
   if (!orderNumber) {
     return json({ error: "Datos incompletos" }, 400);
   }
 
   // ── Obtener total desde Sanity (precio calculado en servidor) ──
   const order = await sanity
-    .fetch<{ total: number; subtotal: number } | null>(
-      `*[_type=="order" && orderNumber==$num][0]{ total, subtotal }`,
+    .fetch<{ total: number; subtotal: number; confirmationToken?: string } | null>(
+      `*[_type=="order" && orderNumber==$num][0]{ total, subtotal, confirmationToken }`,
       { num: orderNumber }
     )
     .catch(() => null);
@@ -50,7 +50,9 @@ export const POST: APIRoute = async ({ request }) => {
   const orderTotal = Math.ceil(order.total ?? order.subtotal ?? 0);
   if (orderTotal <= 0) return json({ error: "Total de pedido inválido" }, 400);
 
-  const base = siteUrl ?? "https://www.labodegadelinstalador.net";
+  // Siempre el dominio real del sitio — nunca uno que mande el cliente,
+  // ya que se usa para el webhook de confirmación de pago (notification_url).
+  const base = "https://www.labodegadelinstalador.net";
 
   try {
     const client = new MercadoPagoConfig({ accessToken });
@@ -69,8 +71,8 @@ export const POST: APIRoute = async ({ request }) => {
         ],
         external_reference: orderNumber,
         back_urls: {
-          success: `${base}/confirmacion/${orderNumber}/`,
-          pending: `${base}/confirmacion/${orderNumber}/`,
+          success: `${base}/confirmacion/${orderNumber}/?t=${order.confirmationToken ?? ""}`,
+          pending: `${base}/confirmacion/${orderNumber}/?t=${order.confirmationToken ?? ""}`,
           failure: `${base}/checkout/`,
         },
         auto_return: "approved",

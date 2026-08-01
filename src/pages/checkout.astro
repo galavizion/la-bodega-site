@@ -449,7 +449,7 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Error al procesar el pedido");
-      return { orderNumber: data.orderNumber, cartItems, shipping: data.shipping || 0 };
+      return { orderNumber: data.orderNumber, confirmationToken: data.confirmationToken, cartItems, shipping: data.shipping || 0 };
     };
 
     // ── Autocompletar CP ────────────────────────────────
@@ -517,7 +517,7 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
           const prefRes = await fetch("/api/mp-preference", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ items: cartItems, orderNumber, shipping, siteUrl: window.location.origin, mpSandbox }),
+            body: JSON.stringify({ items: cartItems, orderNumber, shipping, mpSandbox }),
           });
           const prefData = await prefRes.json();
           if (!prefRes.ok || !prefData.preferenceId) throw new Error(prefData.error || "Error al iniciar pago");
@@ -540,10 +540,10 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
       // ── Flujo transferencia ──────────────────────────
       if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Procesando…"; }
       try {
-        const { orderNumber } = await validateAndCreateOrder(paymentMethod);
+        const { orderNumber, confirmationToken } = await validateAndCreateOrder(paymentMethod);
         localStorage.removeItem(KEY);
         window.dispatchEvent(new CustomEvent("cart:updated", { detail: { count: 0, totalQty: 0 } }));
-        window.location.href = `/confirmacion/${orderNumber}/`;
+        window.location.href = `/confirmacion/${orderNumber}/?t=${confirmationToken}`;
       } catch (err) {
         errEl.textContent = err?.message || "Ocurrió un error. Intenta de nuevo.";
         errEl.style.display = "block";

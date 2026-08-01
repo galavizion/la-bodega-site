@@ -34,7 +34,7 @@ type Order = {
   paymentMethod?: string;
   customer: {
     name?: string; email?: string; phone?: string;
-    address?: string; city?: string; state?: string; zip?: string;
+    address?: string; colonia?: string; city?: string; state?: string; zip?: string;
   };
   items: OrderItem[];
 };
@@ -157,6 +157,7 @@ const reorderItems = order.items
           {order.customer.name    && <div><span>Nombre</span><p>{order.customer.name}</p></div>}
           {order.customer.phone   && <div><span>Teléfono</span><p>{order.customer.phone}</p></div>}
           {order.customer.address && <div class="ord-info--full"><span>Dirección</span><p>{order.customer.address}</p></div>}
+          {order.customer.colonia && <div><span>Colonia</span><p>{order.customer.colonia}</p></div>}
           {(order.customer.city || order.customer.state) && (
             <div><span>Ciudad / Estado</span><p>{[order.customer.city, order.customer.state].filter(Boolean).join(", ")}</p></div>
           )}

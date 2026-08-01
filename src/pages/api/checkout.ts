@@ -101,6 +101,7 @@ export const POST: APIRoute = async ({ request }) => {
   const num = orderNumber();
   const now = new Date().toISOString();
   const ceil = (n: number) => Math.ceil(n);
+  const confirmationToken = crypto.randomUUID();
 
   const [shopSettings, siteSettings] = await Promise.all([
     sanity
@@ -203,6 +204,7 @@ export const POST: APIRoute = async ({ request }) => {
     created = await sanity.create({
       _type: "order",
       orderNumber: num,
+      confirmationToken,
       status: paymentMethod === "transfer" ? "awaiting_payment" : "pending",
       createdAt: now,
       paymentMethod:   paymentMethod ?? "transfer",
@@ -214,6 +216,7 @@ export const POST: APIRoute = async ({ request }) => {
         email:   String(customer.email).trim(),
         phone:   String(customer.phone).trim(),
         address: String(customer.address ?? "").trim(),
+        colonia: String(customer.colonia ?? "").trim(),
         city:    String(customer.city    ?? "").trim(),
         state:   String(customer.state   ?? "").trim(),
         zip:     String(customer.zip     ?? "").trim(),
@@ -255,7 +258,7 @@ export const POST: APIRoute = async ({ request }) => {
   // ── Notificación por email ───────────────────────────
   // Para MercadoPago el correo se manda desde /api/mp-webhook una vez confirmado el pago
   if (paymentMethod === "mercadopago") {
-    return json({ success: true, orderId: created._id, orderNumber: num, shipping: shippingAmount, iva: ivaAmount, total: netTotal, cashbackApplied });
+    return json({ success: true, orderId: created._id, orderNumber: num, confirmationToken, shipping: shippingAmount, iva: ivaAmount, total: netTotal, cashbackApplied });
   }
 
   const resendKey = import.meta.env.RESEND_API_KEY;
@@ -393,7 +396,7 @@ export const POST: APIRoute = async ({ request }) => {
     }).catch(() => {});
   }
 
-  return json({ success: true, orderId: created._id, orderNumber: num, shipping: shippingAmount, total: netTotal, cashbackApplied });
+  return json({ success: true, orderId: created._id, orderNumber: num, confirmationToken, shipping: shippingAmount, total: netTotal, cashbackApplied });
 };
 
 function json(data: unknown, status = 200) {

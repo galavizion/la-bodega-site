@@ -18,6 +18,15 @@ export const order = defineType({
       readOnly: true,
     }),
     defineField({
+      name: "confirmationToken",
+      title: "Token de confirmación",
+      type: "string",
+      group: "info",
+      readOnly: true,
+      hidden: true,
+      description: "Interno — protege la página pública de confirmación para que no baste con adivinar el número de pedido.",
+    }),
+    defineField({
       name: "status",
       title: "Estado",
       type: "string",
@@ -88,6 +97,7 @@ export const order = defineType({
         { name: "email",   title: "Email",   type: "string" },
         { name: "phone", title: "Teléfono / WhatsApp", type: "string" },
         { name: "address", title: "Dirección (envío o facturación)", type: "text", rows: 3 },
+        { name: "colonia", title: "Colonia", type: "string" },
         { name: "city", title: "Ciudad", type: "string" },
         { name: "state", title: "Estado / Provincia", type: "string" },
         { name: "zip", title: "Código postal", type: "string" },
