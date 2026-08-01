@@ -4,6 +4,7 @@ import { client as sanityClient } from "../../lib/sanity/client";
 import { SITE_SETTINGS_QUERY } from "../../lib/sanity/queries";
 import { urlFor } from "../../lib/sanity/image";
 import { resolveMarkup } from "../../lib/pricing";
+import { stripAccents } from "../../lib/text";
 import groq from "groq";
 
 type CatalogItem = {
@@ -29,8 +30,9 @@ const q = (Astro.url.searchParams.get("q") ?? "").trim();
 const from = (page - 1) * PAGE_SIZE;
 const to = from + PAGE_SIZE;
 
+const q2 = stripAccents(q);
 const baseFilter = `_type == "catalogItem" && defined(slug.current) && published != false && (!defined(familySlug) || isFamilyRepresentative == true)`;
-const searchFilter = q ? ` && (title match $q + "*" || excerpt match $q + "*")` : "";
+const searchFilter = q ? ` && (title match $q + "*" || title match $q2 + "*" || excerpt match $q + "*" || excerpt match $q2 + "*")` : "";
 
 const query = groq`{
   "items": *[${baseFilter}${searchFilter}] | order(_createdAt desc) [$from...$to] {
@@ -61,7 +63,7 @@ const query = groq`{
 }`;
 
 const [{ items, total }, settings] = await Promise.all([
-  sanityClient.fetch<{ items: CatalogItem[]; total: number }>(query, { q, from, to }),
+  sanityClient.fetch<{ items: CatalogItem[]; total: number }>(query, { q, q2, from, to }),
   sanityClient.fetch(SITE_SETTINGS_QUERY),
 ]);
 

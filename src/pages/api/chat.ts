@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import OpenAI from "openai";
 import { createClient } from "@sanity/client";
 import { resolveMarkup } from "../../lib/pricing";
+import { stripAccents } from "../../lib/text";
 
 export const prerender = false;
 
@@ -116,15 +117,19 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
 ];
 
 async function runSearchContent(query: string): Promise<string> {
-  const q = `*${query}*`;
+  // Se busca con el texto tal cual Y sin acentos (OR), porque en Sanity
+  // algunos títulos se guardaron sin tildes y otros sí las tienen —
+  // GROQ's match es sensible a acentos y no los normaliza solo.
+  const q  = `*${query}*`;
+  const q2 = `*${stripAccents(query)}*`;
 
   const [pages, posts] = await Promise.all([
     sanity.fetch<any[]>(
       `*[_type == "page" && (
-        title match $q ||
-        pt::text(sections[].content) match $q ||
-        pt::text(sections[].body) match $q ||
-        seo.description match $q
+        title match $q || title match $q2 ||
+        pt::text(sections[].content) match $q || pt::text(sections[].content) match $q2 ||
+        pt::text(sections[].body) match $q || pt::text(sections[].body) match $q2 ||
+        seo.description match $q || seo.description match $q2
       )][0...5]{
         title,
         "slug": slug.current,
@@ -132,21 +137,21 @@ async function runSearchContent(query: string): Promise<string> {
         "excerpt": seo.description,
         "text": pt::text(sections[0].content)
       }`,
-      { q }
+      { q, q2 }
     ).catch(() => [] as any[]),
 
     sanity.fetch<any[]>(
       `*[_type == "post" && (
-        title match $q ||
-        pt::text(body) match $q ||
-        excerpt match $q
+        title match $q || title match $q2 ||
+        pt::text(body) match $q || pt::text(body) match $q2 ||
+        excerpt match $q || excerpt match $q2
       )][0...5]{
         title,
         "slug": slug.current,
         excerpt,
         "text": pt::text(body[0..2])
       }`,
-      { q }
+      { q, q2 }
     ).catch(() => [] as any[]),
   ]);
 
@@ -189,7 +194,9 @@ async function fetchShopSettings(): Promise<ShopSettings> {
 async function runSearchProducts(query: string, settings: ShopSettings): Promise<string> {
   const results = await sanity.fetch<any[]>(
     `*[_type == "catalogItem" && published != false && (
-      title match $q || excerpt match $q || pt::text(body) match $q
+      title match $q || title match $q2 ||
+      excerpt match $q || excerpt match $q2 ||
+      pt::text(body) match $q || pt::text(body) match $q2
     )][0...6]{
       _id, title, "slug": slug.current, price, priceLabel,
       "imageUrl": coalesce(mainImage.asset->url, imageUrl),
@@ -203,7 +210,7 @@ async function runSearchProducts(query: string, settings: ShopSettings): Promise
       },
       disableMarkup
     }`,
-    { q: `*${query}*` }
+    { q: `*${query}*`, q2: `*${stripAccents(query)}*` }
   ).catch(() => [] as any[]);
 
   if (!results.length) return "No encontré productos que coincidan con esa búsqueda.";

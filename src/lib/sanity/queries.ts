@@ -478,7 +478,7 @@ export const CATALOG_BY_CATEGORY = groq`
     published != false &&
     category->slug.current == $catSlug &&
     (!defined(familySlug) || isFamilyRepresentative == true) &&
-    ($q == "" || title match $q + "*" || excerpt match $q + "*")
+    ($q == "" || title match $q + "*" || title match $q2 + "*" || excerpt match $q + "*" || excerpt match $q2 + "*")
   ] | order(_createdAt desc) [$from...$to] {
     _id,
     title,
@@ -503,7 +503,7 @@ export const CATALOG_BY_CATEGORY = groq`
     published != false &&
     category->slug.current == $catSlug &&
     (!defined(familySlug) || isFamilyRepresentative == true) &&
-    ($q == "" || title match $q + "*" || excerpt match $q + "*")
+    ($q == "" || title match $q + "*" || title match $q2 + "*" || excerpt match $q + "*" || excerpt match $q2 + "*")
   ])
 }
 `;
@@ -517,7 +517,7 @@ export const CATALOG_BY_BRAND = groq`
     published != false &&
     defined(brand) && lower(brand) == $brand &&
     (!defined(familySlug) || isFamilyRepresentative == true) &&
-    ($q == "" || title match $q + "*" || excerpt match $q + "*")
+    ($q == "" || title match $q + "*" || title match $q2 + "*" || excerpt match $q + "*" || excerpt match $q2 + "*")
   ] | order(_createdAt desc) [$from...$to] {
     _id,
     title,
@@ -548,7 +548,7 @@ export const CATALOG_BY_BRAND = groq`
     published != false &&
     defined(brand) && lower(brand) == $brand &&
     (!defined(familySlug) || isFamilyRepresentative == true) &&
-    ($q == "" || title match $q + "*" || excerpt match $q + "*")
+    ($q == "" || title match $q + "*" || title match $q2 + "*" || excerpt match $q + "*" || excerpt match $q2 + "*")
   ])
 }
 `;

@@ -4,6 +4,7 @@ import { client as sanityClient } from "../../../lib/sanity/client";
 import { CATALOG_BY_BRAND, SITE_SETTINGS_QUERY } from "../../../lib/sanity/queries";
 import { urlFor } from "../../../lib/sanity/image";
 import { resolveMarkup } from "../../../lib/pricing";
+import { stripAccents } from "../../../lib/text";
 
 type CatalogItem = {
   _id: string;
@@ -34,11 +35,12 @@ const brandParam = (brandSlug ?? "").toLowerCase().trim();
 const PAGE_SIZE = 20;
 const page = Math.max(1, Number(Astro.url.searchParams.get("page") ?? 1));
 const q = (Astro.url.searchParams.get("q") ?? "").trim();
+const q2 = stripAccents(q);
 const from = (page - 1) * PAGE_SIZE;
 const to = from + PAGE_SIZE;
 
 const [{ brandTitle, items, total }, settings] = await Promise.all([
-  sanityClient.fetch<BrandData>(CATALOG_BY_BRAND, { brand: brandParam, q, from, to }),
+  sanityClient.fetch<BrandData>(CATALOG_BY_BRAND, { brand: brandParam, q, q2, from, to }),
   sanityClient.fetch(SITE_SETTINGS_QUERY),
 ]);
 
