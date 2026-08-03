@@ -161,6 +161,14 @@ export const order = defineType({
       },
     }),
     defineField({
+      name: "mpPaymentId",
+      title: "ID de pago (Mercado Pago)",
+      type: "string",
+      group: "info",
+      readOnly: true,
+      description: "ID del pago en Mercado Pago, guardado automáticamente cuando el webhook confirma el pago.",
+    }),
+    defineField({
       name: "notificationsSent",
       title: "Correos enviados",
       type: "array",
