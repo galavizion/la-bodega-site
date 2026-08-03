@@ -178,20 +178,33 @@ export const POST: APIRoute = async ({ request }) => {
 
   // ── Cupón: nunca se toma el descuento del cliente, siempre se recalcula ────
   // desde Sanity a partir del código. Se aplica sobre el subtotal, antes del IVA.
+  // El límite de usos es POR CLIENTE (mismo email), no global.
   let couponDiscount = 0;
   let appliedCouponId: string | null = null;
   const normalizedCouponCode = String(couponCode ?? "").trim().toUpperCase();
+  const customerEmailLower = String(customer.email ?? "").trim().toLowerCase();
   if (normalizedCouponCode) {
     const couponRow = await sanity
       .fetch<{
         _id: string; percent: number; active: boolean;
         validFrom?: string; validUntil?: string;
-        minOrderAmount?: number; maxUses?: number; usedCount?: number;
+        minOrderAmount?: number; maxUses?: number;
       } | null>(
-        `*[_type=="coupon" && upper(code)==$code][0]{ _id, percent, active, validFrom, validUntil, minOrderAmount, maxUses, usedCount }`,
+        `*[_type=="coupon" && upper(code)==$code][0]{ _id, percent, active, validFrom, validUntil, minOrderAmount, maxUses }`,
         { code: normalizedCouponCode }
       )
       .catch(() => null);
+
+    let withinPerCustomerLimit = true;
+    if (couponRow?.maxUses) {
+      const usesByCustomer = await sanity
+        .fetch<number>(
+          `count(*[_type=="order" && upper(couponCode)==$code && lower(customer.email)==$email])`,
+          { code: normalizedCouponCode, email: customerEmailLower }
+        )
+        .catch(() => 0);
+      withinPerCustomerLimit = usesByCustomer < couponRow.maxUses;
+    }
 
     const now = Date.now();
     const couponValid =
@@ -199,8 +212,8 @@ export const POST: APIRoute = async ({ request }) => {
       couponRow.active !== false &&
       (!couponRow.validFrom || now >= new Date(couponRow.validFrom).getTime()) &&
       (!couponRow.validUntil || now <= new Date(couponRow.validUntil).getTime()) &&
-      (couponRow.maxUses == null || (couponRow.usedCount ?? 0) < couponRow.maxUses) &&
-      (couponRow.minOrderAmount == null || calcTotal >= couponRow.minOrderAmount);
+      (couponRow.minOrderAmount == null || calcTotal >= couponRow.minOrderAmount) &&
+      withinPerCustomerLimit;
 
     if (couponValid && couponRow) {
       couponDiscount = Math.min(ceil((calcTotal * (couponRow.percent ?? 0)) / 100), calcTotal);

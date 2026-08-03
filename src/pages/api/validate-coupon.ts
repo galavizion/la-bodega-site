@@ -17,7 +17,6 @@ type CouponRow = {
   validUntil?: string;
   minOrderAmount?: number;
   maxUses?: number;
-  usedCount?: number;
 };
 
 export const POST: APIRoute = async ({ request }) => {
@@ -30,6 +29,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const code = String(body.code ?? "").trim().toUpperCase();
   const subtotal = Number(body.subtotal ?? 0);
+  const email = String(body.email ?? "").trim().toLowerCase();
 
   if (!code) {
     return json({ valid: false, error: "Escribe un código de cupón" }, 400);
@@ -37,7 +37,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const row = await sanity
     .fetch<CouponRow | null>(
-      `*[_type=="coupon" && upper(code)==$code][0]{ percent, active, validFrom, validUntil, minOrderAmount, maxUses, usedCount }`,
+      `*[_type=="coupon" && upper(code)==$code][0]{ percent, active, validFrom, validUntil, minOrderAmount, maxUses }`,
       { code }
     )
     .catch(() => null);
@@ -55,8 +55,16 @@ export const POST: APIRoute = async ({ request }) => {
   if (row.validUntil && now > new Date(row.validUntil).getTime()) {
     return json({ valid: false, error: "Este cupón ya expiró" }, 400);
   }
-  if (row.maxUses != null && (row.usedCount ?? 0) >= row.maxUses) {
-    return json({ valid: false, error: "Este cupón ya alcanzó su límite de usos" }, 400);
+  if (row.maxUses && email) {
+    const usesByCustomer = await sanity
+      .fetch<number>(
+        `count(*[_type=="order" && upper(couponCode)==$code && lower(customer.email)==$email])`,
+        { code, email }
+      )
+      .catch(() => 0);
+    if (usesByCustomer >= row.maxUses) {
+      return json({ valid: false, error: "Ya usaste este cupón el máximo de veces permitido" }, 400);
+    }
   }
   if (row.minOrderAmount != null && subtotal < row.minOrderAmount) {
     return json({ valid: false, error: `Compra mínima de $${row.minOrderAmount.toLocaleString("es-MX")} MXN para usar este cupón` }, 400);

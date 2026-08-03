@@ -46,24 +46,25 @@ export const coupon = defineType({
     }),
     defineField({
       name: "maxUses",
-      title: "Límite de usos",
+      title: "Usos permitidos por cliente",
       type: "number",
-      description: "Opcional. Número total de pedidos en los que se puede usar este cupón.",
+      initialValue: 0,
+      description: "Cuántas veces puede usar este cupón el mismo cliente (mismo email). 0 = ilimitado por cliente.",
     }),
     defineField({
       name: "usedCount",
-      title: "Usos registrados",
+      title: "Usos totales registrados",
       type: "number",
       readOnly: true,
       initialValue: 0,
-      description: "Se incrementa automáticamente cada vez que se usa en un pedido.",
+      description: "Solo informativo — se incrementa cada vez que se usa en un pedido. No limita el total, el límite es por cliente (ver arriba).",
     }),
   ],
   preview: {
     select: { code: "code", percent: "percent", active: "active", usedCount: "usedCount", maxUses: "maxUses" },
     prepare: ({ code, percent, active, usedCount, maxUses }) => ({
       title: `${active !== false ? "✅" : "❌"} ${code ?? "Sin código"} — ${percent ?? 0}%`,
-      subtitle: maxUses ? `${usedCount ?? 0}/${maxUses} usos` : `${usedCount ?? 0} usos`,
+      subtitle: `${usedCount ?? 0} usos totales${maxUses ? ` · máx. ${maxUses}/cliente` : ""}`,
     }),
   },
   orderings: [

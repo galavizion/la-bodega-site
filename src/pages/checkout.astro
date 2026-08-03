@@ -397,12 +397,13 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
       const code = (couponInput?.value || "").trim();
       if (!code) return;
       const subtotal = items.reduce((a, it) => a + Number(it.price || 0) * (it.qty || 1), 0);
+      const email = (form.querySelector('[name="email"]')?.value || "").trim();
       applyCouponBtn.disabled = true;
       try {
         const res = await fetch("/api/validate-coupon", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code, subtotal }),
+          body: JSON.stringify({ code, subtotal, email }),
         });
         const data = await res.json();
         if (data.valid) {
