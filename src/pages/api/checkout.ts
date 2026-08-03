@@ -29,7 +29,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "JSON inválido" }, 400);
   }
 
-  const { customer, items, paymentMethod, total, deliveryMethod, pickupBranchId, pickupBranchName, useCashback, _hp_website, "cf-turnstile-response": tsToken } = body;
+  const { customer, items, paymentMethod, total, deliveryMethod, pickupBranchId, pickupBranchName, useCashback, couponCode, _hp_website, "cf-turnstile-response": tsToken } = body;
 
   // ── Honeypot ───────────────────────────────────────────────────────────────
   if (_hp_website) {
@@ -176,6 +176,39 @@ export const POST: APIRoute = async ({ request }) => {
     }, 0)
   );
 
+  // ── Cupón: nunca se toma el descuento del cliente, siempre se recalcula ────
+  // desde Sanity a partir del código. Se aplica sobre el subtotal, antes del IVA.
+  let couponDiscount = 0;
+  let appliedCouponId: string | null = null;
+  const normalizedCouponCode = String(couponCode ?? "").trim().toUpperCase();
+  if (normalizedCouponCode) {
+    const couponRow = await sanity
+      .fetch<{
+        _id: string; percent: number; active: boolean;
+        validFrom?: string; validUntil?: string;
+        minOrderAmount?: number; maxUses?: number; usedCount?: number;
+      } | null>(
+        `*[_type=="coupon" && upper(code)==$code][0]{ _id, percent, active, validFrom, validUntil, minOrderAmount, maxUses, usedCount }`,
+        { code: normalizedCouponCode }
+      )
+      .catch(() => null);
+
+    const now = Date.now();
+    const couponValid =
+      !!couponRow &&
+      couponRow.active !== false &&
+      (!couponRow.validFrom || now >= new Date(couponRow.validFrom).getTime()) &&
+      (!couponRow.validUntil || now <= new Date(couponRow.validUntil).getTime()) &&
+      (couponRow.maxUses == null || (couponRow.usedCount ?? 0) < couponRow.maxUses) &&
+      (couponRow.minOrderAmount == null || calcTotal >= couponRow.minOrderAmount);
+
+    if (couponValid && couponRow) {
+      couponDiscount = Math.min(ceil((calcTotal * (couponRow.percent ?? 0)) / 100), calcTotal);
+      appliedCouponId = couponRow._id;
+    }
+  }
+  const discountedSubtotal = calcTotal - couponDiscount;
+
   const isPickup   = deliveryMethod === "pickup";
   // Verificado contra Sanity (no se confía en el flag it.isBox que manda el navegador):
   // solo cuenta como "caja" si el slug lo indica y el producto realmente tiene esa opción configurada.
@@ -190,8 +223,8 @@ export const POST: APIRoute = async ({ request }) => {
       : shopSettings.freeShippingThreshold > 0 && calcTotal >= shopSettings.freeShippingThreshold
         ? 0
         : shopSettings.shippingCost;
-  const ivaAmount = shopSettings.ivaEnabled ? ceil(calcTotal * (shopSettings.ivaPercent / 100)) : 0;
-  const grandTotal = ceil(calcTotal + shippingAmount + ivaAmount);
+  const ivaAmount = shopSettings.ivaEnabled ? ceil(discountedSubtotal * (shopSettings.ivaPercent / 100)) : 0;
+  const grandTotal = ceil(discountedSubtotal + shippingAmount + ivaAmount);
 
   // ── Cashback: solo si hay sesión activa y coincide con el email del pedido ──
   // El monto NUNCA se toma del cliente — siempre se recalcula del saldo real en Sanity.
@@ -250,6 +283,7 @@ export const POST: APIRoute = async ({ request }) => {
       iva:      ivaAmount,
       total:    netTotal,
       cashbackApplied,
+      ...(appliedCouponId ? { couponCode: normalizedCouponCode, couponDiscount } : {}),
     });
   } catch (e: any) {
     return json({ error: e?.message ?? "Error al guardar el pedido" }, 500);
@@ -267,10 +301,15 @@ export const POST: APIRoute = async ({ request }) => {
     }).catch((e) => console.error("Error al registrar redención de cashback:", e));
   }
 
+  if (appliedCouponId) {
+    await sanity.patch(appliedCouponId).inc({ usedCount: 1 }).commit()
+      .catch((e) => console.error("Error al incrementar usos del cupón:", e));
+  }
+
   // ── Notificación por email ───────────────────────────
   // Para MercadoPago el correo se manda desde /api/mp-webhook una vez confirmado el pago
   if (paymentMethod === "mercadopago") {
-    return json({ success: true, orderId: created._id, orderNumber: num, confirmationToken, shipping: shippingAmount, iva: ivaAmount, total: netTotal, cashbackApplied });
+    return json({ success: true, orderId: created._id, orderNumber: num, confirmationToken, shipping: shippingAmount, iva: ivaAmount, total: netTotal, cashbackApplied, couponDiscount });
   }
 
   const resendKey = import.meta.env.RESEND_API_KEY;
@@ -302,6 +341,10 @@ export const POST: APIRoute = async ({ request }) => {
       <td colspan="2" style="padding:6px 12px">IVA (${shopSettings.ivaPercent}%)</td>
       <td style="padding:6px 12px;text-align:right">${fmt(ivaAmount)}</td>
     </tr>` : "";
+    const couponRow = couponDiscount > 0 ? `<tr>
+      <td colspan="2" style="padding:6px 12px;color:#166534">Cupón ${normalizedCouponCode}</td>
+      <td style="padding:6px 12px;text-align:right;color:#166534">-${fmt(couponDiscount)}</td>
+    </tr>` : "";
     const cashbackRow = cashbackApplied > 0 ? `<tr>
       <td colspan="2" style="padding:6px 12px;color:#166534">Cashback aplicado</td>
       <td style="padding:6px 12px;text-align:right;color:#166534">-${fmt(cashbackApplied)}</td>
@@ -317,7 +360,7 @@ export const POST: APIRoute = async ({ request }) => {
         <th style="padding:8px 12px;text-align:right;font-size:11px;text-transform:uppercase;opacity:.6">Subtotal</th>
       </tr></thead>
       <tbody>${rows}</tbody>
-      <tfoot>${shippingRow}${ivaRow}${cashbackRow}${totalRow}</tfoot>
+      <tfoot>${shippingRow}${ivaRow}${couponRow}${cashbackRow}${totalRow}</tfoot>
     </table>`;
 
     const waPhone = (siteSettings?.whatsapp ?? "528121087053").replace(/\D/g, "");
@@ -411,7 +454,7 @@ export const POST: APIRoute = async ({ request }) => {
     await logNotification(sanity, created._id, "order_received", customer.email);
   }
 
-  return json({ success: true, orderId: created._id, orderNumber: num, confirmationToken, shipping: shippingAmount, total: netTotal, cashbackApplied });
+  return json({ success: true, orderId: created._id, orderNumber: num, confirmationToken, shipping: shippingAmount, total: netTotal, cashbackApplied, couponDiscount });
 };
 
 function json(data: unknown, status = 200) {

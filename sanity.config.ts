@@ -123,6 +123,9 @@ export default defineConfig({
                       .title("🏪 Sucursales")
                       .child(S.documentTypeList("branch").title("Sucursales")),
                     S.listItem()
+                      .title("🎟️ Cupones")
+                      .child(S.documentTypeList("coupon").title("Cupones")),
+                    S.listItem()
                       .title("💰 Cashback")
                       .child(
                         S.list()

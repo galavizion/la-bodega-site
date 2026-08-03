@@ -143,6 +143,8 @@ export const order = defineType({
     defineField({ name: "iva", title: "IVA", type: "number", group: "items", readOnly: true, initialValue: 0 }),
     defineField({ name: "total", title: "Total (ya con cashback aplicado)", type: "number", group: "items", readOnly: true }),
     defineField({ name: "cashbackApplied", title: "Cashback usado como pago", type: "number", group: "items", readOnly: true, initialValue: 0 }),
+    defineField({ name: "couponCode", title: "Código de cupón usado", type: "string", group: "items", readOnly: true }),
+    defineField({ name: "couponDiscount", title: "Descuento de cupón", type: "number", group: "items", readOnly: true, initialValue: 0 }),
     defineField({
       name: "paymentMethod",
       title: "Método de pago",

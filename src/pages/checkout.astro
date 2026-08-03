@@ -231,6 +231,15 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
             <div id="mp-wallet-container" style="display:none; margin-top:16px;"></div>
           </section>
 
+          <section class="co-section">
+            <h2 class="co-section__title">¿Tienes un cupón de descuento?</h2>
+            <div class="coupon-input">
+              <input type="text" id="couponCode" name="couponCode" placeholder="Código de cupón" autocomplete="off" />
+              <button type="button" id="applyCouponBtn" class="coupon-apply-btn">Aplicar</button>
+            </div>
+            <p id="couponMsg" class="coupon-msg" style="display:none"></p>
+          </section>
+
           {cashbackBalance > 0 && (
             <section class="co-section">
               <label class="cashback-toggle">
@@ -272,6 +281,7 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
             {ivaEnabled && (
               <div class="sum-row sum-row--iva"><span>IVA ({ivaPercent}%)</span><strong id="sumIva">—</strong></div>
             )}
+            <div class="sum-row sum-row--coupon" id="sumCouponRow" style="display:none"><span>Cupón</span><strong id="sumCoupon">—</strong></div>
             {cashbackBalance > 0 && (
               <div class="sum-row sum-row--cashback" id="sumCashbackRow" style="display:none"><span>Cashback aplicado</span><strong id="sumCashback">—</strong></div>
             )}
@@ -331,25 +341,85 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
     const cashbackRow    = document.getElementById("sumCashbackRow");
     const cashbackEl     = document.getElementById("sumCashback");
     const useCashbackBox = document.getElementById("useCashback");
+    const couponRow      = document.getElementById("sumCouponRow");
+    const couponEl       = document.getElementById("sumCoupon");
+    const couponInput    = document.getElementById("couponCode");
+    const applyCouponBtn = document.getElementById("applyCouponBtn");
+    const couponMsg      = document.getElementById("couponMsg");
+    let appliedCoupon    = null; // { code, percent, discount }
 
     const refreshShippingDisplay = () => {
-      const total       = items.reduce((a, it) => a + Number(it.price || 0) * (it.qty || 1), 0);
-      const hasBox      = items.some((it) => it.isBox === true);
-      const isPickup    = currentDelivery === "pickup";
-      const fmt         = (n) => "$" + n.toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " MXN";
-      const shipping    = total ? calcShipping(total, hasBox, isPickup) : 0;
-      const iva         = ivaEnabled && total ? Math.ceil(total * (ivaPercent / 100)) : 0;
-      const grossTotal  = total + shipping + iva;
-      const wantsCashback = !!(useCashbackBox && useCashbackBox.checked);
-      const cashbackUsed  = wantsCashback ? Math.min(cashbackBalance, grossTotal) : 0;
+      const total            = items.reduce((a, it) => a + Number(it.price || 0) * (it.qty || 1), 0);
+      const hasBox            = items.some((it) => it.isBox === true);
+      const isPickup          = currentDelivery === "pickup";
+      const fmt               = (n) => "$" + n.toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " MXN";
+      const shipping          = total ? calcShipping(total, hasBox, isPickup) : 0;
+      const couponDiscount    = appliedCoupon ? Math.min(Math.ceil(total * (appliedCoupon.percent / 100)), total) : 0;
+      const discountedSubtotal = total - couponDiscount;
+      const iva               = ivaEnabled && total ? Math.ceil(discountedSubtotal * (ivaPercent / 100)) : 0;
+      const grossTotal        = discountedSubtotal + shipping + iva;
+      const wantsCashback     = !!(useCashbackBox && useCashbackBox.checked);
+      const cashbackUsed      = wantsCashback ? Math.min(cashbackBalance, grossTotal) : 0;
       if (shippingEl) shippingEl.textContent = !total ? "Ver cotización" : shipping === 0 ? "Gratis" : fmt(shipping);
       if (ivaEl)      ivaEl.textContent      = total ? fmt(iva) : "—";
+      if (couponRow) couponRow.style.display = appliedCoupon && total ? "flex" : "none";
+      if (couponEl) couponEl.textContent = total ? "-" + fmt(couponDiscount) : "—";
       if (cashbackRow) cashbackRow.style.display = wantsCashback && total ? "flex" : "none";
       if (cashbackEl) cashbackEl.textContent = total ? "-" + fmt(cashbackUsed) : "—";
       if (totalEl)    totalEl.textContent    = total ? fmt(grossTotal - cashbackUsed) : "Ver cotización";
     };
 
     useCashbackBox && useCashbackBox.addEventListener("change", refreshShippingDisplay);
+
+    const removeCoupon = () => {
+      appliedCoupon = null;
+      if (couponInput) couponInput.value = "";
+      if (couponMsg) { couponMsg.style.display = "none"; couponMsg.innerHTML = ""; }
+      refreshShippingDisplay();
+    };
+
+    const showCouponSuccess = (code, percent) => {
+      if (!couponMsg) return;
+      couponMsg.style.display = "block";
+      couponMsg.style.color = "#166534";
+      couponMsg.innerHTML = `Cupón ${code} aplicado (${percent}% de descuento) · <button type="button" id="removeCouponBtn" class="coupon-remove-btn">Quitar cupón</button>`;
+      document.getElementById("removeCouponBtn")?.addEventListener("click", removeCoupon);
+    };
+
+    const showCouponError = (text) => {
+      if (!couponMsg) return;
+      couponMsg.style.display = "block";
+      couponMsg.style.color = "#b91c1c";
+      couponMsg.textContent = text;
+    };
+
+    applyCouponBtn && applyCouponBtn.addEventListener("click", async () => {
+      const code = (couponInput?.value || "").trim();
+      if (!code) return;
+      const subtotal = items.reduce((a, it) => a + Number(it.price || 0) * (it.qty || 1), 0);
+      applyCouponBtn.disabled = true;
+      try {
+        const res = await fetch("/api/validate-coupon", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, subtotal }),
+        });
+        const data = await res.json();
+        if (data.valid) {
+          appliedCoupon = { code: data.code, percent: data.percent, discount: data.discount };
+          showCouponSuccess(data.code, data.percent);
+        } else {
+          appliedCoupon = null;
+          showCouponError(data.error || "Cupón inválido");
+        }
+      } catch {
+        appliedCoupon = null;
+        showCouponError("No se pudo validar el cupón. Intenta de nuevo.");
+      } finally {
+        applyCouponBtn.disabled = false;
+        refreshShippingDisplay();
+      }
+    });
 
     if (!items.length) {
       window.location.replace("/carrito/");
@@ -443,6 +513,7 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
           customer, items: cartItems, paymentMethod, total,
           deliveryMethod, pickupBranchId, pickupBranchName,
           useCashback: !!(useCashbackBox && useCashbackBox.checked),
+          couponCode: appliedCoupon?.code || "",
           _hp_website: fd.get("_hp_website") || "",
           "cf-turnstile-response": fd.get("cf-turnstile-response") || "",
         }),
@@ -591,6 +662,38 @@ const ivaPercent: number = settings?.ivaPercent ?? 16;
     }
     .cashback-toggle input { width: 18px; height: 18px; flex-shrink: 0; }
     .sum-row--cashback strong { color: #166534; }
+
+    .coupon-input { display: flex; gap: 10px; }
+    .coupon-input input {
+      flex: 1;
+      padding: 12px 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .coupon-apply-btn {
+      padding: 0 20px;
+      border: none;
+      border-radius: 8px;
+      background: #111827;
+      color: #FFD700;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .coupon-apply-btn:disabled { opacity: .6; cursor: default; }
+    .coupon-msg { font-size: 13px; margin: 10px 0 0; }
+    .coupon-remove-btn {
+      background: none;
+      border: none;
+      padding: 0;
+      color: inherit;
+      text-decoration: underline;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .sum-row--coupon strong { color: #166534; }
 
     .co-grid {
       display: grid;

@@ -23,6 +23,7 @@ import { chatbotProfile } from "./documents/chatbotProfile";
 import { branch } from "./documents/branch";
 import { cashbackSettings } from "./documents/cashbackSettings";
 import { walletTransaction } from "./documents/walletTransaction";
+import { coupon } from "./documents/coupon";
 
 // Objects
 import { seo } from "./objects/seo";
@@ -68,6 +69,7 @@ export const schemaTypes = [
   branch,
   cashbackSettings,
   walletTransaction,
+  coupon,
   // Objects
   seo,
   navItem,
