@@ -6,7 +6,7 @@ export function CreditCashbackAction(props: any) {
   const client = useClient({ apiVersion: "2025-01-01" });
   const toast = useToast();
   const [isRunning, setIsRunning] = useState(false);
-  const doc = props.published ?? props.draft;
+  const doc = props.draft ?? props.published;
 
   if (!doc || doc._type !== "order") return null;
   if (doc.status !== "delivered") return null;

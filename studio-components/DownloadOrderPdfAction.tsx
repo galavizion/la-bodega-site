@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useClient } from "sanity";
 
 const PAYMENT_LABELS: Record<string, string> = {
   transfer: "Transferencia",
@@ -23,6 +24,7 @@ const fmt = (n: number) => `$${(n ?? 0).toLocaleString("es-MX", { maximumFractio
 
 export function DownloadOrderPdfAction(props: any) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const client = useClient({ apiVersion: "2025-01-01" });
   const doc = props.draft ?? props.published;
 
   if (!doc || doc._type !== "order") return null;
@@ -31,9 +33,12 @@ export function DownloadOrderPdfAction(props: any) {
     label: "Descargar PDF",
     onHandle: async () => {
       try {
-        const [{ default: jsPDF }, autoTableModule] = await Promise.all([
+        const [{ default: jsPDF }, autoTableModule, pickupBranchName] = await Promise.all([
           import("jspdf"),
           import("jspdf-autotable"),
+          doc.pickupBranch?._ref
+            ? client.fetch(`*[_id == $id][0].name`, { id: doc.pickupBranch._ref })
+            : Promise.resolve(null),
         ]);
         const autoTable = (autoTableModule as any).default ?? (autoTableModule as any);
 
@@ -59,10 +64,16 @@ export function DownloadOrderPdfAction(props: any) {
           `Email: ${customer.email ?? "—"}`,
           `Teléfono: ${customer.phone ?? "—"}`,
           `Entrega: ${doc.deliveryMethod === "pickup" ? "Recoger en sucursal" : "Envío a domicilio"}`,
-          ...(doc.deliveryMethod !== "pickup"
-            ? [`Dirección: ${[customer.address, customer.city, customer.state, customer.zip].filter(Boolean).join(", ") || "—"}`]
-            : []),
-          `Método de pago: ${PAYMENT_LABELS[doc.paymentMethod] ?? doc.paymentMethod ?? "—"}`,
+          ...(doc.deliveryMethod === "pickup"
+            ? [`Sucursal: ${pickupBranchName ?? "—"}`]
+            : [
+                `Dirección: ${[customer.address, customer.city, customer.state, customer.zip].filter(Boolean).join(", ") || "—"}`,
+                ...(doc.shippingInfo?.provider || doc.shippingInfo?.trackingNumber
+                  ? [`Paquetería: ${doc.shippingInfo?.provider ?? "—"} · Guía: ${doc.shippingInfo?.trackingNumber ?? "—"}`]
+                  : []),
+              ]),
+          `Método de pago: ${PAYMENT_LABELS[doc.paymentMethod] ?? doc.paymentMethod ?? "—"}${doc.mpPaymentId ? ` (ID: ${doc.mpPaymentId})` : ""}`,
+          ...(doc.notes ? [`Notas internas: ${doc.notes}`] : []),
         ];
         let y = 42;
         infoLines.forEach((line) => {
@@ -92,6 +103,10 @@ export function DownloadOrderPdfAction(props: any) {
         sumY += 6;
         if (doc.iva > 0) {
           pdf.text(`IVA: ${fmt(doc.iva)}`, 140, sumY);
+          sumY += 6;
+        }
+        if (doc.cashbackApplied > 0) {
+          pdf.text(`Cashback aplicado: -${fmt(doc.cashbackApplied)}`, 140, sumY);
           sumY += 6;
         }
         pdf.setFontSize(11);
