@@ -94,6 +94,8 @@ export const page = defineType({
         { type: "sectionForm" },
         { type: "sectionSpace" },
         { type: "sectionProductsCarousel" },
+        { type: "sectionSlider" },
+        { type: "sectionTicker" },
         { type: "sectionSharedRef" },
       ],
     }),

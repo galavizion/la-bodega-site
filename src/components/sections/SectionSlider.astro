@@ -1,0 +1,239 @@
+---
+import { urlFor } from "../../lib/sanity/image";
+
+type Slide = {
+  image?: any;
+  title?: string;
+  text?: string;
+  buttonLabel?: string;
+  buttonUrl?: string;
+};
+
+type Props = {
+  mode?: "simple" | "text";
+  aspectRatio?: string;
+  intervalSeconds?: number;
+  slides?: Slide[];
+  settings?: { sectionId?: string };
+};
+
+const {
+  mode = "simple",
+  aspectRatio = "16/6",
+  intervalSeconds = 5,
+  slides,
+  settings,
+} = Astro.props as Props;
+
+const sectionId = settings?.sectionId;
+const safeSlides = (Array.isArray(slides) ? slides : []).filter((s) => s?.image);
+const intervalMs = Math.max(0, Number(intervalSeconds) || 0) * 1000;
+const uid = `slider-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+{safeSlides.length > 0 && (
+  <section id={sectionId} class="section slider">
+    <div class="slider__wrapper" id={uid} data-interval={intervalMs}>
+      <div class="slider__track">
+        {safeSlides.map((slide, i) => {
+          const imgUrl = urlFor(slide.image).width(1920).quality(85).auto("format").url();
+          const hasText = mode === "text" && (slide.title || slide.text || (slide.buttonLabel && slide.buttonUrl));
+          return (
+            <div class="slider__slide" style={`aspect-ratio:${aspectRatio}`}>
+              <img
+                src={imgUrl}
+                alt={slide.title || ""}
+                loading={i === 0 ? "eager" : "lazy"}
+                decoding="async"
+              />
+              {hasText && (
+                <div class="slider__overlay">
+                  <div class="slider__overlay-inner">
+                    {slide.title && <h2>{slide.title}</h2>}
+                    {slide.text && <p>{slide.text}</p>}
+                    {slide.buttonLabel && slide.buttonUrl && (
+                      <a class="btn btn--primary" href={slide.buttonUrl}>{slide.buttonLabel}</a>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {safeSlides.length > 1 && (
+        <>
+          <button class="slider__btn slider__prev" aria-label="Anterior">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <button class="slider__btn slider__next" aria-label="Siguiente">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+          <div class="slider__dots">
+            {safeSlides.map((_, i) => (
+              <button class="slider__dot" data-index={i} aria-label={`Ir a la imagen ${i + 1}`}></button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  </section>
+)}
+
+<style>
+  .slider { width: 100%; }
+
+  .slider__wrapper {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+  }
+
+  .slider__track {
+    display: flex;
+    transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+
+  .slider__slide {
+    position: relative;
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+  }
+  .slider__slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .slider__overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    background: linear-gradient(0deg, rgba(0,0,0,.65) 0%, rgba(0,0,0,.15) 45%, rgba(0,0,0,0) 70%);
+    color: #fff;
+  }
+  .slider__overlay-inner {
+    padding: clamp(20px, 4vw, 56px);
+    max-width: 640px;
+  }
+  .slider__overlay-inner h2 {
+    font-size: clamp(1.4rem, 3.2vw, 2.4rem);
+    font-weight: 800;
+    margin: 0 0 10px;
+    line-height: 1.15;
+  }
+  .slider__overlay-inner p {
+    font-size: clamp(.95rem, 1.6vw, 1.1rem);
+    opacity: .9;
+    margin: 0 0 18px;
+    line-height: 1.5;
+  }
+
+  .slider__btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0,0,0,.4);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: .75;
+    transition: opacity 0.2s, transform 0.15s;
+    z-index: 2;
+  }
+  .slider__btn:hover { opacity: 1; }
+  .slider__prev { left: 16px; }
+  .slider__next { right: 16px; }
+
+  .slider__dots {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 16px;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    z-index: 2;
+  }
+  .slider__dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,.5);
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .slider__dot.is-active {
+    background: #fff;
+    transform: scale(1.2);
+  }
+
+  @media (max-width: 640px) {
+    .slider__btn { width: 36px; height: 36px; }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>(".slider__wrapper").forEach((wrapper) => {
+    const track = wrapper.querySelector<HTMLElement>(".slider__track");
+    const slides = wrapper.querySelectorAll<HTMLElement>(".slider__slide");
+    const prevBtn = wrapper.querySelector<HTMLButtonElement>(".slider__prev");
+    const nextBtn = wrapper.querySelector<HTMLButtonElement>(".slider__next");
+    const dots = wrapper.querySelectorAll<HTMLButtonElement>(".slider__dot");
+
+    if (!track || !slides.length) return;
+
+    const total = slides.length;
+    const intervalMs = Number(wrapper.dataset.interval || 0);
+    let current = 0;
+    let timer: number | null = null;
+
+    function goTo(i: number) {
+      current = ((i % total) + total) % total;
+      track!.style.transform = `translateX(-${current * 100}%)`;
+      dots.forEach((d, idx) => d.classList.toggle("is-active", idx === current));
+    }
+
+    function next() { goTo(current + 1); }
+    function prev() { goTo(current - 1); }
+
+    function stopAutoplay() {
+      if (timer !== null) { window.clearInterval(timer); timer = null; }
+    }
+    function startAutoplay() {
+      stopAutoplay();
+      if (intervalMs > 0 && total > 1) {
+        timer = window.setInterval(next, intervalMs);
+      }
+    }
+
+    prevBtn?.addEventListener("click", () => { prev(); startAutoplay(); });
+    nextBtn?.addEventListener("click", () => { next(); startAutoplay(); });
+    dots.forEach((dot, idx) => dot.addEventListener("click", () => { goTo(idx); startAutoplay(); }));
+
+    wrapper.addEventListener("mouseenter", stopAutoplay);
+    wrapper.addEventListener("mouseleave", startAutoplay);
+    wrapper.addEventListener("focusin", stopAutoplay);
+    wrapper.addEventListener("focusout", startAutoplay);
+
+    goTo(0);
+    startAutoplay();
+  });
+</script>

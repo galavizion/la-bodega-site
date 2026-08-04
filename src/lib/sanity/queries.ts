@@ -186,6 +186,29 @@ export const homeQuery = groq`
       settings
     },
 
+    _type == "sectionSlider" => {
+      mode,
+      aspectRatio,
+      intervalSeconds,
+      slides[]{
+        _key,
+        image,
+        title,
+        text,
+        buttonLabel,
+        buttonUrl
+      },
+      settings
+    },
+
+    _type == "sectionTicker" => {
+      bgColor,
+      textColor,
+      col1Text,
+      col2Text,
+      settings
+    },
+
     _type == "sectionSharedRef" => {
       "resolvedSection": ref->section[0]
     }
@@ -376,6 +399,29 @@ export const pageBySlugQuery = groq`
       },
       cta{ label, url, style },
       bgColor,
+      settings
+    },
+
+    _type == "sectionSlider" => {
+      mode,
+      aspectRatio,
+      intervalSeconds,
+      slides[]{
+        _key,
+        image,
+        title,
+        text,
+        buttonLabel,
+        buttonUrl
+      },
+      settings
+    },
+
+    _type == "sectionTicker" => {
+      bgColor,
+      textColor,
+      col1Text,
+      col2Text,
       settings
     },
 

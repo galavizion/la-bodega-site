@@ -42,6 +42,8 @@ import { sectionCards } from "./sections/sectionCards";
 import { sectionForm } from "./sections/sectionForm";
 import { sectionSpace } from "./sections/sectionSpace";
 import { sectionProductsCarousel } from "./sections/sectionProductsCarousel";
+import { sectionSlider } from "./sections/sectionSlider";
+import { sectionTicker } from "./sections/sectionTicker";
 
 export const schemaTypes = [
   // Documents
@@ -86,4 +88,6 @@ export const schemaTypes = [
   sectionForm,
   sectionSpace,
   sectionProductsCarousel,
+  sectionSlider,
+  sectionTicker,
 ];

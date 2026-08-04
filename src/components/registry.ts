@@ -9,6 +9,8 @@ import SectionCards from "./sections/SectionCards.astro";
 import SectionForm from "./sections/SectionForm.astro";
 import SectionSpace from "./sections/SectionSpace.astro";
 import SectionProductsCarousel from "./sections/SectionProductsCarousel.astro";
+import SectionSlider from "./sections/SectionSlider.astro";
+import SectionTicker from "./sections/SectionTicker.astro";
 
 export const sectionRegistry = {
   sectionHero: SectionHero,
@@ -22,6 +24,8 @@ export const sectionRegistry = {
   sectionForm: SectionForm,
   sectionSpace: SectionSpace,
   sectionProductsCarousel: SectionProductsCarousel,
+  sectionSlider: SectionSlider,
+  sectionTicker: SectionTicker,
 } as const;
 
 export type SectionType = keyof typeof sectionRegistry;
