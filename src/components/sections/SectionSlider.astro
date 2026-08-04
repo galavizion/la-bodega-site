@@ -33,6 +33,7 @@ const uid = `slider-${Math.random().toString(36).slice(2, 8)}`;
 
 {safeSlides.length > 0 && (
   <section id={sectionId} class="section slider">
+    <div class="container">
     <div class="slider__wrapper" id={uid} data-interval={intervalMs}>
       <div class="slider__track">
         {safeSlides.map((slide, i) => {
@@ -81,6 +82,7 @@ const uid = `slider-${Math.random().toString(36).slice(2, 8)}`;
           </div>
         </>
       )}
+    </div>
     </div>
   </section>
 )}
