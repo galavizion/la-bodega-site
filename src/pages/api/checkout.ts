@@ -249,6 +249,37 @@ export const POST: APIRoute = async ({ request }) => {
   }
   const netTotal = ceil(grandTotal - cashbackApplied);
 
+  // ── Mercado Pago: reusar pedido pendiente reciente en vez de duplicar ──
+  // Si el cliente vuelve a /checkout (ej. botón "atrás" desde MP sin pagar)
+  // y reenvía el mismo carrito, evitamos crear un segundo pedido "pending"
+  // huérfano — reusamos el que ya existe en vez de generar uno nuevo.
+  if (paymentMethod === "mercadopago") {
+    const since = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const existing = await sanity
+      .fetch<{ _id: string; orderNumber: string; confirmationToken: string; shipping: number; iva: number; total: number; cashbackApplied: number; couponDiscount: number } | null>(
+        `*[_type=="order" && status=="pending" && paymentMethod=="mercadopago"
+           && lower(customer.email)==$email && total==$total && createdAt > $since] | order(createdAt desc)[0]{
+          _id, orderNumber, confirmationToken, shipping, iva, total, cashbackApplied, couponDiscount
+        }`,
+        { email: customerEmail, total: netTotal, since }
+      )
+      .catch(() => null);
+
+    if (existing) {
+      return json({
+        success: true,
+        orderId: existing._id,
+        orderNumber: existing.orderNumber,
+        confirmationToken: existing.confirmationToken,
+        shipping: existing.shipping,
+        iva: existing.iva,
+        total: existing.total,
+        cashbackApplied: existing.cashbackApplied,
+        couponDiscount: existing.couponDiscount,
+      });
+    }
+  }
+
   // ── Crear pedido en Sanity ───────────────────────────
   let created: { _id: string };
   try {
