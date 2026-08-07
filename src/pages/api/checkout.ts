@@ -223,15 +223,8 @@ export const POST: APIRoute = async ({ request }) => {
   const discountedSubtotal = calcTotal - couponDiscount;
 
   const isPickup   = deliveryMethod === "pickup";
-  // Verificado contra Sanity (no se confía en el flag it.isBox que manda el navegador):
-  // solo cuenta como "caja" si el slug lo indica y el producto realmente tiene esa opción configurada.
-  const hasBoxItem = items.some((it: any) => {
-    const slug = String(it.slug || "");
-    if (!slug.endsWith("--caja")) return false;
-    return !!productMap[baseSlugOf(slug)]?.boxUnitsPerBox;
-  });
   const shippingAmount =
-    isPickup || hasBoxItem
+    isPickup
       ? 0
       : shopSettings.freeShippingThreshold > 0 && calcTotal >= shopSettings.freeShippingThreshold
         ? 0

@@ -41,7 +41,7 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response("Sin cambios de estado", { status: 200 });
     }
 
-    const { customer, orderNumber, shippingInfo, items, total } = after;
+    const { customer, orderNumber, shippingInfo, items, subtotal, shipping, iva, total } = after;
 
     // 2. Lógica de notificación según el nuevo estado
     if (after.status === "confirmed" && before.status !== "confirmed") {
@@ -53,6 +53,9 @@ export const POST: APIRoute = async ({ request }) => {
           name: customer.name,
           orderNumber,
           items,
+          subtotal,
+          shipping,
+          iva,
           total,
         });
         await logNotification(sanity, after._id, "confirmed", customer.email);
@@ -132,11 +135,14 @@ interface ConfirmedEmailProps {
   name: string;
   orderNumber: string;
   items?: { variantLabel?: string; quantity?: number; unitPrice?: number; product?: { title?: string } }[];
+  subtotal?: number;
+  shipping?: number;
+  iva?: number;
   total?: number;
 }
 
 async function sendConfirmedEmail(props: ConfirmedEmailProps) {
-  const { to, name, orderNumber, items, total } = props;
+  const { to, name, orderNumber, items, subtotal, shipping, iva, total } = props;
   const resend = new Resend(resendKey);
   const fmt = (n: number) => `$${Math.ceil(n).toLocaleString("es-MX")} MXN`;
 
@@ -145,17 +151,33 @@ async function sendConfirmedEmail(props: ConfirmedEmailProps) {
       <thead><tr style="background:#f8fafc">
         <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;opacity:.6">Producto</th>
         <th style="padding:8px 12px;text-align:center;font-size:11px;text-transform:uppercase;opacity:.6">Cant.</th>
+        <th style="padding:8px 12px;text-align:right;font-size:11px;text-transform:uppercase;opacity:.6">Subtotal</th>
       </tr></thead>
       <tbody>
         ${items.map((it) => `<tr>
           <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9">${it.product?.title ?? it.variantLabel ?? "Producto"}</td>
           <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center">${it.quantity ?? 1}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:right">${fmt(Math.ceil(Number(it.unitPrice ?? 0)) * Number(it.quantity ?? 1))}</td>
         </tr>`).join("")}
       </tbody>
-      ${total != null ? `<tfoot><tr style="background:#f8fafc">
-        <td style="padding:10px 12px;font-weight:700">TOTAL</td>
-        <td style="padding:10px 12px;font-weight:700;text-align:center">${fmt(total)}</td>
-      </tr></tfoot>` : ""}
+      <tfoot>
+        ${subtotal != null ? `<tr>
+          <td colspan="2" style="padding:6px 12px">Subtotal</td>
+          <td style="padding:6px 12px;text-align:right">${fmt(subtotal)}</td>
+        </tr>` : ""}
+        ${shipping != null ? `<tr>
+          <td colspan="2" style="padding:6px 12px">Envío</td>
+          <td style="padding:6px 12px;text-align:right">${shipping === 0 ? "Gratis" : fmt(shipping)}</td>
+        </tr>` : ""}
+        ${iva ? `<tr>
+          <td colspan="2" style="padding:6px 12px">IVA</td>
+          <td style="padding:6px 12px;text-align:right">${fmt(iva)}</td>
+        </tr>` : ""}
+        ${total != null ? `<tr style="background:#f8fafc">
+          <td colspan="2" style="padding:10px 12px;font-weight:700">TOTAL</td>
+          <td style="padding:10px 12px;font-weight:700;text-align:right">${fmt(total)}</td>
+        </tr>` : ""}
+      </tfoot>
     </table>` : "";
 
   const clientHtml = `
