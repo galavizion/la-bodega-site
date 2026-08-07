@@ -67,7 +67,11 @@ export function DownloadOrderPdfAction(props: any) {
           ...(doc.deliveryMethod === "pickup"
             ? [`Sucursal: ${pickupBranchName ?? "—"}`]
             : [
-                `Dirección: ${[customer.address, customer.city, customer.state, customer.zip].filter(Boolean).join(", ") || "—"}`,
+                `Calle y número: ${customer.address || "—"}`,
+                `Colonia: ${customer.colonia || "—"}`,
+                `Ciudad y estado: ${[customer.city, customer.state].filter(Boolean).join(", ") || "—"}`,
+                `Código postal: ${customer.zip || "—"}`,
+                `Referencia: ${customer.reference || "—"}`,
                 ...(doc.shippingInfo?.provider || doc.shippingInfo?.trackingNumber
                   ? [`Paquetería: ${doc.shippingInfo?.provider ?? "—"} · Guía: ${doc.shippingInfo?.trackingNumber ?? "—"}`]
                   : []),

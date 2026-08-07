@@ -297,11 +297,12 @@ export const POST: APIRoute = async ({ request }) => {
         company: String(customer.company ?? "").trim() || undefined,
         email:   String(customer.email).trim(),
         phone:   String(customer.phone).trim(),
-        address: String(customer.address ?? "").trim(),
-        colonia: String(customer.colonia ?? "").trim(),
-        city:    String(customer.city    ?? "").trim(),
-        state:   String(customer.state   ?? "").trim(),
-        zip:     String(customer.zip     ?? "").trim(),
+        address:   String(customer.address ?? "").trim(),
+        colonia:   String(customer.colonia ?? "").trim(),
+        city:      String(customer.city    ?? "").trim(),
+        state:     String(customer.state   ?? "").trim(),
+        zip:       String(customer.zip     ?? "").trim(),
+        reference: String(customer.reference ?? "").trim() || undefined,
       },
       items: items.map((it: any) => {
         const base = baseSlugOf(String(it.slug || ""));

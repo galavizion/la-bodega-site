@@ -12,7 +12,7 @@ const [order, settings] = await Promise.all([
   sanityClient.fetch(
     groq`*[_type == "order" && orderNumber == $num][0]{
       orderNumber, status, createdAt, paymentMethod, confirmationToken,
-      customer{ name, email, phone, address, colonia, city, state, zip },
+      customer{ name, email, phone, address, colonia, city, state, zip, reference },
       items[]{
         _key,
         "title": coalesce(product->title, variantLabel),
@@ -141,6 +141,8 @@ const proofUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(proofMsg)}`
             {order.customer?.address && <><dt>Dirección</dt><dd>{order.customer.address}</dd></>}
             {order.customer?.colonia && <><dt>Colonia</dt><dd>{order.customer.colonia}</dd></>}
             {order.customer?.city    && <><dt>Ciudad</dt>   <dd>{order.customer.city}{order.customer?.state ? `, ${order.customer.state}` : ""}</dd></>}
+            {order.customer?.zip       && <><dt>Código postal</dt><dd>{order.customer.zip}</dd></>}
+            {order.customer?.reference && <><dt>Referencia</dt><dd>{order.customer.reference}</dd></>}
           </dl>
         </section>
       </div>

@@ -102,6 +102,7 @@ export const order = defineType({
         { name: "city", title: "Ciudad", type: "string" },
         { name: "state", title: "Estado / Provincia", type: "string" },
         { name: "zip", title: "Código postal", type: "string" },
+        { name: "reference", title: "Referencia", type: "text", rows: 2, description: "Ej: entre qué calles, color de fachada, etc." },
       ],
     }),
     defineField({
