@@ -41,7 +41,7 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response("Sin cambios de estado", { status: 200 });
     }
 
-    const { customer, orderNumber, shippingInfo, items, subtotal, shipping, iva, total } = after;
+    const { customer, orderNumber, confirmationToken, shippingInfo, items, subtotal, shipping, iva, total } = after;
 
     // 2. Lógica de notificación según el nuevo estado
     if (after.status === "confirmed" && before.status !== "confirmed") {
@@ -52,6 +52,7 @@ export const POST: APIRoute = async ({ request }) => {
           to: customer.email,
           name: customer.name,
           orderNumber,
+          confirmationToken,
           items,
           subtotal,
           shipping,
@@ -65,6 +66,7 @@ export const POST: APIRoute = async ({ request }) => {
         to: customer.email,
         name: customer.name,
         orderNumber,
+        confirmationToken,
         shippingProvider: shippingInfo?.provider,
         trackingNumber: shippingInfo?.trackingNumber,
         trackingUrl: shippingInfo?.trackingUrl,
@@ -86,13 +88,15 @@ interface ShippedEmailProps {
   to: string;
   name: string;
   orderNumber: string;
+  confirmationToken?: string;
   shippingProvider?: string;
   trackingNumber?: string;
   trackingUrl?: string;
 }
 
 async function sendShippedEmail(props: ShippedEmailProps) {
-  const { to, name, orderNumber, shippingProvider, trackingNumber, trackingUrl } = props;
+  const { to, name, orderNumber, confirmationToken, shippingProvider, trackingNumber, trackingUrl } = props;
+  const pdfLink = `https://www.labodegadelinstalador.net/api/pedido/${orderNumber}/pdf?t=${confirmationToken ?? ""}`;
   const resend = new Resend(resendKey);
 
   let trackingHtml = "";
@@ -116,6 +120,11 @@ async function sendShippedEmail(props: ShippedEmailProps) {
       <div style="background:#fff;padding:24px 32px;border:1px solid #e2e8f0;border-top:none">
         <p style="margin:0 0 20px;font-size:15px">Hola <strong>${name}</strong>, te confirmamos que tu pedido ha sido enviado.</p>
         ${trackingHtml}
+        <div style="margin-top:24px;text-align:center">
+          <a href="${pdfLink}" style="display:inline-block;color:#111827;text-decoration:underline;font-size:14px;font-weight:600">
+            Descargar PDF del pedido
+          </a>
+        </div>
       </div>
       <div style="background:#f8fafc;padding:12px 32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;font-size:12px;color:#94a3b8;text-align:center">
         Gracias por tu compra.
@@ -134,6 +143,7 @@ interface ConfirmedEmailProps {
   to: string;
   name: string;
   orderNumber: string;
+  confirmationToken?: string;
   items?: { variantLabel?: string; quantity?: number; unitPrice?: number; product?: { title?: string } }[];
   subtotal?: number;
   shipping?: number;
@@ -142,7 +152,8 @@ interface ConfirmedEmailProps {
 }
 
 async function sendConfirmedEmail(props: ConfirmedEmailProps) {
-  const { to, name, orderNumber, items, subtotal, shipping, iva, total } = props;
+  const { to, name, orderNumber, confirmationToken, items, subtotal, shipping, iva, total } = props;
+  const pdfLink = `https://www.labodegadelinstalador.net/api/pedido/${orderNumber}/pdf?t=${confirmationToken ?? ""}`;
   const resend = new Resend(resendKey);
   const fmt = (n: number) => `$${Math.ceil(n).toLocaleString("es-MX")} MXN`;
 
@@ -189,6 +200,11 @@ async function sendConfirmedEmail(props: ConfirmedEmailProps) {
       <div style="background:#fff;padding:24px 32px;border:1px solid #e2e8f0;border-top:none">
         <p style="margin:0 0 8px;font-size:15px">Hola <strong>${name}</strong>, confirmamos tu pedido #${orderNumber}. Ya lo estamos preparando.</p>
         ${itemsTable}
+        <div style="margin-top:24px;text-align:center">
+          <a href="${pdfLink}" style="display:inline-block;color:#111827;text-decoration:underline;font-size:14px;font-weight:600">
+            Descargar PDF del pedido
+          </a>
+        </div>
       </div>
       <div style="background:#f8fafc;padding:12px 32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;font-size:12px;color:#94a3b8;text-align:center">
         Gracias por tu compra.

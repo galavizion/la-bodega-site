@@ -32,7 +32,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const order = await sanity.fetch<any>(
       `*[_type=="order" && orderNumber==$num][0]{
-        _id, status, createdAt, paymentMethod, deliveryMethod, "pickupBranchName": pickupBranch->name,
+        _id, status, createdAt, paymentMethod, deliveryMethod, confirmationToken, "pickupBranchName": pickupBranch->name,
         customer, items[]{ variantLabel, quantity, unitPrice },
         subtotal, shipping, iva, total
       }`,
@@ -104,7 +104,8 @@ async function sendConfirmationEmails(order: any, orderNumber: string) {
   if (!resendKey) return;
 
   const resend = new Resend(resendKey);
-  const { customer, items, shipping, iva, total, deliveryMethod, pickupBranchName } = order;
+  const { customer, items, shipping, iva, total, deliveryMethod, pickupBranchName, confirmationToken } = order;
+  const pdfLink = `https://www.labodegadelinstalador.net/api/pedido/${orderNumber}/pdf?t=${confirmationToken ?? ""}`;
   const now = new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
 
   const [notifyFromSanity, siteSettings] = await Promise.all([
@@ -175,6 +176,11 @@ async function sendConfirmationEmails(order: any, orderNumber: string) {
       <div style="background:#fff;padding:24px 32px;border:1px solid #e2e8f0;border-top:none">
         <p style="margin:0 0 20px;font-size:15px">Hola <strong>${customer.name}</strong>, confirmamos que recibimos tu pago. En breve procesaremos tu pedido.</p>
         ${itemsTable}
+        <div style="margin-top:24px;text-align:center">
+          <a href="${pdfLink}" style="display:inline-block;color:#111827;text-decoration:underline;font-size:14px;font-weight:600">
+            Descargar PDF del pedido
+          </a>
+        </div>
         <div style="margin-top:24px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;">
           <p style="margin:0;font-size:14px;color:#166534">
             ¿Tienes dudas? Escríbenos al

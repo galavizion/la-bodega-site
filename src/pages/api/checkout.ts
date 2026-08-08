@@ -476,6 +476,9 @@ export const POST: APIRoute = async ({ request }) => {
             <a href="https://labodegadelinstalador.net/mi-cuenta/" style="display:inline-block;background:#111827;color:#FFD700;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:600">
               Ver mis pedidos
             </a>
+            <a href="https://www.labodegadelinstalador.net/api/pedido/${num}/pdf?t=${confirmationToken}" style="display:inline-block;margin-left:10px;color:#111827;text-decoration:underline;padding:12px 4px;font-size:14px;font-weight:600">
+              Descargar PDF del pedido
+            </a>
           </div>
         </div>
         <div style="background:#f8fafc;padding:12px 32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;font-size:12px;color:#94a3b8;text-align:center">
