@@ -198,6 +198,8 @@ const waActive = waPhone;
           status.textContent = f.dataset.success;
           status.className = "form-status form-status--ok";
           f.reset();
+          window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({ event: "formulario", formType: f.dataset.formType });
         } else {
           const d = await res.json().catch(() => ({}));
           status.textContent = d.error ?? "Ocurrió un error. Intenta de nuevo.";
