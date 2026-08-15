@@ -2,9 +2,18 @@
 export const prerender = false;
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { client as sanityClient } from "../../lib/sanity/client";
+import { createClient } from "@sanity/client";
 import { SITE_SETTINGS_QUERY } from "../../lib/sanity/queries";
 import groq from "groq";
+
+// Cliente propio sin CDN: esta página debe ver el pedido recién creado al
+// instante (justo después de pagar), sin el delay de replicación del CDN.
+const sanityClient = createClient({
+  projectId: import.meta.env.PUBLIC_SANITY_PROJECT_ID ?? "a7b3q6z9",
+  dataset:   import.meta.env.PUBLIC_SANITY_DATASET   ?? "production",
+  apiVersion: "2025-01-01",
+  useCdn: false,
+});
 
 const { id } = Astro.params;
 
