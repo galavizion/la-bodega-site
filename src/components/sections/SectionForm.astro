@@ -175,6 +175,11 @@ const waActive = waPhone;
       const label = btn.querySelector(".form-btn__label");
       const spinner = btn.querySelector(".form-btn__spinner");
 
+      if (!f.checkValidity()) {
+        f.reportValidity();
+        return;
+      }
+
       btn.disabled = true;
       label.style.opacity = "0";
       spinner.style.display = "block";

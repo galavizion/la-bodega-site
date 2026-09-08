@@ -16,12 +16,40 @@ function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
 }
 
-export const POST: APIRoute = async ({ request }) => {
-  let body: { email?: string };
+export const POST: APIRoute = async ({ request, clientAddress }) => {
+  let body: { email?: string; "cf-turnstile-response"?: string };
   try { body = await request.json(); } catch { return json({ error: "JSON inválido" }, 400); }
+
+  // ── Turnstile ──────────────────────────────────────────────────────────────
+  const secretKey = import.meta.env.TURNSTILE_SECRET_KEY;
+  if (secretKey) {
+    const token = String(body["cf-turnstile-response"] ?? "");
+    if (!token) return json({ error: "Verifica que no eres un robot." }, 400);
+    const fd = new FormData();
+    fd.append("secret", secretKey);
+    fd.append("response", token);
+    const check = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: fd });
+    const result: any = await check.json().catch(() => ({}));
+    if (!result.success) return json({ error: "Verificación fallida. Intenta de nuevo." }, 400);
+  }
 
   const email = String(body.email ?? "").trim().toLowerCase();
   if (!email || !email.includes("@")) return json({ error: "Email inválido" }, 400);
+
+  let ip = "";
+  try { ip = clientAddress ?? ""; } catch { ip = ""; }
+  if (!ip) ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
+
+  // No permitir más de 5 códigos por IP en 10 minutos (evita usar el endpoint como relay de correo)
+  if (ip) {
+    const recentFromIp = await sanity.fetch<number>(
+      `count(*[_type == "authCode" && ip == $ip && dateTime(_createdAt) > dateTime(now()) - 600])`,
+      { ip }
+    ).catch(() => 0);
+    if (recentFromIp >= 5) {
+      return json({ error: "Demasiadas solicitudes. Intenta de nuevo más tarde." }, 429);
+    }
+  }
 
   // No permitir pedir otro código antes de 30s (evita spam al correo del usuario)
   const lastCode = await sanity.fetch<{ _createdAt: string } | null>(
@@ -48,7 +76,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   // Crear nuevo código
-  await sanity.create({ _type: "authCode", email, code, expiresAt, used: false });
+  await sanity.create({ _type: "authCode", email, ip, code, expiresAt, used: false });
 
   // Enviar email
   const resendKey = import.meta.env.RESEND_API_KEY;

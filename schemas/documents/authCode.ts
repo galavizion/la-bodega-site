@@ -6,6 +6,7 @@ export const authCode = defineType({
   type: "document",
   fields: [
     defineField({ name: "email",     type: "string",   title: "Email" }),
+    defineField({ name: "ip",        type: "string",   title: "IP" }),
     defineField({ name: "code",      type: "string",   title: "Código" }),
     defineField({ name: "expiresAt", type: "string",   title: "Expira" }),
     defineField({ name: "used",      type: "boolean",  title: "Usado", initialValue: false }),

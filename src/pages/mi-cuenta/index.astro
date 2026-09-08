@@ -9,6 +9,7 @@ const session = await getSession(Astro.request);
 if (session) return Astro.redirect("/mi-cuenta/dashboard/");
 
 const settings = await sanityClient.fetch(SITE_SETTINGS_QUERY);
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
 ---
 
 <BaseLayout title="Mi cuenta | La Bodega del Instalador" bodyClass="is-shop">
@@ -29,6 +30,9 @@ const settings = await sanityClient.fetch(SITE_SETTINGS_QUERY);
           <span>Correo electrónico</span>
           <input type="email" name="email" id="emailInput" required placeholder="correo@ejemplo.com" autocomplete="email" />
         </label>
+        {turnstileSiteKey && (
+          <div class="cf-turnstile" data-sitekey={turnstileSiteKey} data-theme="auto"></div>
+        )}
         <div id="loginError" class="acc-error" style="display:none"></div>
         <button class="acc-btn" type="submit" id="loginBtn">Enviar código →</button>
       </form>
@@ -37,6 +41,10 @@ const settings = await sanityClient.fetch(SITE_SETTINGS_QUERY);
     </div>
   </main>
 
+  {turnstileSiteKey && (
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer is:inline></script>
+  )}
+
   <script is:inline>
     const form = document.getElementById("loginForm");
     const errEl = document.getElementById("loginError");
@@ -44,9 +52,15 @@ const settings = await sanityClient.fetch(SITE_SETTINGS_QUERY);
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
       errEl.style.display = "none";
       const email = document.getElementById("emailInput").value.trim();
       if (!email) return;
+
+      const turnstileToken = form.querySelector('[name="cf-turnstile-response"]')?.value ?? "";
 
       btn.disabled = true;
       btn.textContent = "Enviando…";
@@ -55,7 +69,7 @@ const settings = await sanityClient.fetch(SITE_SETTINGS_QUERY);
         const res = await fetch("/api/auth/request-code", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ email, "cf-turnstile-response": turnstileToken }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Error");
@@ -66,6 +80,7 @@ const settings = await sanityClient.fetch(SITE_SETTINGS_QUERY);
         errEl.style.display = "block";
         btn.disabled = false;
         btn.textContent = "Enviar código →";
+        if (window.turnstile) window.turnstile.reset();
       }
     });
   </script>
