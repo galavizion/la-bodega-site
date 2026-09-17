@@ -32,9 +32,19 @@ const to = from + PAGE_SIZE;
 
 const q2 = stripAccents(q);
 const NEW_DAYS = 30;
+const MIN_ITEMS = 12;
 const sinceDate = new Date(Date.now() - NEW_DAYS * 24 * 60 * 60 * 1000).toISOString();
-const baseFilter = `_type == "catalogItem" && defined(slug.current) && published != false && (!defined(familySlug) || isFamilyRepresentative == true) && _createdAt > $sinceDate`;
+const commonFilter = `_type == "catalogItem" && defined(slug.current) && published != false && (!defined(familySlug) || isFamilyRepresentative == true)`;
 const searchFilter = q ? ` && (title match $q + "*" || title match $q2 + "*" || excerpt match $q + "*" || excerpt match $q2 + "*")` : "";
+
+const datedTotal = await sanityClient.fetch<number>(
+  groq`count(*[${commonFilter} && _createdAt > $sinceDate${searchFilter}])`,
+  { q, q2, sinceDate }
+);
+const usingFallback = datedTotal < MIN_ITEMS;
+const baseFilter = usingFallback ? commonFilter : `${commonFilter} && _createdAt > $sinceDate`;
+// En fallback solo mostramos un puñado de los más recientes, no todo el catálogo paginado
+const effectiveTo = usingFallback ? Math.min(to, MIN_ITEMS) : to;
 
 const query = groq`{
   "items": *[${baseFilter}${searchFilter}] | order(_createdAt desc) [$from...$to] {
@@ -64,10 +74,11 @@ const query = groq`{
   "total": count(*[${baseFilter}${searchFilter}])
 }`;
 
-const [{ items, total }, settings] = await Promise.all([
-  sanityClient.fetch<{ items: CatalogItem[]; total: number }>(query, { q, q2, from, to, sinceDate }),
+const [{ items, total: rawTotal }, settings] = await Promise.all([
+  sanityClient.fetch<{ items: CatalogItem[]; total: number }>(query, { q, q2, from, to: effectiveTo, sinceDate }),
   sanityClient.fetch(SITE_SETTINGS_QUERY),
 ]);
+const total = usingFallback ? Math.min(rawTotal, MIN_ITEMS) : rawTotal;
 
 const catalogOnlyMode: boolean = settings?.catalogOnlyMode === true;
 
@@ -134,7 +145,9 @@ const pgRange = paginationRange(page, totalPages);
         <div>
           <h1 class="catalog-title">Nuevos</h1>
           <p class="catalog-subtitle">
-            {total} producto{total !== 1 ? "s" : ""} agregado{total !== 1 ? "s" : ""} en los últimos {NEW_DAYS} días
+            {usingFallback
+              ? `Los ${total} productos más recientes`
+              : `${total} producto${total !== 1 ? "s" : ""} agregado${total !== 1 ? "s" : ""} en los últimos ${NEW_DAYS} días`}
           </p>
         </div>
       </div>
@@ -276,7 +289,7 @@ const pgRange = paginationRange(page, totalPages);
       </div>
     ) : (
       <div class="empty-state">
-        <p>No hay productos nuevos en los últimos {NEW_DAYS} días.</p>
+        <p>No hay productos disponibles.</p>
         <a href="/catalogo/">Ver todos los productos</a>
       </div>
     )}
