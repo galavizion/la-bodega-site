@@ -408,20 +408,27 @@ export const POST: APIRoute = async ({ request }) => {
 
     // ── Correo al admin ─────────────────────────────────────
     if (notifyEmails.length > 0) {
+      const isAwaitingPayment = paymentMethod === "transfer";
+      const shippingAddressRow = !isPickup ? `
+              <tr><td style="padding:6px 0;font-weight:600;vertical-align:top">Dirección</td><td>
+                ${String(customer.address ?? "")}${customer.reference ? ` (${customer.reference})` : ""}<br/>
+                ${[customer.colonia, customer.city, customer.state].filter(Boolean).join(", ")}${customer.zip ? ` — CP ${customer.zip}` : ""}
+              </td></tr>` : "";
       const adminHtml = `
         <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;color:#111827">
-          <div style="background:#111827;padding:24px 32px;border-radius:12px 12px 0 0">
-            <h1 style="margin:0;color:#FFD700;font-size:20px">🛒 Nuevo pedido #${num}</h1>
+          <div style="background:${isAwaitingPayment ? "#b45309" : "#111827"};padding:24px 32px;border-radius:12px 12px 0 0">
+            <h1 style="margin:0;color:#FFD700;font-size:20px">${isAwaitingPayment ? "⏳ Pedido Pendiente de Cobro" : "🛒 Nuevo pedido"} #${num}</h1>
             <p style="margin:6px 0 0;color:rgba(255,255,255,.75);font-size:14px">La Bodega del Instalador</p>
           </div>
           <div style="background:#fff;padding:24px 32px;border:1px solid #e2e8f0;border-top:none">
             <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:20px;color:#111827">
               <tr><td style="padding:6px 0;font-weight:600;width:140px">Pedido</td><td>#${num}</td></tr>
-              <tr><td style="padding:6px 0;font-weight:600">Cliente</td><td>${customer.name}</td></tr>
+              <tr><td style="padding:6px 0;font-weight:600">Cliente</td><td>${customer.name}${customer.company ? ` (${customer.company})` : ""}</td></tr>
               <tr><td style="padding:6px 0;font-weight:600">Email</td><td>${customer.email}</td></tr>
               <tr><td style="padding:6px 0;font-weight:600">Teléfono</td><td>${customer.phone}</td></tr>
-              <tr><td style="padding:6px 0;font-weight:600">Pago</td><td>${paymentMethod === "transfer" ? "Transferencia / Depósito" : (paymentMethod || "N/A")}</td></tr>
+              <tr><td style="padding:6px 0;font-weight:600">Pago</td><td>${isAwaitingPayment ? "Transferencia / Depósito — PENDIENTE DE COBRO" : (paymentMethod || "N/A")}</td></tr>
               <tr><td style="padding:6px 0;font-weight:600">Entrega</td><td>${deliveryMethod === "pickup" ? `Recoger en sucursal${pickupBranchName ? `: ${pickupBranchName}` : ""}` : "Envío a domicilio"}</td></tr>
+              ${shippingAddressRow}
             </table>
             ${itemsTable}
             ${customerWaPhone ? `<div style="margin-top:24px;text-align:center">
@@ -438,7 +445,9 @@ export const POST: APIRoute = async ({ request }) => {
       await resend.emails.send({
         from: "La Bodega del Instalador <noreply@labodegadelinstalador.net>",
         to: notifyEmails,
-        subject: `[Pedido] #${num} — ${customer.name} · ${fmt(netTotal)}`,
+        subject: isAwaitingPayment
+          ? `Pedido Pendiente de Cobro #${num} — ${customer.name} · ${fmt(netTotal)}`
+          : `[Pedido] #${num} — ${customer.name} · ${fmt(netTotal)}`,
         html: adminHtml,
         replyTo: customer.email || undefined,
       }).catch(() => {});
