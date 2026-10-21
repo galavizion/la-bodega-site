@@ -1,0 +1,499 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Apaga el fuego | La Bodega del Instalador" bodyClass="is-shop">
+  <main class="container game-wrap">
+    <header class="game-head">
+      <h1>🔥 APAGA EL FUEGO 🔥</h1>
+      <p class="game-sub">Demuestra tus reflejos contra la flama y llévate premios exclusivos.</p>
+      <p class="game-instructions">30 segundos en la bodega. Haz clic o tap sobre las llamas antes de que se apaguen solas. ¡El extintor está listo!</p>
+    </header>
+
+    <section class="game-card">
+      <div class="game-hud">
+        <div class="hud-badge hud-badge--score"><span>Puntaje</span><strong data-score>0</strong></div>
+        <div class="hud-badge hud-badge--time"><span>Tiempo</span><strong data-time>30</strong></div>
+      </div>
+
+      <div class="game-stage" data-stage>
+        <div class="game-overlay" data-overlay>
+          <p class="game-welcome" data-welcome hidden></p>
+          <button class="btn btn--primary" data-start>Entrar al juego</button>
+        </div>
+      </div>
+
+      <div class="game-result" data-result hidden>
+        <h2>¡Partida completada con éxito!</h2>
+        <p>Puntaje final: <strong data-final-score>0</strong></p>
+
+        <div class="game-save" data-save-form>
+          <p class="game-save__ask">¿Quieres guardarlo en el ranking?</p>
+          <input type="text" placeholder="Ingresa tu nombre o empresa" data-input-name maxlength="60" />
+          <input type="tel" placeholder="Teléfono celular (10 dígitos)" data-input-phone maxlength="10" hidden />
+          <div class="game-save__actions">
+            <button class="btn btn--primary" data-save-yes>Guardar récord</button>
+            <button class="btn btn--ghost" data-save-no>No, gracias</button>
+          </div>
+          <p class="game-save__msg" data-save-msg></p>
+        </div>
+
+        <button class="btn btn--ghost" data-retry>Jugar otra vez</button>
+      </div>
+    </section>
+
+    <section class="leaderboard-card">
+      <div class="leaderboard-tabs">
+        <button class="is-active" data-period="week">🏆 Esta semana</button>
+        <button data-period="month">🏅 Este mes</button>
+      </div>
+      <div class="leaderboard-header">
+        <span>Rango</span><span>Instalador / Empresa</span><span>Puntaje</span>
+      </div>
+      <ol class="leaderboard-list" data-leaderboard>
+        <li class="leaderboard-empty">Cargando...</li>
+      </ol>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .game-wrap {
+    padding: calc(var(--header-h, 80px) + 40px) 0 80px;
+    max-width: 760px;
+    --bdi-amarillo: #FFD700;
+    --bdi-amarillo-hover: #E5C200;
+    --bdi-oscuro: #000;
+    --bdi-card: #111;
+    --bdi-borde: #333;
+  }
+  .game-head { text-align: center; margin-bottom: 24px; }
+  .game-head h1 { font-size: clamp(28px, 4vw, 44px); margin: 0 0 8px; }
+  .game-sub { opacity: .8; max-width: 540px; margin: 0 auto 6px; }
+  .game-instructions { opacity: .6; font-size: 14px; max-width: 480px; margin: 0 auto; }
+
+  .game-card {
+    background: var(--bdi-oscuro);
+    border: 1px solid var(--bdi-borde);
+    border-radius: 20px;
+    padding: 20px;
+    color: #fff;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,.3);
+  }
+
+  .game-hud {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    padding: 4px 8px 20px;
+  }
+
+  .hud-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    box-shadow: 0 6px 18px rgba(0,0,0,.5);
+    border: 3px solid rgba(255,255,255,.15);
+  }
+  .hud-badge--score { background: var(--bdi-amarillo); }
+  .hud-badge--time { background: #ef4444; }
+
+  .hud-badge span {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .hud-badge--score span { color: #000; opacity: .65; }
+  .hud-badge--time span { color: #fff; opacity: .85; }
+
+  .hud-badge strong { font-size: 48px; font-weight: 800; line-height: 1; }
+  .hud-badge--score strong { color: #000; }
+  .hud-badge--time strong { color: #fff; }
+
+  .game-stage {
+    position: relative;
+    width: 100%;
+    max-width: 52.5vh;
+    aspect-ratio: 3/4;
+    margin: 0 auto;
+    background: url("/media/fondo-juego.jpg") center / cover no-repeat, linear-gradient(180deg, #1e293b, #0f172a);
+    border-radius: 14px;
+    overflow: hidden;
+    touch-action: manipulation;
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Ctext y='32' font-size='32'%3E%F0%9F%A7%AF%3C/text%3E%3C/svg%3E") 4 36, pointer;
+  }
+
+  .game-stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.2) 40%, rgba(0,0,0,.45));
+    z-index: 1;
+  }
+
+  .game-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,.4);
+    z-index: 5;
+  }
+
+  .game-welcome {
+    margin: 0;
+    font-weight: 700;
+    color: var(--bdi-amarillo);
+    text-align: center;
+  }
+
+  :global(.flame) {
+    position: absolute;
+    z-index: 2;
+    width: 93px;
+    height: 93px;
+    font-size: 67px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Ctext y='32' font-size='32'%3E%F0%9F%A7%AF%3C/text%3E%3C/svg%3E") 4 36, pointer;
+    user-select: none;
+    transform: translate(-50%, -50%);
+    text-shadow: 0 0 14px rgba(255,180,40,.95), 0 0 28px rgba(255,100,0,.7);
+    animation: flicker .35s infinite alternate;
+  }
+  :global(.flame::before) {
+    content: "";
+    position: absolute;
+    inset: -37px;
+    z-index: -1;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,150,30,.55), rgba(255,100,0,0) 70%);
+  }
+  @keyframes flicker { from { transform: translate(-50%,-50%) scale(1); } to { transform: translate(-50%,-50%) scale(1.12); } }
+
+  .game-result {
+    text-align: center;
+    padding: 24px 12px;
+  }
+  .game-result h2 { margin: 0 0 8px; }
+
+  .game-save { max-width: 320px; margin: 16px auto; display: grid; gap: 10px; }
+  .game-save__ask { margin: 0; font-size: 14px; opacity: .85; }
+  .game-save input {
+    padding: 11px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.2);
+    background: rgba(255,255,255,.05);
+    color: #fff;
+    font-size: 15px;
+  }
+  .game-save__actions { display: flex; gap: 10px; justify-content: center; }
+  .game-save__msg { font-size: 13px; min-height: 18px; opacity: .85; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 12px 20px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+  }
+  .btn--primary {
+    background: var(--bdi-amarillo);
+    color: #000;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    box-shadow: 0 4px 12px rgba(255,215,0,.3);
+    transition: background-color .2s, transform .2s, box-shadow .2s;
+  }
+  .btn--primary:hover {
+    background: var(--bdi-amarillo-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(255,215,0,.4);
+  }
+  .btn--ghost { background: transparent; border: 1px solid rgba(255,255,255,.3); color: #fff; }
+
+  .leaderboard-card { margin-top: 32px; }
+  .leaderboard-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .leaderboard-tabs button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--bdi-borde, #e2e8f0);
+    background: #fff;
+    color: var(--bdi-oscuro, #0f172a);
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .leaderboard-tabs button.is-active {
+    background: var(--bdi-oscuro);
+    color: var(--bdi-amarillo);
+    border-color: var(--bdi-oscuro);
+  }
+
+  .leaderboard-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 14px 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    opacity: .55;
+  }
+
+  .leaderboard-header span:nth-child(1) { flex: 0 0 48px; }
+  .leaderboard-header span:nth-child(3) { text-align: right; }
+
+  .leaderboard-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  :global(.leaderboard-list li) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-left: 4px solid var(--bdi-amarillo, #FFD700);
+    padding: 10px 14px;
+    background: #f8fafc;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  }
+  :global(.leaderboard-rank) { flex: 0 0 36px; opacity: .6; }
+  :global(.leaderboard-name) { flex: 1; }
+  :global(.leaderboard-list li strong) { font-weight: 700; }
+  :global(.leaderboard-empty) { justify-content: center; opacity: .6; font-weight: 400; }
+</style>
+
+<script>
+  type Flame = { el: HTMLDivElement; x: number; y: number; alive: boolean };
+
+  const stage = document.querySelector<HTMLDivElement>("[data-stage]")!;
+  const overlay = document.querySelector<HTMLDivElement>("[data-overlay]")!;
+  const startBtn = document.querySelector<HTMLButtonElement>("[data-start]")!;
+  const scoreEl = document.querySelector<HTMLElement>("[data-score]")!;
+  const timeEl = document.querySelector<HTMLElement>("[data-time]")!;
+  const resultEl = document.querySelector<HTMLDivElement>("[data-result]")!;
+  const finalScoreEl = document.querySelector<HTMLElement>("[data-final-score]")!;
+  const retryBtn = document.querySelector<HTMLButtonElement>("[data-retry]")!;
+  const saveForm = document.querySelector<HTMLDivElement>("[data-save-form]")!;
+  const nameInput = document.querySelector<HTMLInputElement>("[data-input-name]")!;
+  const phoneInput = document.querySelector<HTMLInputElement>("[data-input-phone]")!;
+  const saveYesBtn = document.querySelector<HTMLButtonElement>("[data-save-yes]")!;
+  const saveNoBtn = document.querySelector<HTMLButtonElement>("[data-save-no]")!;
+  const saveMsg = document.querySelector<HTMLElement>("[data-save-msg]")!;
+  const welcomeEl = document.querySelector<HTMLElement>("[data-welcome]")!;
+  const leaderboardList = document.querySelector<HTMLOListElement>("[data-leaderboard]")!;
+  const periodBtns = document.querySelectorAll<HTMLButtonElement>("[data-period]");
+
+  const GAME_SECONDS = 30;
+  let score = 0;
+  let timeLeft = GAME_SECONDS;
+  let timerId: number | null = null;
+  let spawnId: number | null = null;
+  let flames: Flame[] = [];
+  let knownName: string | null = null;
+
+  async function loadMe() {
+    try {
+      const r = await fetch("/api/game/me");
+      const data = await r.json();
+      knownName = data?.name ?? null;
+      if (knownName) {
+        nameInput.value = knownName;
+        phoneInput.hidden = true;
+        welcomeEl.textContent = `¡Bienvenido de vuelta, ${knownName}!`;
+        welcomeEl.hidden = false;
+        startBtn.textContent = "Jugar otra vez";
+      } else {
+        phoneInput.hidden = false;
+      }
+    } catch {
+      phoneInput.hidden = false;
+    }
+  }
+  loadMe();
+
+  function clearFlames() {
+    flames.forEach((f) => f.el.remove());
+    flames = [];
+  }
+
+  function spawnFlame() {
+    const rect = stage.getBoundingClientRect();
+    const size = 93;
+    const minDist = 160;
+
+    let x = 0;
+    let y = 0;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      x = Math.random() * (rect.width - size) + size / 2;
+      y = Math.random() * (rect.height - size) + size / 2;
+      const overlaps = flames.some((f) => Math.hypot(f.x - x, f.y - y) < minDist);
+      if (!overlaps) break;
+    }
+
+    const el = document.createElement("div");
+    el.className = "flame";
+    el.textContent = "🔥";
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+
+    const flame: Flame = { el, x, y, alive: true };
+
+    const extinguish = (e: Event) => {
+      e.preventDefault();
+      if (!flame.alive) return;
+      flame.alive = false;
+      score++;
+      scoreEl.textContent = String(score);
+      el.remove();
+      flames = flames.filter((f) => f !== flame);
+    };
+
+    el.addEventListener("click", extinguish);
+    el.addEventListener("touchstart", extinguish, { passive: false });
+
+    stage.appendChild(el);
+    flames.push(flame);
+
+    window.setTimeout(() => {
+      if (flame.alive) {
+        flame.alive = false;
+        el.remove();
+        flames = flames.filter((f) => f !== flame);
+      }
+    }, 1400);
+  }
+
+  function startGame() {
+    score = 0;
+    timeLeft = GAME_SECONDS;
+    scoreEl.textContent = "0";
+    timeEl.textContent = String(timeLeft);
+    overlay.style.display = "none";
+    resultEl.hidden = true;
+    saveMsg.textContent = "";
+    clearFlames();
+
+    spawnId = window.setInterval(spawnFlame, 650);
+    timerId = window.setInterval(() => {
+      timeLeft--;
+      timeEl.textContent = String(timeLeft);
+      if (timeLeft <= 0) endGame();
+    }, 1000);
+  }
+
+  function endGame() {
+    if (timerId) window.clearInterval(timerId);
+    if (spawnId) window.clearInterval(spawnId);
+    clearFlames();
+    finalScoreEl.textContent = String(score);
+    resultEl.hidden = false;
+    overlay.style.display = "none";
+  }
+
+  startBtn.addEventListener("click", startGame);
+  retryBtn.addEventListener("click", () => {
+    resultEl.hidden = true;
+    saveForm.style.display = "";
+    saveMsg.textContent = "";
+    saveYesBtn.disabled = false;
+    overlay.style.display = "flex";
+  });
+
+  saveYesBtn.addEventListener("click", async () => {
+    const name = nameInput.value.trim();
+    const phone = phoneInput.hidden ? undefined : phoneInput.value.trim();
+
+    if (!name) {
+      saveMsg.textContent = "Escribe tu nombre.";
+      return;
+    }
+    if (!phoneInput.hidden && !/^\d{10}$/.test(phone ?? "")) {
+      saveMsg.textContent = "Celular inválido (10 dígitos).";
+      return;
+    }
+
+    saveYesBtn.disabled = true;
+    saveMsg.textContent = "Guardando...";
+
+    try {
+      const r = await fetch("/api/game/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ score, name, phone }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data?.error || "Error al guardar");
+
+      saveMsg.textContent =
+        "¡Puntaje guardado! Si quedas en el Top 10, te contactamos para tu premio. Tu mejor puntaje esta semana: " +
+        data.bestThisWeek;
+      saveForm.style.display = "none";
+
+      knownName = name;
+      phoneInput.hidden = true;
+      welcomeEl.textContent = `¡Bienvenido de vuelta, ${knownName}!`;
+      welcomeEl.hidden = false;
+      startBtn.textContent = "Jugar otra vez";
+
+      loadLeaderboard(currentPeriod);
+    } catch (e: any) {
+      saveMsg.textContent = e?.message || "Error al guardar.";
+      saveYesBtn.disabled = false;
+    }
+  });
+
+  saveNoBtn.addEventListener("click", () => {
+    saveForm.style.display = "none";
+  });
+
+  let currentPeriod: "week" | "month" = "week";
+
+  async function loadLeaderboard(period: "week" | "month") {
+    currentPeriod = period;
+    leaderboardList.innerHTML = '<li class="leaderboard-empty">Cargando...</li>';
+    try {
+      const r = await fetch(`/api/game/leaderboard?period=${period}`);
+      const data = await r.json();
+      const rows = data?.leaderboard ?? [];
+      if (rows.length === 0) {
+        leaderboardList.innerHTML = '<li class="leaderboard-empty">Nadie ha jugado todavía. ¡Sé el primero!</li>';
+        return;
+      }
+      const esc = (s: string) =>
+        s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+
+      leaderboardList.innerHTML = rows
+        .map(
+          (row: any, i: number) =>
+            `<li><span class="leaderboard-rank">#${i + 1}</span><span class="leaderboard-name">${esc(row.name)}</span><strong>${row.best}</strong></li>`
+        )
+        .join("");
+    } catch {
+      leaderboardList.innerHTML = '<li class="leaderboard-empty">No se pudo cargar el ranking.</li>';
+    }
+  }
+
+  periodBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      periodBtns.forEach((b) => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+      loadLeaderboard(btn.dataset.period as "week" | "month");
+    });
+  });
+
+  loadLeaderboard("week");
+</script>
