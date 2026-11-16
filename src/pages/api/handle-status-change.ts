@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { Resend } from "resend";
 import { createClient } from "@sanity/client";
-import { logNotification } from "../../lib/notifications";
+import { logNotification, alertTelegram } from "../../lib/notifications";
 
 export const prerender = false;
 
@@ -48,7 +48,7 @@ export const POST: APIRoute = async ({ request }) => {
       // Solo para confirmaciones manuales (Studio) — MercadoPago ya manda su
       // propio correo de confirmación desde /api/mp-webhook al aprobar el pago.
       if (after.paymentMethod !== "mercadopago") {
-        await sendConfirmedEmail({
+        const confRes = await sendConfirmedEmail({
           to: customer.email,
           name: customer.name,
           orderNumber,
@@ -59,10 +59,14 @@ export const POST: APIRoute = async ({ request }) => {
           iva,
           total,
         });
-        await logNotification(sanity, after._id, "confirmed", customer.email);
+        if (confRes?.error) {
+          console.error("Error al enviar correo de confirmación:", confRes.error);
+          await alertTelegram(`⚠️ <b>Fallo de correo</b>\nNo se pudo enviar confirmación de pedido <b>#${orderNumber}</b> al cliente ${customer.email}.\nError: ${JSON.stringify(confRes.error).slice(0, 200)}`);
+          await logNotification(sanity, after._id, "client_email_failed", customer.email);
+        } else await logNotification(sanity, after._id, "confirmed", customer.email);
       }
     } else if (after.status === "shipped" && before.status !== "shipped") {
-      await sendShippedEmail({
+      const shipRes = await sendShippedEmail({
         to: customer.email,
         name: customer.name,
         orderNumber,
@@ -71,7 +75,11 @@ export const POST: APIRoute = async ({ request }) => {
         trackingNumber: shippingInfo?.trackingNumber,
         trackingUrl: shippingInfo?.trackingUrl,
       });
-      await logNotification(sanity, after._id, "shipped", customer.email);
+      if (shipRes?.error) {
+        console.error("Error al enviar correo de envío:", shipRes.error);
+        await alertTelegram(`⚠️ <b>Fallo de correo</b>\nNo se pudo enviar aviso de envío de pedido <b>#${orderNumber}</b> al cliente ${customer.email}.\nError: ${JSON.stringify(shipRes.error).slice(0, 200)}`);
+        await logNotification(sanity, after._id, "client_email_failed", customer.email);
+      } else await logNotification(sanity, after._id, "shipped", customer.email);
     } else if (after.status === "delivered" && before.status !== "delivered") {
       // Opcional: Podrías enviar un correo de "Pedido Entregado"
     }
@@ -131,12 +139,13 @@ async function sendShippedEmail(props: ShippedEmailProps) {
       </div>
     </div>`;
 
-  await resend.emails.send({
+  const res = await resend.emails.send({
     from: "La Bodega del Instalador <noreply@labodegadelinstalador.net>",
     to: [to],
     subject: `Tu pedido #${orderNumber} ha sido enviado`,
     html: clientHtml,
-  }).catch(console.error);
+  }).catch((e: any) => ({ error: e }));
+  return res;
 }
 
 interface ConfirmedEmailProps {
@@ -211,10 +220,11 @@ async function sendConfirmedEmail(props: ConfirmedEmailProps) {
       </div>
     </div>`;
 
-  await resend.emails.send({
+  const res = await resend.emails.send({
     from: "La Bodega del Instalador <noreply@labodegadelinstalador.net>",
     to: [to],
     subject: `¡Pedido confirmado! #${orderNumber} — La Bodega del Instalador`,
     html: clientHtml,
-  }).catch(console.error);
+  }).catch((e: any) => ({ error: e }));
+  return res;
 }

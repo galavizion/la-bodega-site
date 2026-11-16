@@ -20,3 +20,24 @@ export async function logNotification(
     .commit()
     .catch((e) => console.error("Error al registrar notificación en bitácora:", e));
 }
+
+/**
+ * Envía un mensaje de alerta por Telegram.
+ * Requiere TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID en las variables de entorno.
+ * No lanza — un fallo aquí nunca debe tumbar el flujo principal.
+ */
+export async function alertTelegram(message: string): Promise<void> {
+  const token = import.meta.env.TELEGRAM_BOT_TOKEN;
+  const chatId = import.meta.env.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) return;
+
+  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: message,
+      parse_mode: "HTML",
+    }),
+  }).catch((e) => console.error("Error al enviar alerta por Telegram:", e));
+}

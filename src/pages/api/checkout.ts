@@ -3,7 +3,7 @@ import { createClient } from "@sanity/client";
 import { Resend } from "resend";
 import { resolveMarkup } from "../../lib/pricing";
 import { getSession } from "../../lib/auth";
-import { logNotification } from "../../lib/notifications";
+import { logNotification, alertTelegram } from "../../lib/notifications";
 
 export const prerender = false;
 
@@ -452,8 +452,11 @@ export const POST: APIRoute = async ({ request }) => {
         html: adminHtml,
         replyTo: customer.email || undefined,
       }).catch((e) => ({ error: e }));
-      if (adminRes?.error) console.error("Error al enviar correo a admins:", adminRes.error);
-      else await logNotification(sanity, created._id, "admin_new_order", notifyEmails.join(", "));
+      if (adminRes?.error) {
+        console.error("Error al enviar correo a admins:", adminRes.error);
+        await alertTelegram(`⚠️ <b>Fallo de correo</b>\nNo se pudo enviar aviso de pedido <b>#${num}</b> a admins.\nCliente: ${customer.name}\nTotal: ${fmt(netTotal)}\nError: ${JSON.stringify(adminRes.error).slice(0, 200)}`);
+        await logNotification(sanity, created._id, "admin_email_failed", notifyEmails.join(", "));
+      } else await logNotification(sanity, created._id, "admin_new_order", notifyEmails.join(", "));
     }
 
     // ── Correo de confirmación al cliente ───────────────────
@@ -503,8 +506,11 @@ export const POST: APIRoute = async ({ request }) => {
       subject: `Confirmación de pedido #${num} — La Bodega del Instalador`,
       html: clientHtml,
     }).catch((e) => ({ error: e }));
-    if (clientRes?.error) console.error("Error al enviar correo al cliente:", clientRes.error);
-    else await logNotification(sanity, created._id, "order_received", customer.email);
+    if (clientRes?.error) {
+      console.error("Error al enviar correo al cliente:", clientRes.error);
+      await alertTelegram(`⚠️ <b>Fallo de correo</b>\nNo se pudo enviar confirmación de pedido <b>#${num}</b> al cliente ${customer.email}.\nError: ${JSON.stringify(clientRes.error).slice(0, 200)}`);
+      await logNotification(sanity, created._id, "client_email_failed", customer.email);
+    } else await logNotification(sanity, created._id, "order_received", customer.email);
   }
 
   return json({ success: true, orderId: created._id, orderNumber: num, confirmationToken, shipping: shippingAmount, total: netTotal, cashbackApplied, couponDiscount });

@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { createClient } from "@sanity/client";
 import { Resend } from "resend";
-import { logNotification } from "../../lib/notifications";
+import { logNotification, alertTelegram } from "../../lib/notifications";
 
 export const prerender = false;
 
@@ -157,14 +157,18 @@ async function sendConfirmationEmails(order: any, orderNumber: string) {
         <div style="background:#f8fafc;padding:12px 32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;font-size:12px;color:#94a3b8;text-align:center">${now}</div>
       </div>`;
 
-    await resend.emails.send({
+    const adminRes = await resend.emails.send({
       from: "La Bodega del Instalador <noreply@labodegadelinstalador.net>",
       to: notifyEmails,
       subject: `[Pedido confirmado] #${orderNumber} — ${customer.name} · ${fmt(total)}`,
       html: adminHtml,
       replyTo: customer.email || undefined,
-    }).catch(console.error);
-    await logNotification(sanity, order._id, "admin_payment_confirmed", notifyEmails.join(", "));
+    }).catch((e) => ({ error: e }));
+    if (adminRes?.error) {
+      console.error("Error al enviar correo a admins:", adminRes.error);
+      await alertTelegram(`⚠️ <b>Fallo de correo (MP)</b>\nNo se pudo enviar aviso de pago confirmado <b>#${orderNumber}</b> a admins.\nCliente: ${customer.name}\nTotal: ${fmt(total)}\nError: ${JSON.stringify(adminRes.error).slice(0, 200)}`);
+      await logNotification(sanity, order._id, "admin_email_failed", notifyEmails.join(", "));
+    } else await logNotification(sanity, order._id, "admin_payment_confirmed", notifyEmails.join(", "));
   }
 
   // ── Correo al cliente ────────────────────────────────
@@ -192,11 +196,15 @@ async function sendConfirmationEmails(order: any, orderNumber: string) {
       <div style="background:#f8fafc;padding:12px 32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;font-size:12px;color:#94a3b8;text-align:center">${now}</div>
     </div>`;
 
-  await resend.emails.send({
+  const clientRes = await resend.emails.send({
     from: "La Bodega del Instalador <noreply@labodegadelinstalador.net>",
     to: [customer.email],
     subject: `¡Pago confirmado! Pedido #${orderNumber} — La Bodega del Instalador`,
     html: clientHtml,
-  }).catch(console.error);
-  await logNotification(sanity, order._id, "payment_confirmed", customer.email);
+  }).catch((e) => ({ error: e }));
+  if (clientRes?.error) {
+    console.error("Error al enviar correo al cliente:", clientRes.error);
+    await alertTelegram(`⚠️ <b>Fallo de correo (MP)</b>\nNo se pudo enviar confirmación de pago <b>#${orderNumber}</b> al cliente ${customer.email}.\nError: ${JSON.stringify(clientRes.error).slice(0, 200)}`);
+    await logNotification(sanity, order._id, "client_email_failed", customer.email);
+  } else await logNotification(sanity, order._id, "payment_confirmed", customer.email);
 }
