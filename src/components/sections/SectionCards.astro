@@ -112,6 +112,22 @@ const bgTheme = bg === "#000000" ? "section--on-dark"
   .cards__grid--12 .card__img-wrap { display: flex; align-items: center; justify-content: center; }
   .cards__grid--12 .card__img-wrap img { width: auto; max-width: 100%; height: auto; }
 
+  /* Alineación entre cards: filas compartidas (imagen, badge, título, descripción, link) */
+  .cards__grid:not(.cards__grid--12) .card {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 5;
+    row-gap: 0;
+  }
+  .cards__grid:not(.cards__grid--12) .card__body { display: contents; }
+  .card__img-wrap { grid-row: 1; aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; }
+  .card__img-wrap img { width: 100%; height: 100%; object-fit: contain; object-position: center; }
+  .card__badge    { grid-row: 2; align-self: start; justify-self: start; margin-top: 14px; }
+  .card__title    { grid-row: 3; margin-top: 14px; }
+  .card__desc     { grid-row: 4; margin-top: 6px; }
+  .card__link     { grid-row: 5; align-self: start; justify-self: start; margin-top: 8px; }
+  .cards--circular .card__img-wrap img { object-position: center; }
+
   /* Base card — sin fondo, sin borde, sin border-radius */
   .card {
     display: flex;
