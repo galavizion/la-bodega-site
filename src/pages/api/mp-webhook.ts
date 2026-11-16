@@ -114,10 +114,11 @@ async function sendConfirmationEmails(order: any, orderNumber: string) {
   ]);
 
   const envEmail = import.meta.env.NOTIFY_EMAIL;
-  const notifyEmails: string[] = [
-    ...(notifyFromSanity?.filter(Boolean) ?? []),
-    ...(envEmail && !notifyFromSanity?.includes(envEmail) ? [envEmail] : []),
-  ];
+  const notifyEmails: string[] = Array.from(new Set(
+    [...(notifyFromSanity ?? []), envEmail]
+      .map((e) => String(e ?? "").trim())
+      .filter(Boolean)
+  ));
 
   const waPhone        = (siteSettings?.whatsapp ?? "528121087053").replace(/\D/g, "");
   const customerWaPhone = String(customer.phone ?? "").replace(/\D/g, "");

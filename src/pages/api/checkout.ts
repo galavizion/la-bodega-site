@@ -352,13 +352,14 @@ export const POST: APIRoute = async ({ request }) => {
 
   const resendKey = import.meta.env.RESEND_API_KEY;
   const notifyFromSanity = await sanity
-    .fetch<string[] | null>(`*[_type == "siteSettings"][0].orderNotifyEmails`)
+    .fetch<string[] | null>(`coalesce(*[_type=="siteSettingsGeneral"][0].orderNotifyEmails, *[_type=="siteSettings"][0].orderNotifyEmails)`)
     .catch(() => null);
   const envEmail = import.meta.env.NOTIFY_EMAIL;
-  const notifyEmails: string[] = [
-    ...(notifyFromSanity?.filter(Boolean) ?? []),
-    ...(envEmail && !notifyFromSanity?.includes(envEmail) ? [envEmail] : []),
-  ];
+  const notifyEmails: string[] = Array.from(new Set(
+    [...(notifyFromSanity ?? []), envEmail]
+      .map((e) => String(e ?? "").trim())
+      .filter(Boolean)
+  ));
   if (resendKey) {
     const resend = new Resend(resendKey);
     const fmt = (n: number) => `$${n.toLocaleString("es-MX", { maximumFractionDigits: 2 })} MXN`;
@@ -442,7 +443,7 @@ export const POST: APIRoute = async ({ request }) => {
           </div>
         </div>`;
 
-      await resend.emails.send({
+      const adminRes = await resend.emails.send({
         from: "La Bodega del Instalador <noreply@labodegadelinstalador.net>",
         to: notifyEmails,
         subject: isAwaitingPayment
@@ -450,8 +451,9 @@ export const POST: APIRoute = async ({ request }) => {
           : `[Pedido] #${num} — ${customer.name} · ${fmt(netTotal)}`,
         html: adminHtml,
         replyTo: customer.email || undefined,
-      }).catch(() => {});
-      await logNotification(sanity, created._id, "admin_new_order", notifyEmails.join(", "));
+      }).catch((e) => ({ error: e }));
+      if (adminRes?.error) console.error("Error al enviar correo a admins:", adminRes.error);
+      else await logNotification(sanity, created._id, "admin_new_order", notifyEmails.join(", "));
     }
 
     // ── Correo de confirmación al cliente ───────────────────
@@ -495,13 +497,14 @@ export const POST: APIRoute = async ({ request }) => {
         </div>
       </div>`;
 
-    await resend.emails.send({
+    const clientRes = await resend.emails.send({
       from: "La Bodega del Instalador <noreply@labodegadelinstalador.net>",
       to: [customer.email],
       subject: `Confirmación de pedido #${num} — La Bodega del Instalador`,
       html: clientHtml,
-    }).catch(() => {});
-    await logNotification(sanity, created._id, "order_received", customer.email);
+    }).catch((e) => ({ error: e }));
+    if (clientRes?.error) console.error("Error al enviar correo al cliente:", clientRes.error);
+    else await logNotification(sanity, created._id, "order_received", customer.email);
   }
 
   return json({ success: true, orderId: created._id, orderNumber: num, confirmationToken, shipping: shippingAmount, total: netTotal, cashbackApplied, couponDiscount });
